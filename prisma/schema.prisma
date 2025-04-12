@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  clerkUserId   String @unique
+  username  String? @unique
+  email     String  @unique
+  profilePicture String?
+  comments  Comment[]
+  reviews   Review[]
+  favorites Favorite[]
+}
+
+model Show {
+  id              Int       @id @default(autoincrement())
+  tmdbId          Int       @unique
+  name            String
+  overview        String?
+  firstAirDate    DateTime?
+  originCountry   String[]
+  isCompetition   Boolean   @default(false)
+  seasons         Season[]
+  comments        Comment[]
+  reviews         Review[]
+  favorites       Favorite[]
+}
+
+model Season {
+  id             Int       @id @default(autoincrement())
+  seasonNumber   Int
+  episodeCount   Int
+  airDate        DateTime?
+  showId         Int
+  show           Show      @relation(fields: [showId], references: [id])
+  episodes       Episode[]
+  characters     Character[]
+  comments       Comment[]
+  reviews        Review[]
+  favorites      Favorite[]
+}
+
+model Episode {
+  id             Int       @id @default(autoincrement())
+  seasonId       Int
+  season         Season    @relation(fields: [seasonId], references: [id])
+  episodeNumber  Int
+  name           String
+  overview       String?
+  airDate        DateTime?
+  comments       Comment[]
+  reviews        Review[]
+  favorites      Favorite[]
+}
+
+model Character {
+  id             Int       @id @default(autoincrement())
+  seasonId       Int
+  name           String
+  characterName  String?
+  season         Season    @relation(fields: [seasonId], references: [id])
+  comments       Comment[]
+}
+
+model Comment {
+  id           Int       @id @default(autoincrement())
+  content      String
+  spoiler      Boolean   @default(false)
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  showId       Int?      // Optional relation
+  show         Show?     @relation(fields: [showId], references: [id])
+  seasonId     Int?
+  season       Season?   @relation(fields: [seasonId], references: [id])
+  episodeId    Int?
+  episode      Episode?  @relation(fields: [episodeId], references: [id])
+  characterId  Int?
+  character    Character?@relation(fields: [characterId], references: [id])
+  createdAt    DateTime  @default(now())
+}
+
+model Review {
+  id           Int       @id @default(autoincrement())
+  rating       Float     // out of 5, allows quarter stars (e.g., 4.25)
+  content      String
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  showId       Int?
+  show         Show?     @relation(fields: [showId], references: [id])
+  seasonId     Int?
+  season       Season?   @relation(fields: [seasonId], references: [id])
+  episodeId    Int?
+  episode      Episode?  @relation(fields: [episodeId], references: [id])
+  createdAt    DateTime  @default(now())
+}
+
+model Favorite {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  showId       Int?
+  show         Show?     @relation(fields: [showId], references: [id])
+  seasonId     Int?
+  season       Season?   @relation(fields: [seasonId], references: [id])
+  episodeId    Int?
+  episode      Episode?  @relation(fields: [episodeId], references: [id])
+  createdAt    DateTime  @default(now())
+}
