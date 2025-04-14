@@ -1,9 +1,9 @@
 import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@prisma/client"],
   experimental: {
-    // Required for Prisma to work with Next.js
-    serverComponentsExternalPackages: ["@prisma/client", "prisma"],
+    // your other experimental options, if any
   },
   // Optional: Enable React Strict Mode
   reactStrictMode: true,
