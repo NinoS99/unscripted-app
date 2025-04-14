@@ -14,7 +14,7 @@ type OwnerUserResponse = BaseUserResponse & Pick<User, 'email' | 'updatedAt'>;
 
 export async function GET(
   req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { userId } = await params;
