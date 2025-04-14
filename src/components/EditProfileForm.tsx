@@ -10,8 +10,20 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
         twitter: "",
         instagram: "",
     });
+    const [originalData, setOriginalData] = useState({
+        bio: "",
+        twitter: "",
+        instagram: "",
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSaveTooltip, setShowSaveTooltip] = useState(false);
+
+    // Check if form has changes
+    const hasChanges =
+        formData.bio !== originalData.bio ||
+        formData.twitter !== originalData.twitter ||
+        formData.instagram !== originalData.instagram;
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -19,11 +31,13 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
             try {
                 const response = await fetch(`/api/profile/${user.id}`);
                 const data = await response.json();
-                setFormData({
+                const defaultData = {
                     bio: data.bio || "",
                     twitter: data.twitter || "",
                     instagram: data.instagram || "",
-                });
+                };
+                setFormData(defaultData);
+                setOriginalData(defaultData);
             } finally {
                 setIsLoading(false);
             }
@@ -38,10 +52,19 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
         setIsSubmitting(true);
         try {
             await updateUserProfile(user.id, formData);
-            onClose();
+            // Update original data to current values after successful save
+            setOriginalData(formData);
+            setShowSaveTooltip(true);
+            setTimeout(() => setShowSaveTooltip(false), 2000); // Hide tooltip after 2 seconds
+        } catch (error) {
+            console.error("Failed to save profile:", error);
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleCancel = () => {
+        setFormData(originalData); // Revert to original values
     };
 
     // Construct social media URLs
@@ -64,12 +87,34 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-2xl">
-                {/* Header */}
-                <div className="border-b border-gray-200 px-6 py-4">
-                    <h2 className="text-m font-semibold text-black">
-                        Edit Bio & Socials
-                    </h2>
+            <div className="bg-white rounded-lg w-full max-w-2xl relative">
+                {/* Header with close button */}
+                <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-sm font-semibold text-black">
+                            Edit Bio & Socials
+                        </h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-500 hover:text-gray-700 p-1 -mr-2"
+                        aria-label="Close"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
                 </div>
 
                 {/* Form Content */}
@@ -94,7 +139,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                         bio: e.target.value,
                                     })
                                 }
-                                className="w-full p-3 border border-gray- rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-400 text-sm"
+                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-500 focus:border-transparent text-gray-400 text-sm"
                                 rows={3}
                                 maxLength={150}
                                 placeholder="Tell us about yourself"
@@ -110,6 +155,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                 Socials
                             </h3>
 
+                            {/* Twitter Input */}
                             <div className="flex items-center space-x-4">
                                 <div className="w-8 flex-shrink-0 mt-5">
                                     {twitterUrl ? (
@@ -154,13 +200,14 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                                     twitter: e.target.value,
                                                 })
                                             }
-                                            className="flex-1 p-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-400 text-sm"
+                                            className="flex-1 p-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-gray-500 focus:border-transparent text-gray-400 text-sm"
                                             placeholder="username"
                                         />
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Instagram Input */}
                             <div className="flex items-center space-x-4">
                                 <div className="w-8 flex-shrink-0 mt-5">
                                     {instagramUrl ? (
@@ -205,7 +252,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                                     instagram: e.target.value,
                                                 })
                                             }
-                                            className="flex-1 p-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-400 text-sm"
+                                            className="flex-1 p-2 border border-gray-300 rounded-r-md focus:ring-2 focus:ring-gray-500 focus:border-transparent text-gray-400 text-sm"
                                             placeholder="username"
                                         />
                                     </div>
@@ -217,18 +264,36 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                             <button
                                 type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 text-gray-700 rounded-md hover:bg-gray-100 transition-colors text-sm"
+                                onClick={handleCancel}
+                                disabled={!hasChanges}
+                                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                                    hasChanges
+                                        ? "text-gray-700 hover:bg-gray-100"
+                                        : "text-gray-400 cursor-not-allowed"
+                                }`}
                             >
                                 Cancel
                             </button>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm"
-                            >
-                                {isSubmitting ? "Saving..." : "Save Changes"}
-                            </button>
+                            <div className="relative">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting || !hasChanges}
+                                    className={`px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm ${
+                                        !hasChanges &&
+                                        "opacity-70 cursor-not-allowed"
+                                    }`}
+                                >
+                                    {isSubmitting
+                                        ? "Saving..."
+                                        : "Save Changes"}
+                                </button>
+                                {showSaveTooltip && (
+                                    <div className="absolute -top-10 right-0 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                        Changes saved!
+                                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-b-0 border-t-4 border-transparent"></div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </form>
                 </div>
