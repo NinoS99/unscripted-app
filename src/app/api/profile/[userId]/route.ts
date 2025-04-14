@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/client';
+import { User } from '@prisma/client';
 
-// Ensure that params are awaited properly
+type BaseUserResponse = Pick<User, 
+  'id' | 'username' | 'profilePicture' | 'bio' | 
+  'twitter' | 'instagram' | 'createdAt'
+> & {
+  isOwner: boolean;
+};
+
+type OwnerUserResponse = BaseUserResponse & Pick<User, 'email' | 'updatedAt'>;
+
 export async function GET(
   req: Request,
   { params }: { params: { userId: string } }
 ) {
   try {
-    // Destructure `params` correctly
-    const { userId } = await params; // We must await params
-
-    // Fetch the authenticated user's ID
+    const { userId } = await params;
     const { userId: authUserId } = await auth();
 
-    // Fetch the user data from the database
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -23,10 +28,8 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if the logged-in user is the same as the target user
     const isOwner = authUserId === userId;
-
-    const response: any = {
+    const baseResponse: BaseUserResponse = {
       id: user.id,
       username: user.username,
       profilePicture: user.profilePicture,
@@ -37,13 +40,16 @@ export async function GET(
       isOwner,
     };
 
-    // Include sensitive info if the user is the owner
     if (isOwner) {
-      response.email = user.email;
-      response.updatedAt = user.updatedAt;
+      const ownerResponse: OwnerUserResponse = {
+        ...baseResponse,
+        email: user.email,
+        updatedAt: user.updatedAt,
+      };
+      return NextResponse.json(ownerResponse);
     }
 
-    return NextResponse.json(response);
+    return NextResponse.json(baseResponse);
   } catch (error) {
     console.error('[PROFILE_GET]', error);
     return NextResponse.json(

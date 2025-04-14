@@ -5,7 +5,6 @@ import {
   ClerkLoading,
   SignedIn,
   SignedOut,
-  UserButton,
 } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
 
