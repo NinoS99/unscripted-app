@@ -16,13 +16,22 @@ datasource db {
 }
 
 model User {
-  id        String @id
-  username  String @unique
-  email     String  @unique
-  profilePicture String?
-  comments  Comment[]
-  reviews   Review[]
-  favorites Favorite[]
+  id             String     @id       // Clerk ID
+  username       String     @unique
+  email          String     @unique
+  profilePicture String?    @default("/noAvatar.png")
+  bio            String?
+  website        String?
+  twitter        String?
+  instagram      String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  comments       Comment[]
+  reviews        Review[]
+  favorites      Favorite[]
+
+  @@index([username])
+  @@index([email])
 }
 
 model Show {

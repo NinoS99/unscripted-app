@@ -7,6 +7,7 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
+import ProfilePopup from "./ProfilePopup";
 
 const Navbar = () => {
   return (
@@ -46,7 +47,7 @@ const Navbar = () => {
             <div className="cursor-pointer">
               <Image src="/notifications.png" alt="" width={20} height={20} />
             </div>
-            <UserButton />
+            <ProfilePopup/>
           </SignedIn>
           <SignedOut>
             <div className="flex items-center gap-2 text-sm">
