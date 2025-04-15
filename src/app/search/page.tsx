@@ -10,11 +10,12 @@ const decodeQuery = (query: string | string[] | undefined) => {
   return decodeURIComponent(query);
 };
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: { query?: string };
-}) {
+export default async function SearchPage(
+  props: {
+    searchParams: Promise<{ query?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const query = decodeQuery(searchParams.query);
 
   if (!query) return notFound();
