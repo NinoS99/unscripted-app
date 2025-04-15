@@ -42,7 +42,7 @@ export default async function SearchPage(
       {shows.length === 0 ? (
         <p className="text-gray-600">No shows found.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
           {shows.map((show) => (
             <Link key={show.id} href={`/shows/${show.id}`}>
               <div className="bg-white rounded-2xl shadow hover:shadow-md transition overflow-hidden">
