@@ -7,10 +7,11 @@ import {
   SignedOut,
 } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
+import SearchBar from "./SearchBar";
 
 const Navbar = () => {
   return (
-    <div className="h-24 flex items-center justify-between">
+    <div className="h-18 flex items-center justify-between">
       {/* LEFT */}
       <div className="md:hidden lg:block w-[20%]">
         <Link href="/" className="font-bold text-xl text-green-600">
@@ -40,9 +41,7 @@ const Navbar = () => {
         </ClerkLoading>
         <ClerkLoaded>
           <SignedIn>
-            <div className="cursor-pointer">
-              <Image src="/messages.png" alt="" width={20} height={20} />
-            </div>
+          <SearchBar />
             <div className="cursor-pointer">
               <Image src="/notifications.png" alt="" width={20} height={20} />
             </div>
