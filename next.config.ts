@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "images.pexels.com",
+        hostname: "image.tmdb.org",
       },
       {
         protocol: "https",

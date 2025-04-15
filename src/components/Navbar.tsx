@@ -7,6 +7,7 @@ import {
   SignedOut,
 } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
+import SearchBar from "./SearchBar";
 
 const Navbar = () => {
   return (
@@ -40,9 +41,7 @@ const Navbar = () => {
         </ClerkLoading>
         <ClerkLoaded>
           <SignedIn>
-            <div className="cursor-pointer">
-              <Image src="/messages.png" alt="" width={20} height={20} />
-            </div>
+          <SearchBar />
             <div className="cursor-pointer">
               <Image src="/notifications.png" alt="" width={20} height={20} />
             </div>
