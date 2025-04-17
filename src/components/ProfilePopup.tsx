@@ -60,15 +60,15 @@ export default function ProfilePopup() {
             {/* Profile image button */}
             <button
                 onClick={() => setShowPopup(!showPopup)}
-                className="rounded-full overflow-hidden border-2 border-gray-200 hover:border-green-500 transition-all"
+                className="rounded-full overflow-hidden border-2 border-gray-200 hover:border-green-500 transition-all flex items-center justify-center w-9 h-9 cursor-pointer" // Fixed dimensions
                 aria-label="Profile menu"
             >
                 <img
                     src={user.imageUrl}
                     alt="Profile"
-                    className="w-8 h-8 object-cover"
-                    width={32}
-                    height={32}
+                    width={36} // Slightly larger than container to prevent squishing
+                    height={36}
+                    className="w-full h-full object-cover"
                 />
             </button>
 

@@ -41,3 +41,112 @@ body {
     animation: fadeIn 0.1s ease-out forwards;
   }
 }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Horizontal scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+/* Horizontal scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* For screens larger than 1536px (2xl breakpoint) */
+@media (min-width: 1536px) {
+  .aspect-\[2\/3\] {
+    aspect-ratio: 2/3.2; /* Slightly taller aspect ratio */
+  }
+  
+  /* Optional: Reduce font sizes slightly on huge screens */
+  .text-xs {
+    font-size: 0.65rem;
+    line-height: 1rem;
+  }
+  .text-sm {
+    font-size: 0.75rem;
+    line-height: 1.1rem;
+  }
+}
+
+/* Optional: Limit maximum container width */
+@media (min-width: 1920px) {
+  .search-container {
+    max-width: 1800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Always 2 columns on mobile */
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on sm */
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr); /* 4 columns on md */
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(5, 1fr); /* 5 columns on lg */
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Auto-adjust on xl+ */
+  }
+}

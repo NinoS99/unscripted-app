@@ -51,6 +51,7 @@ model Show {
   ShowsOnNetworks ShowsOnNetworks[]
   posterPath       String?
   backdropPath     String?
+  creator          ShowCreator[]
   tags             ShowTag[]
   seasons          Season[]
   comments         Comment[]
@@ -101,16 +102,47 @@ model Episode {
   @@unique([seasonId, episodeNumber])
 }
 
+model Person {
+  id            Int            @id
+  name          String
+  profilePath   String?
+  characters    Character[]
+}
+
 model Character {
   id            Int            @id @default(autoincrement())
   seasonId      Int
-  name          String
-  characterName String?
+  personId      Int
+  showRole      String?
   season        Season         @relation(fields: [seasonId], references: [id])
+  person        Person         @relation(fields: [personId], references: [id])
+
   comments      Comment[]
   predictions   Prediction[]
-  tags          CharacterTag[]
+  favorites     Favorite[]
   views         View[]
+  tags          CharacterTag[]
+}
+
+
+model Creator {
+  id        Int      @id
+  name      String
+  originalName String @map("original_name")
+  profilePath String? @map("profile_path")
+  shows     ShowCreator[]
+
+  @@map("creators")
+}
+
+model ShowCreator {
+  showId    Int
+  creatorId Int
+  show      Show    @relation(fields: [showId], references: [id])
+  creator   Creator @relation(fields: [creatorId], references: [id])
+
+  @@id([showId, creatorId])
+  @@map("shows_creators")
 }
 
 model Comment {
@@ -119,23 +151,28 @@ model Comment {
   spoiler     Boolean    @default(false)
   userId      String
   user        User       @relation(fields: [userId], references: [id])
+
   showId      Int?
   show        Show?      @relation(fields: [showId], references: [id])
+
   seasonId    Int?
   season      Season?    @relation(fields: [seasonId], references: [id])
+
   episodeId   Int?
   episode     Episode?   @relation(fields: [episodeId], references: [id])
+
   characterId Int?
   character   Character? @relation(fields: [characterId], references: [id])
 
-  parentId Int?
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentReplies")
+  parentId    Int?
+  parent      Comment?   @relation("CommentReplies", fields: [parentId], references: [id])
+  replies     Comment[]  @relation("CommentReplies")
 
-  votes CommentVote[]
+  votes       CommentVote[]
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime   @default(now())
 }
+
 
 model CommentVote {
   id        Int     @id @default(autoincrement())
@@ -175,6 +212,8 @@ model Favorite {
   season    Season?  @relation(fields: [seasonId], references: [id])
   episodeId Int?
   episode   Episode? @relation(fields: [episodeId], references: [id])
+  characterId Int?
+  character   Character? @relation(fields: [characterId], references: [id])
   createdAt DateTime @default(now())
 }
 
@@ -231,16 +270,22 @@ model View {
   id          Int        @id @default(autoincrement())
   userId      String?
   user        User?      @relation(fields: [userId], references: [id])
+
   showId      Int?
   show        Show?      @relation(fields: [showId], references: [id])
+
   seasonId    Int?
   season      Season?    @relation(fields: [seasonId], references: [id])
+
   episodeId   Int?
   episode     Episode?   @relation(fields: [episodeId], references: [id])
+
   reviewId    Int?
   review      Review?    @relation(fields: [reviewId], references: [id])
+
   characterId Int?
   character   Character? @relation(fields: [characterId], references: [id])
+
   createdAt   DateTime   @default(now())
 
   @@index([userId])
@@ -249,25 +294,32 @@ model View {
   @@index([episodeId])
 }
 
+
 model Prediction {
   id             Int        @id @default(autoincrement())
   userId         String
   user           User       @relation(fields: [userId], references: [id])
+
   showId         Int
   show           Show       @relation(fields: [showId], references: [id])
+
   episodeId      Int
   episode        Episode    @relation(fields: [episodeId], references: [id])
-  characterId    Int? // Who the user is predicting — could be the winner or next eliminated
+
+  characterId    Int?
   character      Character? @relation(fields: [characterId], references: [id])
+
   predictionType String // e.g. "winner", "eliminated", etc.
   createdAt      DateTime   @default(now())
 
   @@unique([userId, episodeId, predictionType])
 }
 
+
 model Network {
   id             Int       @id // TMDB network ID
   name           String
+  homepage       String?
   logoPath       String?
   originCountry  String?
   ShowsOnNetworks ShowsOnNetworks[]
