@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FaCheck, FaTimes } from "react-icons/fa";
+import { Network } from "@prisma/client";
 
 const decodeQuery = (query: string | string[] | undefined) => {
     if (!query) return "";
@@ -11,24 +12,24 @@ const decodeQuery = (query: string | string[] | undefined) => {
 };
 
 // Helper function to deduplicate networks
-const getUniqueNetworks = (showsOnNetworks: { network: any }[]) => {
-    const networkMap = new Map();
-
+const getUniqueNetworks = (
+    showsOnNetworks: { network: Network }[]
+  ): Network[] => {
+    const networkMap = new Map<string, Network>();
+  
     showsOnNetworks.forEach(({ network }) => {
-        if (!networkMap.has(network.name)) {
-            // If network name not seen before, add it
-            networkMap.set(network.name, network);
-        } else {
-            // If network name exists, keep the one with logoPath if available
-            const existing = networkMap.get(network.name);
-            if (!existing.logoPath && network.logoPath) {
-                networkMap.set(network.name, network);
-            }
+      if (!networkMap.has(network.name)) {
+        networkMap.set(network.name, network);
+      } else {
+        const existing = networkMap.get(network.name)!;
+        if (!existing.logoPath && network.logoPath) {
+          networkMap.set(network.name, network);
         }
+      }
     });
-
+  
     return Array.from(networkMap.values());
-};
+  };
 
 export default async function SearchPage(props: {
     searchParams: Promise<{ query?: string }>;
