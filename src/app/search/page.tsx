@@ -5,6 +5,8 @@ import Link from "next/link";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { Network } from "@prisma/client";
 
+import MobileShowCard from "@/components/MobileShowCard";
+
 const decodeQuery = (query: string | string[] | undefined) => {
     if (!query) return "";
     if (Array.isArray(query)) return decodeURIComponent(query[0]);
@@ -14,22 +16,22 @@ const decodeQuery = (query: string | string[] | undefined) => {
 // Helper function to deduplicate networks
 const getUniqueNetworks = (
     showsOnNetworks: { network: Network }[]
-  ): Network[] => {
+): Network[] => {
     const networkMap = new Map<string, Network>();
-  
+
     showsOnNetworks.forEach(({ network }) => {
-      if (!networkMap.has(network.name)) {
-        networkMap.set(network.name, network);
-      } else {
-        const existing = networkMap.get(network.name)!;
-        if (!existing.logoPath && network.logoPath) {
-          networkMap.set(network.name, network);
+        if (!networkMap.has(network.name)) {
+            networkMap.set(network.name, network);
+        } else {
+            const existing = networkMap.get(network.name)!;
+            if (!existing.logoPath && network.logoPath) {
+                networkMap.set(network.name, network);
+            }
         }
-      }
     });
-  
+
     return Array.from(networkMap.values());
-  };
+};
 
 export default async function SearchPage(props: {
     searchParams: Promise<{ query?: string }>;
@@ -76,127 +78,158 @@ export default async function SearchPage(props: {
             ) : (
                 <div className="responsive-grid w-full">
                     {shows.map((show) => (
-                        <Link
-                            key={show.id}
-                            href={`/shows/${show.id}`}
-                            className="group relative"
-                        >
-                            <div className="bg-gray-300 rounded-xl shadow hover:shadow-lg transition overflow-hidden h-full flex flex-col w-full">
-                                {/* Image with consistent aspect ratio */}
-                                <div className="aspect-[2/3] relative">
-                                    <Image
-                                        src={
-                                            show.posterPath
-                                                ? `https://image.tmdb.org/t/p/w500${show.posterPath}`
-                                                : "/noPoster.png"
-                                        }
-                                        alt={show.name}
-                                        fill
-                                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-                                        className="object-cover"
-                                        priority={false}
-                                    />
-                                </div>
-
-                                {/* Show name (always visible) */}
-                                <div className="p-2 text-sm font-medium text-black min-h-[40px] flex items-center bg-gray-300">
-                                    <span className="line-clamp-2 text-s sm:text-sm">
-                                        {show.name}
-                                    </span>
-                                </div>
-
-                                {/* Desktop hover overlay */}
-                                <div className="hidden md:block absolute inset-0 bg-green-600 bg-opacity-80 opacity-0 group-hover:opacity-97 transition-opacity duration-200 p-3 text-white overflow-y-auto rounded-xl">
-                                    <h3 className="font-bold text-lg mb-2">
-                                        {show.name}
-                                    </h3>
-
-                                    <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
-                                        {show.tagline ? (
-                                            <p className="border-l-2 border-green-300 pl-2 italic text-m">
-                                                {show.tagline}
-                                            </p>
-                                        ) : show.overview ? (
-                                            <p className="border-l-2 border-green-300 pl-2 text-sm">
-                                                {show.overview}
-                                            </p>
-                                        ) : null}
+                        <div key={show.id} className="group relative h-full">
+                            {/* Desktop version */}
+                            <Link
+                                href={`/shows/${show.id}`}
+                                className="hidden md:block h-full"
+                            >
+                                <div className="bg-gray-300 rounded-xl shadow hover:shadow-lg transition overflow-hidden h-full flex flex-col w-full">
+                                    {/* Image with consistent aspect ratio */}
+                                    <div className="aspect-[2/3] relative">
+                                        <Image
+                                            src={
+                                                show.posterPath
+                                                    ? `https://image.tmdb.org/t/p/w500${show.posterPath}`
+                                                    : "/noPoster.jpg"
+                                            }
+                                            alt={show.name}
+                                            fill
+                                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                                            className="object-cover"
+                                            priority={false}
+                                        />
                                     </div>
 
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-sm font-bold">On air:</span>
-                                        {show.isRunning ? (
-                                            <FaCheck className="text-green-400" />
-                                        ) : (
-                                            <FaTimes className="text-red-400" />
+                                    {/* Show name (always visible) */}
+                                    <div className="p-2 text-sm font-medium text-black min-h-[40px] flex items-center bg-gray-300">
+                                        <span className="line-clamp-2 text-s sm:text-sm">
+                                            {show.name}
+                                        </span>
+                                    </div>
+
+                                    {/* Desktop hover overlay */}
+                                    <div className="absolute inset-0 bg-green-600 bg-opacity-80 opacity-0 group-hover:opacity-97 transition-opacity duration-200 p-3 text-white overflow-y-auto rounded-xl">
+                                        <h3 className="font-bold text-lg mb-2">
+                                            {show.name}
+                                        </h3>
+
+                                        <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
+                                            {show.tagline ? (
+                                                <p className="border-l-2 border-green-300 pl-2 italic text-m">
+                                                    {show.tagline}
+                                                </p>
+                                            ) : show.overview ? (
+                                                <p className="border-l-2 border-green-300 pl-2 text-sm">
+                                                    {show.overview}
+                                                </p>
+                                            ) : null}
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-sm font-bold">
+                                                On air:
+                                            </span>
+                                            {show.isRunning ? (
+                                                <FaCheck className="text-green-400" />
+                                            ) : (
+                                                <FaTimes className="text-red-400" />
+                                            )}
+                                        </div>
+
+                                        {show.tmdbRating && (
+                                            <div className="mb-2">
+                                                <span className="text-sm font-bold">
+                                                    Rating:{" "}
+                                                </span>
+                                                <span className="text-sm">
+                                                    {show.tmdbRating.toFixed(1)}
+                                                    /10
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {show.ShowsOnNetworks?.length > 0 && (
+                                            <div className="mt-3">
+                                                <h4 className="text-sm font-bold">
+                                                    Watch On:
+                                                </h4>
+                                                <div className="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
+                                                    {getUniqueNetworks(
+                                                        show.ShowsOnNetworks
+                                                    ).map((network) => {
+                                                        return (
+                                                            <div
+                                                                key={`${network.id}-${network.name}`}
+                                                                className="flex-shrink-0"
+                                                            >
+                                                                <Image
+                                                                    src={
+                                                                        !network.logoPath
+                                                                            ? "/television.png"
+                                                                            : `https://image.tmdb.org/t/p/w92${network.logoPath}`
+                                                                    }
+                                                                    alt={
+                                                                        network.name
+                                                                    }
+                                                                    width={32}
+                                                                    height={32}
+                                                                    className="w-8 h-8 object-contain bg-gray-200 p-1 rounded mt-1"
+                                                                    title={
+                                                                        network.name
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {show.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-5">
+                                                {show.tags
+                                                    .slice(0, 3)
+                                                    .map(({ tag }) => (
+                                                        <span
+                                                            key={tag.id}
+                                                            className="px-2 py-1 bg-gray-700 rounded-full text-xs"
+                                                        >
+                                                            {tag.name}
+                                                        </span>
+                                                    ))}
+                                            </div>
                                         )}
                                     </div>
-
-                                    {show.tmdbRating && (
-                                        <div className="mb-2">
-                                            <span className="text-sm font-bold">
-                                                Rating:{" "}
-                                            </span>
-                                            <span className="text-sm">
-                                                {show.tmdbRating.toFixed(1)}/10
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {show.ShowsOnNetworks?.length > 0 && (
-                                        <div className="mt-3">
-                                            <h4 className="text-sm font-bold">
-                                                Watch On:
-                                            </h4>
-                                            <div className="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
-                                                {getUniqueNetworks(
-                                                    show.ShowsOnNetworks
-                                                ).map((network) => {
-                                                    return (
-                                                        <div
-                                                            key={`${network.id}-${network.name}`}
-                                                            className="flex-shrink-0"
-                                                        >
-                                                            <Image
-                                                                src={
-                                                                    !network.logoPath
-                                                                        ? "/television.png"
-                                                                        : `https://image.tmdb.org/t/p/w92${network.logoPath}`
-                                                                }
-                                                                alt={
-                                                                    network.name
-                                                                }
-                                                                width={32}
-                                                                height={32}
-                                                                className='w-8 h-8 object-contain bg-gray-200 p-1 rounded mt-1'
-                                                                title={
-                                                                    network.name
-                                                                }
-                                                            />
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {show.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-5">
-                                            {show.tags
-                                                .slice(0, 3)
-                                                .map(({ tag }) => (
-                                                    <span
-                                                        key={tag.id}
-                                                        className="px-2 py-1 bg-gray-700 rounded-full text-xs"
-                                                    >
-                                                        {tag.name}
-                                                    </span>
-                                                ))}
-                                        </div>
-                                    )}
                                 </div>
+                            </Link>
+
+                            {/* Mobile version */}
+                            <div className="block md:hidden h-full">
+                                    <MobileShowCard
+                                        show={{
+                                            id: String(show.id), // Convert to string
+                                            name: show.name,
+                                            posterPath: show.posterPath,
+                                            tagline: show.tagline,
+                                            overview: show.overview,
+                                            isRunning: show.isRunning,
+                                            tmdbRating: show.tmdbRating,
+                                            tags: show.tags.map(({ tag }) => ({
+                                                id: String(tag.id),
+                                                name: tag.name,
+                                            })),
+                                            networks: getUniqueNetworks(
+                                                show.ShowsOnNetworks
+                                            ).map((network) => ({
+                                                id: String(network.id),
+                                                name: network.name,
+                                                logoPath: network.logoPath,
+                                            })),
+                                        }}
+                                    />
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             )}

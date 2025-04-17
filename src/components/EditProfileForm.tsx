@@ -51,7 +51,14 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
 
         setIsSubmitting(true);
         try {
-            await updateUserProfile(user.id, formData);
+                    // Transform empty strings to null before sending
+        const dataToSend = {
+            bio: formData.bio.trim() || null,
+            twitter: formData.twitter.trim() || null,
+            instagram: formData.instagram.trim() || null,
+        };
+        
+        await updateUserProfile(user.id, dataToSend);
             // Update original data to current values after successful save
             setOriginalData(formData);
             setShowSaveTooltip(true);
@@ -97,7 +104,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 p-1 -mr-2"
+                        className="text-gray-500 hover:text-gray-700 p-1 -mr-2 cursor-pointer"
                         aria-label="Close"
                     >
                         <svg
@@ -266,9 +273,9 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                 type="button"
                                 onClick={handleCancel}
                                 disabled={!hasChanges}
-                                className={`px-4 py-2 rounded-md transition-colors text-sm cursor-pointer ${
+                                className={`px-4 py-2 rounded-md transition-colors text-sm ${
                                     hasChanges
-                                        ? "text-gray-700 hover:bg-gray-100"
+                                        ? "text-gray-700 hover:bg-gray-100 cursor-pointer"
                                         : "text-gray-400 cursor-not-allowed"
                                 }`}
                             >

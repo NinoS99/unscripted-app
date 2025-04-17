@@ -16,12 +16,11 @@ const SearchBar = ({ onSearchToggle }: { onSearchToggle?: (isOpen: boolean) => v
   const handleSearch = () => {
     if (query.trim()) {
       router.push(`/search?query=${encodeURIComponent(query.trim())}`);
-      // Close search bar in mobile view after search
       if (window.innerWidth < 768) {
         setShowSearch(false);
         onSearchToggle?.(false);
       } else {
-        onSearchToggle?.(true); // Keep open in desktop
+        onSearchToggle?.(true);
       }
     }
   };
@@ -47,6 +46,18 @@ const SearchBar = ({ onSearchToggle }: { onSearchToggle?: (isOpen: boolean) => v
     }
   };
 
+  // New function to handle X button click
+  const handleCloseClick = () => {
+    if (window.innerWidth < 768) {
+      // Mobile - clear the search input
+      setQuery("");
+      inputRef.current?.focus();
+    } else {
+      // Desktop - close the search bar
+      toggleSearch();
+    }
+  };
+
   useEffect(() => {
     if (!showSearch) return;
 
@@ -63,11 +74,9 @@ const SearchBar = ({ onSearchToggle }: { onSearchToggle?: (isOpen: boolean) => v
 
   return (
     <div className="search-container relative h-10">
-      {/* Fixed Position Wrapper */}
       <div className="relative h-full flex items-center">
         {/* Desktop View */}
         <div className="hidden md:flex items-center h-full">
-          {/* Search Bar */}
           <AnimatePresence>
             {showSearch && (
               <motion.div
@@ -79,7 +88,7 @@ const SearchBar = ({ onSearchToggle }: { onSearchToggle?: (isOpen: boolean) => v
                 className="flex items-center h-full bg-white rounded-lg border border-gray-300 overflow-hidden mr-2"
               >
                 <button
-                  onClick={toggleSearch}
+                  onClick={toggleSearch} // Desktop still closes on X click
                   className="h-full flex items-center px-2 shrink-0"
                 >
                   <FiX className="w-5 h-5 text-gray-600" />
@@ -98,7 +107,6 @@ const SearchBar = ({ onSearchToggle }: { onSearchToggle?: (isOpen: boolean) => v
             )}
           </AnimatePresence>
           
-          {/* Search Button - Handles both toggle and search */}
           <button
             onClick={() => showSearch ? handleSearch() : toggleSearch()}
             className="h-10 w-10 flex items-center justify-center hover:bg-green-100 rounded-full transition-colors duration-200 cursor-pointer"
@@ -139,7 +147,7 @@ const SearchBar = ({ onSearchToggle }: { onSearchToggle?: (isOpen: boolean) => v
               >
                 <div className="flex items-center h-10 bg-white rounded-lg border border-gray-300 w-full">
                   <button
-                    onClick={toggleSearch}
+                    onClick={handleCloseClick} // Use the new handler for mobile
                     className="h-full flex items-center px-1 shrink-0"
                   >
                     <FiX className="w-5 h-5 text-gray-600" />
