@@ -266,7 +266,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                 type="button"
                                 onClick={handleCancel}
                                 disabled={!hasChanges}
-                                className={`px-4 py-2 rounded-md transition-colors text-sm ${
+                                className={`px-4 py-2 rounded-md transition-colors text-sm cursor-pointer ${
                                     hasChanges
                                         ? "text-gray-700 hover:bg-gray-100"
                                         : "text-gray-400 cursor-not-allowed"
@@ -278,7 +278,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || !hasChanges}
-                                    className={`px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm ${
+                                    className={`px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm cursor-pointer ${
                                         !hasChanges &&
                                         "opacity-70 cursor-not-allowed"
                                     }`}
