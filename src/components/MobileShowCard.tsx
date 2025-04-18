@@ -5,7 +5,6 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaCheck, FaTimes } from 'react-icons/fa'
-import { Show } from '@prisma/client'
 
 type ShowCardBase = {
     id: string | number;  // Accept both string and number IDs
