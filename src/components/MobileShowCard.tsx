@@ -5,6 +5,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaCheck, FaTimes } from 'react-icons/fa'
+import { Show } from '@prisma/client'
 
 type ShowCardBase = {
     id: string | number;  // Accept both string and number IDs
@@ -55,8 +56,8 @@ type ShowCardBase = {
                   priority={false}
                 />
               </div>
-              <div className="p-2 text-sm font-medium text-black min-h-[40px] flex items-center bg-gray-300">
-                <span className="line-clamp-2">{show.name}</span>
+              <div className="p-4 text-sm font-medium text-black min-h-[40px] flex items-center justify-center bg-gray-300">
+                <span className="line-clamp-2 text-xs sm:text-sm text-center justify-center ,-2">{show.name}</span>
               </div>
             </div>
           </div>
