@@ -102,8 +102,8 @@ export default async function SearchPage(props: {
                                     </div>
 
                                     {/* Show name (always visible) */}
-                                    <div className="p-2 text-sm font-medium text-black min-h-[40px] flex items-center bg-gray-300">
-                                        <span className="line-clamp-2 text-s sm:text-sm">
+                                    <div className="p-2 text-sm font-medium text-black min-h-[40px] flex items-center justify-center bg-gray-300">
+                                        <span className="line-clamp-2 text-s sm:text-sm text-center justify-center">
                                             {show.name}
                                         </span>
                                     </div>
@@ -114,20 +114,32 @@ export default async function SearchPage(props: {
                                             {show.name}
                                         </h3>
 
-                                        <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
-                                            {show.tagline ? (
+                                        {show.tagline && (
+                                            <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
                                                 <p className="border-l-2 border-green-300 pl-2 italic text-m">
                                                     {show.tagline}
                                                 </p>
-                                            ) : show.overview ? (
+                                            </div>
+                                        )}
+
+                                        {!show.tagline && show.overview && (
+                                            <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
                                                 <p className="border-l-2 border-green-300 pl-2 text-sm">
                                                     {show.overview}
                                                 </p>
-                                            ) : null}
-                                        </div>
+                                            </div>
+                                        )}
+
+                                        {show.tagline && show.overview && (
+                                            <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
+                                                <p className="border-l-2 border-green-300 pl-2 text-sm">
+                                                    {show.overview}
+                                                </p>
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-sm font-bold">
+                                            <span className="text-md font-bold">
                                                 On air:
                                             </span>
                                             {show.isRunning ? (
@@ -139,10 +151,10 @@ export default async function SearchPage(props: {
 
                                         {show.tmdbRating && (
                                             <div className="mb-2">
-                                                <span className="text-sm font-bold">
+                                                <span className="text-md font-bold">
                                                     Rating:{" "}
                                                 </span>
-                                                <span className="text-sm">
+                                                <span className="text-md">
                                                     {show.tmdbRating.toFixed(1)}
                                                     /10
                                                 </span>
@@ -151,34 +163,44 @@ export default async function SearchPage(props: {
 
                                         {show.ShowsOnNetworks?.length > 0 && (
                                             <div className="mt-3">
-                                                <h4 className="text-sm font-bold">
+                                                <h4 className="text-md font-bold mb-1.5">
                                                     Watch On:
                                                 </h4>
-                                                <div className="flex space-x-2 overflow-x-auto pb-2 -mx-1 px-1">
+                                                <div className="flex flex-wrap gap-2">
                                                     {getUniqueNetworks(
                                                         show.ShowsOnNetworks
                                                     ).map((network) => {
                                                         return (
                                                             <div
-                                                                key={`${network.id}-${network.name}`}
-                                                                className="flex-shrink-0"
+                                                                key={network.id}
+                                                                className="flex items-center gap-2 bg-green-700 px-2 py-1 rounded"
                                                             >
-                                                                <Image
-                                                                    src={
-                                                                        !network.logoPath
-                                                                            ? "/television.png"
-                                                                            : `https://image.tmdb.org/t/p/w92${network.logoPath}`
-                                                                    }
-                                                                    alt={
+                                                                {network.logoPath ? (
+                                                                    <Image
+                                                                        src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
+                                                                        alt={
+                                                                            network.name
+                                                                        }
+                                                                        width={
+                                                                            24
+                                                                        }
+                                                                        height={
+                                                                            24
+                                                                        }
+                                                                        className="object-contain"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                                                                        <span className="text-xs">
+                                                                            TV
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                <span className="text-xs">
+                                                                    {
                                                                         network.name
                                                                     }
-                                                                    width={32}
-                                                                    height={32}
-                                                                    className="w-8 h-8 object-contain bg-gray-200 p-1 rounded mt-1"
-                                                                    title={
-                                                                        network.name
-                                                                    }
-                                                                />
+                                                                </span>
                                                             </div>
                                                         );
                                                     })}
@@ -206,28 +228,28 @@ export default async function SearchPage(props: {
 
                             {/* Mobile version */}
                             <div className="block md:hidden h-full">
-                                    <MobileShowCard
-                                        show={{
-                                            id: String(show.id), // Convert to string
-                                            name: show.name,
-                                            posterPath: show.posterPath,
-                                            tagline: show.tagline,
-                                            overview: show.overview,
-                                            isRunning: show.isRunning,
-                                            tmdbRating: show.tmdbRating,
-                                            tags: show.tags.map(({ tag }) => ({
-                                                id: String(tag.id),
-                                                name: tag.name,
-                                            })),
-                                            networks: getUniqueNetworks(
-                                                show.ShowsOnNetworks
-                                            ).map((network) => ({
-                                                id: String(network.id),
-                                                name: network.name,
-                                                logoPath: network.logoPath,
-                                            })),
-                                        }}
-                                    />
+                                <MobileShowCard
+                                    show={{
+                                        id: String(show.id), // Convert to string
+                                        name: show.name,
+                                        posterPath: show.posterPath,
+                                        tagline: show.tagline,
+                                        overview: show.overview,
+                                        isRunning: show.isRunning,
+                                        tmdbRating: show.tmdbRating,
+                                        tags: show.tags.map(({ tag }) => ({
+                                            id: String(tag.id),
+                                            name: tag.name,
+                                        })),
+                                        networks: getUniqueNetworks(
+                                            show.ShowsOnNetworks
+                                        ).map((network) => ({
+                                            id: String(network.id),
+                                            name: network.name,
+                                            logoPath: network.logoPath,
+                                        })),
+                                    }}
+                                />
                             </div>
                         </div>
                     ))}
