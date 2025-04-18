@@ -183,6 +183,11 @@ body {
   transform: rotateY(180deg);
 }
 
+.flip-card:not(.flipped) .flip-card-back {
+  overflow-y: hidden;
+  pointer-events: none;
+}
+
 /* Add to your global CSS */
 .responsive-grid {
   display: grid;
