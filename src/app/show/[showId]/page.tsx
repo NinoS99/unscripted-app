@@ -39,12 +39,6 @@ export default async function ShowPage({
         );
     }
 
-    // Default to first season
-    const averageRating = await prisma.rating.aggregate({
-        where: { showId: show.id },
-        _avg: { rating: true },
-    });
-
     const formatDate = (date: Date | null) =>
         date
             ? format(date, "MMMM d, yyyy") // Or toLocaleDateString w/ options
