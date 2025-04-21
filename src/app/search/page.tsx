@@ -67,7 +67,7 @@ export default async function SearchPage(props: {
     });
 
     return (
-        <div className="p-4 md:p-6 space-y-6">
+        <div className="container mx-auto p-4 md:p-6 space-y-6">
             <h1 className="text-l font-semibold text-green-300">
                 SHOWING MATCHES FOR &quot;{query}&quot;
             </h1>
@@ -81,7 +81,7 @@ export default async function SearchPage(props: {
                         <div key={show.id} className="group relative h-full">
                             {/* Desktop version */}
                             <Link
-                                href={`/shows/${show.id}`}
+                                href={`/show/${show.id}`}
                                 className="hidden md:block h-full"
                             >
                                 <div className="bg-gray-300 rounded-xl shadow hover:shadow-lg transition overflow-hidden h-full flex flex-col w-full">

@@ -145,7 +145,7 @@ type ShowCardBase = {
               </div>
   
               <Link
-                href={`/shows/${show.id}`}
+                href={`/show/${show.id}`}
                 className="mt-auto py-2 px-4 bg-white text-green-600 font-bold rounded-lg text-center hover:bg-gray-100 transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >

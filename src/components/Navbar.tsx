@@ -7,12 +7,12 @@ import { FiFilm, FiBell, FiEdit2 } from "react-icons/fi";
 
 const Navbar = () => {
     return (
-        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gray-200">
+        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gradient-to-t from-black/70 to-transparent p-4 container mx-auto">
             {/* LEFT - Logo */}
             <div className="md:hidden lg:block">
                 <Link href="/">
                     <Image
-                        src="/unscripted.png"
+                        src="/default-monochrome.svg"
                         alt=""
                         width={160}
                         height={60}
@@ -31,7 +31,7 @@ const Navbar = () => {
                         <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
                             <div className="hidden md:flex items-center gap-2 lg:gap-4 xl:gap-6">
                                 <NavButton
-                                    icon={<FiFilm className="w-4 h-4 md:w-5 md:h-5" />}
+                                    icon={<FiFilm className="w-4 h-4 md:w-5 md:h-5 " />}
                                     text="Shows"
                                 />
                                 <NavButton
@@ -73,7 +73,7 @@ interface NavButtonProps {
 }
 
 const NavButton: React.FC<NavButtonProps> = ({ icon, text }) => (
-    <button className="flex items-center gap-1 md:gap-2 text-gray-800 hover:text-green-600 transition-all duration-300 text-sm md:text-base font-medium cursor-pointer whitespace-nowrap">
+    <button className="flex items-center gap-1 md:gap-2 text-white hover:text-green-600 transition-all duration-300 text-sm md:text-base font-medium cursor-pointer whitespace-nowrap">
         {icon}
         <span>{text}</span>
     </button>
