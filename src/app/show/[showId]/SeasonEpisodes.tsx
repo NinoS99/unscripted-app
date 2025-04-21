@@ -55,7 +55,8 @@ export default function SeasonEpisodes({
                         />
                     </div>
 
-                    <div className="space-y-4">
+                    {/* Scrollable Episodes Container (Max 5 visible at once) */}
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                         {selectedSeason.episodes.map((episode) => (
                             <div
                                 key={episode.id}
