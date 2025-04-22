@@ -34,6 +34,7 @@ model User {
 
   @@index([username])
   @@index([email])
+  Rating Rating[]
 }
 
 model Show {
@@ -59,6 +60,7 @@ model Show {
   predictions      Prediction[]
   favorites        Favorite[]
   views            View[]
+  ratings          Rating[]
 }
 
 model Season {
@@ -78,6 +80,7 @@ model Season {
   reviews      Review[]
   favorites    Favorite[]
   views        View[]
+  ratings      Rating[]
 
   @@unique([showId, seasonNumber])
 }
@@ -98,6 +101,7 @@ model Episode {
   predictions   Prediction[]
   favorites     Favorite[]
   views         View[]
+  ratings       Rating[]
 
   @@unique([seasonId, episodeNumber])
 }
@@ -200,6 +204,31 @@ model Review {
   spoiler   Boolean  @default(false)
   views     View[]
   createdAt DateTime @default(now())
+}
+
+model Rating {
+  id          Int       @id @default(autoincrement())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  rating      Float     // Rating value (0.5 - 5.0 in 0.5 increments)
+  
+  // Polymorphic relations
+  showId      Int?
+  show        Show?     @relation(fields: [showId], references: [id])
+  
+  seasonId    Int?
+  season      Season?   @relation(fields: [seasonId], references: [id])
+  
+  episodeId   Int?
+  episode     Episode?  @relation(fields: [episodeId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Ensure only one rating per user per entity
+  @@unique([userId, showId])
+  @@unique([userId, seasonId])
+  @@unique([userId, episodeId])
 }
 
 model Favorite {
