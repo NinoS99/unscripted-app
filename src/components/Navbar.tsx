@@ -7,7 +7,7 @@ import { FiFilm, FiBell, FiEdit2 } from "react-icons/fi";
 
 const Navbar = () => {
     return (
-        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gradient-to-t from-black/70 to-transparent p-4 container mx-auto">
+        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gradient-to-t from-gray-600/70 to-transparent p-4 container mx-auto">
             {/* LEFT - Logo */}
             <div className="md:hidden lg:block">
                 <Link href="/">

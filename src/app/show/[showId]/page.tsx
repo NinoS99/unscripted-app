@@ -26,6 +26,11 @@ export default async function ShowPage({
                     episodes: {
                         orderBy: { episodeNumber: "asc" },
                     },
+                    characters: {
+                        include: {
+                            person: true,
+                        },
+                    },
                 },
             },
         },
@@ -54,7 +59,7 @@ export default async function ShowPage({
 
     return (
         <div className="min-h-screen bg-gray-100 container mx-auto">
-            {/* Desktop Cover Photo - Triple Height (hidden on mobile) */}
+            {/* Desktop Cover Photo */}
             <div className="relative h-96 md:h-[32rem] w-full overflow-hidden hidden md:block">
                 {show.backdropPath ? (
                     <Image
@@ -70,26 +75,25 @@ export default async function ShowPage({
 
                 {/* Desktop Title Box */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <h1 className="text-3xl font-bold text-white mb-1">
-                            {show.name}
-                        </h1>
-                        <div className="flex flex-col gap-1 text-sm text-gray-200">
-                            {show.firstAirDate && (
-                                <p>
-                                    First aired on{" "}
-                                    {formatDate(show.firstAirDate)}
-                                </p>
-                            )}
-                            {show.creator.length > 0 && (
-                                <p>
-                                    Created by{" "}
-                                    {show.creator
-                                        .map((c) => c.creator.name)
-                                        .join(", ")}
-                                </p>
-                            )}
-                        </div>
+                    <h1 className="text-3xl font-bold text-white mb-1">
+                        {show.name}
+                    </h1>
+                    <div className="flex flex-col gap-1 text-sm text-gray-200">
+                        {show.firstAirDate && (
+                            <p>
+                                First aired on {formatDate(show.firstAirDate)}
+                            </p>
+                        )}
+                        {show.creator.length > 0 && (
+                            <p>
+                                Created by{" "}
+                                {show.creator
+                                    .map((c) => c.creator.name)
+                                    .join(", ")}
+                            </p>
+                        )}
                     </div>
+                </div>
             </div>
 
             {/* Mobile Layout */}
@@ -153,7 +157,7 @@ export default async function ShowPage({
 
                         {/* Action Buttons - Same Width as Poster */}
                         <div className="w-full mt-4 space-y-4">
-                            <div className="bg-gray-300 rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
+                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
                                 <div className="flex items-center justify-between">
                                     <FavouriteButton showId={show.id} />
                                     <div className="flex items-center gap-2">
@@ -167,6 +171,38 @@ export default async function ShowPage({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Watch On Section */}
+                            {show.ShowsOnNetworks.length > 0 && (
+                                <div className="rounded-lg shadow p-4 border-1 border-green-200">
+                                    <h3 className="text-md font-semibold text-green-500 mb-2">
+                                        Watch On
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {show.ShowsOnNetworks.map(
+                                            ({ network }) => (
+                                                <div
+                                                    key={network.id}
+                                                    className="flex items-center gap-1 bg-white p-1.5 rounded shadow-sm border border-gray-200"
+                                                >
+                                                    {network.logoPath && (
+                                                        <Image
+                                                            src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
+                                                            alt={network.name}
+                                                            width={24}
+                                                            height={24}
+                                                            className="object-contain"
+                                                        />
+                                                    )}
+                                                    <span className="text-xs font-medium text-gray-800">
+                                                        {network.name}
+                                                    </span>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -174,11 +210,11 @@ export default async function ShowPage({
                     <div className="flex-grow min-w-0">
                         {" "}
                         {/* Added min-w-0 to prevent overflow */}
-                        <div className="bg-white rounded-lg shadow overflow-hidden h-full flex flex-col">
+                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col border-2 border-green-200">
                             {/* Scrollable Content Area */}
-                            <div className="overflow-y-auto p-6 flex-grow bg-gray-300">
+                            <div className="overflow-y-auto p-6 flex-grow ">
                                 {show.tagline && (
-                                    <p className="text-lg italic text-gray-600 mb-6 text-center md:text-left">
+                                    <p className="text-lg italic text-green-200 mb-6 text-center md:text-left">
                                         &quot;{show.tagline}&quot;
                                     </p>
                                 )}
@@ -188,45 +224,12 @@ export default async function ShowPage({
                                         <h2 className="text-xl font-semibold text-green-500 mb-3">
                                             Overview
                                         </h2>
-                                        <p className="text-gray-700 whitespace-pre-line">
+                                        <p className="text-white whitespace-pre-line">
                                             {show.overview}
                                         </p>
                                     </div>
                                 )}
-
-                                {show.ShowsOnNetworks.length > 0 && (
-                                    <div className="mb-8">
-                                        <h2 className="text-xl font-semibold text-green-500 mb-3">
-                                            Watch on
-                                        </h2>
-                                        <div className="flex flex-wrap gap-3">
-                                            {show.ShowsOnNetworks.map(
-                                                ({ network }) => (
-                                                    <div
-                                                        key={network.id}
-                                                        className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border border-gray-200"
-                                                    >
-                                                        {network.logoPath && (
-                                                            <Image
-                                                                src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
-                                                                alt={
-                                                                    network.name
-                                                                }
-                                                                width={32}
-                                                                height={32}
-                                                                className="object-contain"
-                                                            />
-                                                        )}
-                                                        <span className="text-sm font-medium text-gray-800">
-                                                            {network.name}
-                                                        </span>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
+                                
                                 {/* Seasons Section - Now contained within scrollable area */}
                                 {show.seasons.length > 0 && (
                                     <div className="mb-8">

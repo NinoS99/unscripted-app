@@ -51,7 +51,7 @@ export default async function SearchPage(props: {
         orderBy: {
             tmdbRating: "desc",
         },
-        take: 20,
+        take: 50,
         include: {
             tags: {
                 include: {
