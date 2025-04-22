@@ -133,7 +133,7 @@ export default async function ShowPage({
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-200">
+            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-600">
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                     {/* Left Column - Same as before but adjusted for mobile */}
                     <div className="flex-shrink-0 w-full md:w-64">
@@ -166,19 +166,6 @@ export default async function ShowPage({
                                         />
                                     </div>
                                 </div>
-
-                                {show.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 justify-center">
-                                        {show.tags.map(({ tag }) => (
-                                            <span
-                                                key={tag.id}
-                                                className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs"
-                                            >
-                                                {tag.name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>

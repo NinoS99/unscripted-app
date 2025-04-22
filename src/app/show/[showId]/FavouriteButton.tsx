@@ -57,7 +57,7 @@ export default function FavouriteButton({ showId }: { showId: number }) {
   return (
     <button 
       onClick={handleFavorite}
-      className="p-2 rounded-full bg-white shadow hover:bg-gray-100 transition-colors"
+      className="p-2 rounded-full bg-green-200 shadow hover:bg-gray-100 transition-colors"
       aria-label={isFavorite ? "Remove from favourites" : "Add to favourites"}
       disabled={isLoading}
     >
