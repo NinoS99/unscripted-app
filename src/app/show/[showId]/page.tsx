@@ -98,22 +98,46 @@ export default async function ShowPage({
 
             {/* Mobile Layout */}
             <div className="md:hidden">
-                {/* Poster with overlayed title/info */}
-                <div className="relative aspect-[2/3] w-full">
+                {/* Poster with full-width and high resolution */}
+                <div
+                    className="relative w-full"
+                    style={{ height: "auto", aspectRatio: "2/3" }}
+                >
                     {show.posterPath ? (
                         <Image
-                            src={`https://image.tmdb.org/t/p/w500${show.posterPath}`}
+                            src={`https://image.tmdb.org/t/p/w780${show.posterPath}`}
                             alt={`${show.name} poster`}
-                            fill
-                            className="object-cover"
+                            width={780} // Optimal mobile width
+                            height={1170} // Maintains 2:3 aspect ratio
+                            className="w-full h-auto object-cover"
                             priority
+                            quality={90} // Higher quality
+                            style={{
+                                borderBottom: "0px solid",
+                                borderTop: "0px solid",
+                            }}
                         />
                     ) : (
-                        <div className="w-full h-full bg-gray-800"></div>
+                        <div
+                            className="w-full"
+                            style={{
+                                aspectRatio: "2/3",
+                                backgroundColor: "#1f2937", // gray-800
+                                borderBottom: "4px solid #4ade80",
+                                borderTop: "4px solid #4ade80",
+                            }}
+                        >
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-white">
+                                    No poster available
+                                </span>
+                            </div>
+                        </div>
                     )}
 
-                    {/* Overlayed Text Info */}
+                    {/* Overlayed Text Info (unchanged) */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                        {/* ... existing title info ... */}
                         <h1 className="text-2xl font-bold text-white mb-1">
                             {show.name}
                         </h1>
@@ -229,7 +253,7 @@ export default async function ShowPage({
                                         </p>
                                     </div>
                                 )}
-                                
+
                                 {/* Seasons Section - Now contained within scrollable area */}
                                 {show.seasons.length > 0 && (
                                     <div className="mb-8">

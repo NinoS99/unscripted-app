@@ -32,6 +32,13 @@ export default function SeasonEpisodes({
     onSeasonSelect?: (seasonId: number) => void;
 }) {
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]);
+    const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>(
+        {}
+    );
+
+    const handleImageLoad = (personId: number) => {
+        setLoadedImages((prev) => ({ ...prev, [personId]: true }));
+    };
 
     const handleSeasonSelect = (season: (typeof seasons)[0]) => {
         setSelectedSeason(season);
@@ -73,35 +80,63 @@ export default function SeasonEpisodes({
                                 href={`/person/${character.personId}`}
                                 className="flex flex-col items-center min-w-[80px] group"
                             >
-                                <div className="relative w-16 h-16 rounded-full overflow-hidden mb-2">
-                                    {character.person.profilePath ? (
+                                <div className="relative w-16 h-16 rounded-full overflow-hidden mb-2 bg-gray-200">
+                                    {/* Always show noAvatar.png first */}
+                                    <div
+                                        className={`absolute inset-0 transition-opacity duration-300 ${
+                                            loadedImages[character.person.id]
+                                                ? "opacity-0"
+                                                : "opacity-100"
+                                        }`}
+                                    >
                                         <Image
-                                            src={`https://image.tmdb.org/t/p/w185${character.person.profilePath}`}
+                                            src="/noAvatar.png"
                                             alt={character.person.name}
                                             fill
-                                            className="object-cover group-hover:opacity-80 transition-opacity"
+                                            className="object-contain p-2"
                                         />
-                                    ) : (
-                                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                        <div className="relative w-20 h-15"> 
+                                    </div>
+
+                                    {/* Show profile image when loaded */}
+                                    {character.person.profilePath && (
+                                        <div
+                                            className={`absolute inset-0 transition-opacity duration-300 ${
+                                                loadedImages[
+                                                    character.person.id
+                                                ]
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                            }`}
+                                        >
                                             <Image
-                                                src='/noAvatar.png'
+                                                src={`https://image.tmdb.org/t/p/w185${character.person.profilePath}`}
                                                 alt={character.person.name}
                                                 fill
-                                                className="object-contain group-hover:opacity-80 transition-opacity p-2" 
+                                                className="object-cover group-hover:opacity-80 transition-opacity"
+                                                onLoadingComplete={() =>
+                                                    handleImageLoad(
+                                                        character.person.id
+                                                    )
+                                                }
                                             />
                                         </div>
-                                    </div>
                                     )}
                                 </div>
                                 <span className="text-sm text-white text-center group-hover:text-green-400 transition-colors">
                                     {character.person.name}
                                 </span>
-                                {character.showRole && (
-                                    <span className="text-xs text-gray-300 text-center">
-                                        as {character.showRole}
-                                    </span>
-                                )}
+                                {character.showRole &&
+                                    ["narrator", "host"].some(
+                                        (role) =>
+                                            character.showRole &&
+                                            character.showRole
+                                                .toLowerCase()
+                                                .includes(role)
+                                    ) && (
+                                        <span className="text-xs text-gray-300 text-center">
+                                            as {character.showRole}
+                                        </span>
+                                    )}
                             </Link>
                         ))}
                     </div>
