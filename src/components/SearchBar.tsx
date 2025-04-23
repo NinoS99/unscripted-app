@@ -146,7 +146,7 @@ const SearchBar = ({
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="fixed top-16 left-0 right-0 bg-white z-50 px-4 py-2 shadow-md"
+                                className="fixed top-16 left-0 right-0 bg-gray-600 z-50 px-4 py-2 shadow-md"
                             >
                                 <div className="flex items-center h-10 bg-white rounded-lg border border-gray-300 w-full">
                                     <button

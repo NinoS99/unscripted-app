@@ -142,3 +142,59 @@ export async function POST(req: Request) {
     )
   }
 }
+
+// Add this to your existing rating route file
+export async function DELETE(req: Request) {
+    try {
+      const { userId } = await auth();
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+  
+      const { searchParams } = new URL(req.url);
+      const showId = searchParams.get('showId');
+      const seasonId = searchParams.get('seasonId');
+      const episodeId = searchParams.get('episodeId');
+  
+      // Validate exactly one ID is provided
+      const ids = [showId, seasonId, episodeId].filter(Boolean);
+      if (ids.length !== 1) {
+        return NextResponse.json(
+          { error: 'Must provide exactly one entity ID' },
+          { status: 400 }
+        );
+      }
+  
+      // Delete the rating
+      const deletedRating = await prisma.rating.deleteMany({
+        where: {
+          userId,
+          showId: showId ? Number(showId) : undefined,
+          seasonId: seasonId ? Number(seasonId) : undefined,
+          episodeId: episodeId ? Number(episodeId) : undefined,
+        },
+      });
+  
+      if (deletedRating.count === 0) {
+        return NextResponse.json(
+          { error: 'No rating found to delete' },
+          { status: 404 }
+        );
+      }
+  
+      return NextResponse.json(
+        { success: true, message: 'Rating removed' },
+        { status: 200 }
+      );
+  
+    } catch (error) {
+      console.error('Error deleting rating:', error);
+      return NextResponse.json(
+        { error: 'Failed to delete rating' },
+        { status: 500 }
+      );
+    }
+  }
