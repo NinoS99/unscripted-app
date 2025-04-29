@@ -4,135 +4,91 @@ import { auth } from "@clerk/nextjs/server";
 
 const prisma = new PrismaClient();
 
-export async function POST(req: Request) {
-    try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+type EntityType = 'show' | 'season' | 'episode' | 'character'
 
-        const { showId } = await req.json();
+export async function GET(request: Request) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-        // Check if favorite already exists
-        const existingFavorite = await prisma.favorite.findFirst({
-            where: {
-                userId,
-                showId: Number(showId),
-            },
-        });
+    const { searchParams } = new URL(request.url)
+    const entityType = searchParams.get('entityType') as EntityType
+    const entityId = Number(searchParams.get('entityId'))
 
-        if (existingFavorite) {
-            return NextResponse.json({
-                isFavorite: true,
-                favorite: existingFavorite,
-            });
-        }
-
-        // Create new favorite and return it
-        const favorite = await prisma.favorite.create({
-            data: {
-                userId,
-                showId: Number(showId),
-            },
-            include: {
-                show: {
-                    select: {
-                        id: true,
-                        name: true,
-                        posterPath: true,
-                    },
-                },
-            },
-        });
-
-        return NextResponse.json({
-            isFavorite: true,
-            favorite: {
-                id: favorite.id,
-                show: favorite.show,
-            },
-        });
-    } catch (error) {
-        console.error("Error creating favorite:", error);
-        return NextResponse.json(
-            { error: "Failed to create favorite" },
-            { status: 500 }
-        );
+    if (!entityType || !entityId) {
+        return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
     }
-}
-export async function DELETE(req: Request) {
+
     try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        const { showId } = await req.json();
-
-        if (!showId) {
-            return NextResponse.json(
-                { error: "showId is required" },
-                { status: 400 }
-            );
-        }
-
-        // Delete favorite
-        await prisma.favorite.deleteMany({
-            where: {
-                userId,
-                showId: Number(showId),
-            },
-        });
-
-        return NextResponse.json({ isFavorite: false });
-    } catch (error) {
-        console.error("Error deleting favorite:", error);
-        return NextResponse.json(
-            { error: "Failed to delete favorite" },
-            { status: 500 }
-        );
-    }
-}
-
-export async function GET(req: Request) {
-    try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
-        }
-
-        const { searchParams } = new URL(req.url);
-        const showId = searchParams.get("showId");
-
-        if (!showId) {
-            return NextResponse.json(
-                { error: "showId is required" },
-                { status: 400 }
-            );
-        }
-
         const favorite = await prisma.favorite.findFirst({
             where: {
                 userId,
-                showId: Number(showId),
-            },
-        });
+                [`${entityType}Id`]: entityId
+            }
+        })
 
-        return NextResponse.json({ isFavorite: !!favorite });
+        return NextResponse.json({ isFavorite: !!favorite })
     } catch (error) {
-        console.error("Error checking favorite:", error);
         return NextResponse.json(
-            { error: "Failed to check favorite status" },
+            { error: 'Failed to fetch favorite status. Error: ' + error},
             { status: 500 }
-        );
+        )
+    }
+}
+
+export async function POST(request: Request) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    try {
+        const { entityType, entityId } = await request.json()
+
+        // Validate input
+        if (!['show', 'season', 'episode', 'character'].includes(entityType)) {
+            return NextResponse.json({ error: 'Invalid entity type' }, { status: 400 })
+        }
+
+        // Create the favorite record
+        const favorite = await prisma.favorite.create({
+            data: {
+                userId,
+                [`${entityType}Id`]: entityId
+            }
+        })
+
+        return NextResponse.json({ favorite, isFavorite: true })
+    } catch (error) {
+        return NextResponse.json(
+            { error: 'Failed to create favorite. Error: ' + error},
+            { status: 500 }
+        )
+    }
+}
+
+export async function DELETE(request: Request) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    try {
+        const { entityType, entityId } = await request.json()
+
+        // Validate input
+        if (!['show', 'season', 'episode', 'character'].includes(entityType)) {
+            return NextResponse.json({ error: 'Invalid entity type' }, { status: 400 })
+        }
+
+        // Delete the favorite record
+        await prisma.favorite.deleteMany({
+            where: {
+                userId,
+                [`${entityType}Id`]: entityId
+            }
+        })
+
+        return NextResponse.json({ isFavorite: false })
+    } catch (error) {
+        return NextResponse.json(
+            { error: 'Failed to remove favorite Error: ' + error},
+            { status: 500 }
+        )
     }
 }
