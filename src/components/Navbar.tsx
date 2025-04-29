@@ -56,7 +56,7 @@ const Navbar = () => {
                                 height={20}
                                 className="w-5 h-5 md:w-6 md:h-6"
                             />
-                            <Link className="text-green-600" href="/sign-in">
+                            <Link className="text-green-500 text-lg" href="/sign-in">
                                 Login/Register
                             </Link>
                         </div>

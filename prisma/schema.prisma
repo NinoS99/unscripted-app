@@ -135,8 +135,6 @@ model Creator {
   originalName String @map("original_name")
   profilePath String? @map("profile_path")
   shows     ShowCreator[]
-
-  @@map("creators")
 }
 
 model ShowCreator {
@@ -146,7 +144,6 @@ model ShowCreator {
   creator   Creator @relation(fields: [creatorId], references: [id])
 
   @@id([showId, creatorId])
-  @@map("shows_creators")
 }
 
 model Comment {

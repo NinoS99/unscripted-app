@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import Image from "next/image";
-import RatingComponent from "./RatingComponent";
-import FavouriteButton from "./FavouriteButton";
-import SeasonEpisodes from "./SeasonEpisodes";
+import RatingComponent from "../../../components/RatingComponent";
+import FavouriteButton from "../../../components/FavouriteButton";
+import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
 import { format } from "date-fns";
 
 const prisma = new PrismaClient();
@@ -47,7 +47,7 @@ export default async function ShowPage({
     const formatDate = (date: Date | null) =>
         date
             ? format(date, "MMMM d, yyyy") // Or toLocaleDateString w/ options
-            : "Unknown";
+            : null;
 
     const seasonsWithFormattedDates = show.seasons.map((season) => ({
         ...season,
@@ -183,11 +183,11 @@ export default async function ShowPage({
                         <div className="w-full mt-4 space-y-4">
                             <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
                                 <div className="flex items-center justify-between">
-                                    <FavouriteButton showId={show.id} />
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-green-500 font-medium">
-                                            Rate:
-                                        </span>
+                                    <FavouriteButton
+                                        entityType="show"
+                                        entityId={show.id}
+                                    />
+                                    <div className="flex items-center gap-2 mr-2">
                                         <RatingComponent
                                             entityType="show"
                                             entityId={show.id}
@@ -260,8 +260,9 @@ export default async function ShowPage({
                                         <h2 className="text-xl font-semibold text-green-500 mb-4">
                                             Seasons
                                         </h2>
-                                        <SeasonEpisodes
+                                        <SeasonEpisodesOfShow
                                             seasons={seasonsWithFormattedDates}
+                                            showId={show.id}
                                         />
                                     </div>
                                 )}
