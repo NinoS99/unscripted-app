@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 export default async function SeasonPage({
     params,
 }: {
-    params: Promise<{ showId: string; seasonNumber: string }>;
+    params: Promise<{ showId: number; seasonNumber: string }>;
 }) {
     const { showId, seasonNumber } = await params;
     const seasonNum = parseInt(seasonNumber);
@@ -232,6 +232,8 @@ export default async function SeasonPage({
                                     <EpisodesOfSeason
                                         episodes={episodesWithFormattedDates}
                                         seasonNumber={season.seasonNumber}
+                                        characters={season.characters}
+                                        showId={showId}
                                     />
                                 </div>
                             </div>

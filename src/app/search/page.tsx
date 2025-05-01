@@ -149,18 +149,6 @@ export default async function SearchPage(props: {
                                             )}
                                         </div>
 
-                                        {show.tmdbRating && (
-                                            <div className="mb-2">
-                                                <span className="text-md font-bold">
-                                                    Rating:{" "}
-                                                </span>
-                                                <span className="text-md">
-                                                    {show.tmdbRating.toFixed(1)}
-                                                    /10
-                                                </span>
-                                            </div>
-                                        )}
-
                                         {show.ShowsOnNetworks?.length > 0 && (
                                             <div className="mt-3">
                                                 <h4 className="text-md font-bold mb-1.5">
