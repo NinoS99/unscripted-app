@@ -104,17 +104,6 @@ export default function MobileShowCard({
                                 )}
                             </div>
 
-                            {show.tmdbRating && (
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-sm font-bold">
-                                        Rating:
-                                    </span>
-                                    <span className="text-sm">
-                                        {show.tmdbRating.toFixed(1)}/10
-                                    </span>
-                                </div>
-                            )}
-
                             {show.networks.length > 0 && (
                                 <div className="mb-3">
                                     <h4 className="text-sm font-bold mb-2">
