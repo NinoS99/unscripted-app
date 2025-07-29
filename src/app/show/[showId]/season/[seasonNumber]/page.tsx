@@ -1,8 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import RatingComponent from "@/components/RatingComponent";
 import FavouriteButton from "@/components/FavouriteButton";
 import EpisodesOfSeason from "@/components/EpisodesOfSeason";
+import SeasonReviewButton from "@/components/SeasonReviewButton";
+import EntityReviews from "@/components/EntityReviews";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -15,6 +18,7 @@ export default async function SeasonPage({
 }) {
     const { showId, seasonNumber } = await params;
     const seasonNum = parseInt(seasonNumber);
+    const { userId } = await auth();
 
     const season = await prisma.season.findUnique({
         where: {
@@ -168,7 +172,7 @@ export default async function SeasonPage({
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-600">
+            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-900">
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                     {/* Left Column */}
                     <div className="flex-shrink-0 w-full md:w-64">
@@ -196,19 +200,49 @@ export default async function SeasonPage({
                         {/* Action Buttons */}
                         <div className="w-full mt-4 space-y-4">
                             <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
-                                <div className="flex items-center justify-between">
-                                    <FavouriteButton
-                                        entityType="season"
-                                        entityId={season.id}
-                                    />
-                                    <div className="flex items-center gap-2 mr-2">
-                                        <RatingComponent
+                                {userId ? (
+                                    <div className="flex items-center justify-between">
+                                        <FavouriteButton
                                             entityType="season"
                                             entityId={season.id}
                                         />
+                                        <div className="flex items-center gap-2 mr-2">
+                                            <RatingComponent
+                                                entityType="season"
+                                                entityId={season.id}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="flex items-center justify-center py-1">
+                                        <p className="text-green-200 text-center text-sm">
+                                            Log in to rate, favourite or review this season!
+                                        </p>
+                                    </div>
+                                )}
                             </div>
+                            
+                            {userId && (
+                                <SeasonReviewButton 
+                                    season={{
+                                        id: season.id,
+                                        seasonNumber: season.seasonNumber,
+                                        airDate: season.airDate,
+                                        posterPath: season.posterPath,
+                                        show: {
+                                            id: showId,
+                                            name: season.show.name,
+                                            posterPath: season.show.posterPath
+                                        },
+                                        characters: season.characters.map(char => ({
+                                            id: char.id,
+                                            name: char.person.name,
+                                            characterName: char.showRole,
+                                            profilePath: char.person.profilePath
+                                        }))
+                                    }}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -236,6 +270,13 @@ export default async function SeasonPage({
                                         showId={showId}
                                     />
                                 </div>
+
+                                {/* Reviews Section */}
+                                <EntityReviews
+                                    entityType="season"
+                                    entityId={season.id}
+                                    entityName={`${season.show.name} - Season ${season.seasonNumber}`}
+                                />
                             </div>
                         </div>
                     </div>

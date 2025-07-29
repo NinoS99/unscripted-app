@@ -22,7 +22,7 @@ export default async function Home() {
       <p className="text-lg max-w-xl text-green-200">
         {username
           ? "Welcome back to unscripted. Dive into the latest Reality TV predictions and community insights!"
-          : "Reality Punch is your hub for Reality TV predictions and discussions. Sign up to get started!"}
+          : "unscripted is your hub for Reality TV predictions and discussions. Sign up to get started!"}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import RatingComponent from "./RatingComponent";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -33,6 +34,7 @@ export default function EpisodesOfSeason({
     }[];
     showId: number;
 }) {
+    const { user } = useUser();
     const [expandedEpisodes, setExpandedEpisodes] = useState<
         Record<number, boolean>
     >({});
@@ -165,7 +167,7 @@ export default function EpisodesOfSeason({
                     return (
                         <div
                             key={episode.id}
-                            className="flex flex-col p-3 bg-gray-500 rounded"
+                            className="flex flex-col p-3 bg-gray-800 rounded"
                         >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                                 <Link 
@@ -184,10 +186,12 @@ export default function EpisodesOfSeason({
                                         : `${episode.episodeNumber}: ${episode.name}`}
                                 </h4>
                                 </Link>
-                                <RatingComponent
-                                    entityType="episode"
-                                    entityId={episode.id}
-                                />
+                                {user && (
+                                    <RatingComponent
+                                        entityType="episode"
+                                        entityId={episode.id}
+                                    />
+                                )}
                             </div>
                             {episode.formattedAirDate && (
                                 <p className="text-xs text-white mb-1 mt-1 sm:mt-0">

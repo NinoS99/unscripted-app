@@ -342,7 +342,7 @@ export default function RatingComponent({
             {isLoading && (
                 <div className="flex items-center justify-center">
                     <svg
-                        className="animate-spin h-2 w-2 text-gray-500"
+                        className="animate-spin h-2 w-2 text-green-500"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"

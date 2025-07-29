@@ -1,0 +1,363 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
+import { format } from "date-fns";
+import RatingComponent from "./RatingComponent";
+import FavouriteButton from "./FavouriteButton";
+import { FiX, FiTag, FiUser, FiLoader } from "react-icons/fi";
+
+interface ShowReviewProps {
+    show: {
+        id: number;
+        name: string;
+        posterPath?: string | null;
+        firstAirDate?: Date | null;
+        characters?: {
+            id: number;
+            name: string;
+            characterName?: string | null;
+            profilePath?: string | null;
+        }[];
+    };
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
+    const { user } = useUser();
+    const [startedOn, setStartedOn] = useState<string>("");
+    const [endedOn, setEndedOn] = useState<string>("");
+    const [reviewContent, setReviewContent] = useState("");
+    const [tags, setTags] = useState<string[]>([]);
+    const [newTag, setNewTag] = useState("");
+    const [spoiler, setSpoiler] = useState(false);
+    const [favouriteCharacters, setFavouriteCharacters] = useState<number[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const formatDate = (date: Date | null) =>
+        date ? format(date, "MMMM d, yyyy") : null;
+
+    const handleAddTag = () => {
+        if (newTag.trim() && !tags.includes(newTag.trim())) {
+            setTags([...tags, newTag.trim()]);
+            setNewTag("");
+        }
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        setTags(tags.filter(tag => tag !== tagToRemove));
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleAddTag();
+        }
+    };
+
+    const handleCharacterToggle = (characterId: number) => {
+        setFavouriteCharacters(prev => 
+            prev.includes(characterId) 
+                ? prev.filter(id => id !== characterId)
+                : [...prev, characterId]
+        );
+    };
+
+    const handleSubmit = async () => {
+        if (!user || !reviewContent.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch("/api/reviews/show", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    showId: show.id,
+                    content: reviewContent.trim(),
+                    startedOn: startedOn || null,
+                    endedOn: endedOn || null,
+                    tags: tags,
+                    spoiler: spoiler,
+                    favouriteCharacters: favouriteCharacters,
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Reset form
+                setStartedOn("");
+                setEndedOn("");
+                setReviewContent("");
+                setTags([]);
+                setSpoiler(false);
+                setFavouriteCharacters([]);
+                onClose();
+                
+                // Show success message with link to view full review
+                if (data.reviewId) {
+                    alert(`Review submitted successfully! Click OK to view your review.`);
+                    window.open(`/${user.username}/review/show/${data.reviewId}`, '_blank');
+                }
+            } else {
+                const error = await response.json();
+                console.error("Failed to submit review:", error);
+                // You can add an error toast here
+            }
+        } catch (error) {
+            console.error("Error submitting review:", error);
+            // You can add an error toast here
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Close modal when clicking outside
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener("keydown", handleEscape);
+            document.body.style.overflow = "hidden";
+        }
+
+        return () => {
+            document.removeEventListener("keydown", handleEscape);
+            document.body.style.overflow = "unset";
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-600">
+                    <h2 className="text-xl font-bold text-white">Write a Review</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-white transition-colors"
+                    >
+                        <FiX className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div className="p-4 md:p-6">
+                    <div className="flex flex-col lg:flex-row gap-6">
+                        {/* Left Side - Show Info */}
+                        <div className="flex-shrink-0 flex flex-col items-center">
+                            {/* Rating above poster */}
+                            <div className="mb-4">
+                                <RatingComponent
+                                    entityType="show"
+                                    entityId={show.id}
+                                />
+                            </div>
+                            
+                            <div className="relative w-32 h-48 md:w-48 md:h-72 rounded-lg overflow-hidden shadow-lg">
+                                <Image
+                                    src={
+                                        show.posterPath
+                                            ? `https://image.tmdb.org/t/p/w500${show.posterPath}`
+                                            : "/noPoster.jpg"
+                                    }
+                                    alt={`${show.name} poster`}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                            <div className="mt-4 text-center">
+                                <h3 className="text-sm font-bold text-white">{show.name}</h3>
+                                {show.firstAirDate && (
+                                    <p className="text-sm text-gray-300 mt-1">
+                                        First aired on {formatDate(show.firstAirDate)}
+                                    </p>
+                                )}
+                            </div>
+                            {/* Favorite */}
+                            <div className="flex flex-col items-center gap-4 mt-4">
+                                <FavouriteButton
+                                    entityType="show"
+                                    entityId={show.id}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Right Side - Review Form */}
+                        <div className="flex-grow space-y-4 md:space-y-6">
+                            {/* Date Inputs */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Started On
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={startedOn}
+                                        onChange={(e) => setStartedOn(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Ended On
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={endedOn}
+                                        onChange={(e) => setEndedOn(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Review Content */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Review
+                                </label>
+                                <textarea
+                                    value={reviewContent}
+                                    onChange={(e) => setReviewContent(e.target.value)}
+                                    placeholder="Share your thoughts about this show..."
+                                    rows={6}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                />
+                            </div>
+
+                            {/* Tags and Favourite Characters */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Tags */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Tags
+                                    </label>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {tags.map((tag, index) => (
+                                            <span
+                                                key={index}
+                                                className="inline-flex items-center gap-1 px-2 py-1 bg-green-600 text-white text-sm rounded-md"
+                                            >
+                                                {tag}
+                                                <button
+                                                    onClick={() => handleRemoveTag(tag)}
+                                                    className="hover:text-red-200"
+                                                >
+                                                    <FiX className="w-3 h-3" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newTag}
+                                            onChange={(e) => setNewTag(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Add a tag..."
+                                            className="flex-grow px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                        />
+                                        <button
+                                            onClick={handleAddTag}
+                                            className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                        >
+                                            <FiTag className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Spoiler Checkbox */}
+                                    <div className="flex items-center mt-4">
+                                        <input
+                                            type="checkbox"
+                                            id="spoiler"
+                                            checked={spoiler}
+                                            onChange={(e) => setSpoiler(e.target.checked)}
+                                            className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                        />
+                                        <label htmlFor="spoiler" className="ml-2 text-sm text-gray-300">
+                                            Contains spoilers
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Favourite Characters */}
+                                {show.characters && show.characters.length > 0 && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                            Favourite Characters
+                                        </label>
+                                        <div className="max-h-32 overflow-y-auto space-y-2">
+                                            {show.characters.map((character) => (
+                                                <div
+                                                    key={character.id}
+                                                    className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
+                                                        favouriteCharacters.includes(character.id)
+                                                            ? "bg-green-600 hover:bg-green-500"
+                                                            : "bg-gray-600 hover:bg-gray-500"
+                                                    }`}
+                                                    onClick={() => handleCharacterToggle(character.id)}
+                                                >
+                                                    <div className="flex items-center gap-2 flex-grow">
+                                                        {character.profilePath ? (
+                                                            <Image
+                                                                src={`https://image.tmdb.org/t/p/w45${character.profilePath}`}
+                                                                alt={character.name}
+                                                                width={24}
+                                                                height={24}
+                                                                className="rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
+                                                                <FiUser className="w-3 h-3 text-gray-300" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm text-white font-medium">
+                                                                {character.name}
+                                                            </span>
+                                                            {character.characterName && (
+                                                                <span className="text-xs text-gray-300">
+                                                                    as {character.characterName}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="flex justify-end pt-4 border-t border-gray-600">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting || !reviewContent.trim()}
+                                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <FiLoader className="w-4 h-4 animate-spin" />
+                                            Submitting...
+                                        </>
+                                    ) : (
+                                        "Submit Review"
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+} 

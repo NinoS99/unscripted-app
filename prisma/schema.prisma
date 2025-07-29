@@ -29,8 +29,13 @@ model User {
   commentVotes   CommentVote[]
   predictions    Prediction[]
   reviews        Review[]
+  showReviews    ShowReview[]
+  seasonReviews  SeasonReview[]
+  episodeReviews EpisodeReview[]
   favorites      Favorite[]
   views          View[]
+  likes          Like[]
+  reviewComments ReviewComment[]
 
   @@index([username])
   @@index([email])
@@ -57,6 +62,7 @@ model Show {
   seasons          Season[]
   comments         Comment[]
   reviews          Review[]
+  showReviews      ShowReview[]
   predictions      Prediction[]
   favorites        Favorite[]
   views            View[]
@@ -78,6 +84,7 @@ model Season {
   characters   Character[]
   comments     Comment[]
   reviews      Review[]
+  seasonReviews SeasonReview[]
   favorites    Favorite[]
   views        View[]
   ratings      Rating[]
@@ -98,6 +105,7 @@ model Episode {
   tags          EpisodeTag[]
   comments      Comment[]
   reviews       Review[]
+  episodeReviews EpisodeReview[]
   predictions   Prediction[]
   favorites     Favorite[]
   views         View[]
@@ -126,6 +134,9 @@ model Character {
   favorites     Favorite[]
   views         View[]
   tags          CharacterTag[]
+  showReviews   ShowReviewCharacter[]
+  seasonReviews SeasonReviewCharacter[]
+  episodeReviews EpisodeReviewCharacter[]
 }
 
 
@@ -170,6 +181,7 @@ model Comment {
   replies     Comment[]  @relation("CommentReplies")
 
   votes       CommentVote[]
+  likes       Like[]
 
   createdAt   DateTime   @default(now())
 }
@@ -200,6 +212,7 @@ model Review {
   episode   Episode? @relation(fields: [episodeId], references: [id])
   spoiler   Boolean  @default(false)
   views     View[]
+  likes     Like[]
   createdAt DateTime @default(now())
 }
 
@@ -250,6 +263,9 @@ model Tag {
   seasons    SeasonTag[]
   episodes   EpisodeTag[]
   characters CharacterTag[]
+  showReviews ShowReviewTag[]
+  seasonReviews SeasonReviewTag[]
+  episodeReviews EpisodeReviewTag[]
 }
 
 model ShowTag {
@@ -309,6 +325,15 @@ model View {
   reviewId    Int?
   review      Review?    @relation(fields: [reviewId], references: [id])
 
+  showReviewId Int?
+  showReview   ShowReview? @relation(fields: [showReviewId], references: [id])
+
+  seasonReviewId Int?
+  seasonReview   SeasonReview? @relation(fields: [seasonReviewId], references: [id])
+
+  episodeReviewId Int?
+  episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
+
   characterId Int?
   character   Character? @relation(fields: [characterId], references: [id])
 
@@ -337,6 +362,7 @@ model Prediction {
 
   predictionType String // e.g. "winner", "eliminated", etc.
   createdAt      DateTime   @default(now())
+  likes          Like[]
 
   @@unique([userId, episodeId, predictionType])
 }
@@ -359,5 +385,172 @@ model ShowsOnNetworks {
   network  Network @relation(fields: [networkId], references: [id])
 
   @@id([showId, networkId]) // Composite primary key
+}
+
+model ShowReview {
+  id        Int      @id @default(autoincrement())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  showId    Int
+  show      Show     @relation(fields: [showId], references: [id])
+  startedOn DateTime?
+  endedOn   DateTime?
+  spoiler   Boolean  @default(false)
+  views     View[]
+  tags      ShowReviewTag[]
+  favouriteCharacters ShowReviewCharacter[]
+  likes     Like[]
+  comments  ReviewComment[]
+  createdAt DateTime @default(now())
+}
+
+model SeasonReview {
+  id        Int      @id @default(autoincrement())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  seasonId  Int
+  season    Season   @relation(fields: [seasonId], references: [id])
+  startedOn DateTime?
+  endedOn   DateTime?
+  spoiler   Boolean  @default(false)
+  views     View[]
+  tags      SeasonReviewTag[]
+  favouriteCharacters SeasonReviewCharacter[]
+  likes     Like[]
+  comments  ReviewComment[]
+  createdAt DateTime @default(now())
+}
+
+model EpisodeReview {
+  id        Int      @id @default(autoincrement())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  episodeId Int
+  episode   Episode  @relation(fields: [episodeId], references: [id])
+  watchedOn DateTime?
+  spoiler   Boolean  @default(false)
+  views     View[]
+  tags      EpisodeReviewTag[]
+  favouriteCharacters EpisodeReviewCharacter[]
+  likes     Like[]
+  comments  ReviewComment[]
+  createdAt DateTime @default(now())
+}
+
+model ShowReviewCharacter {
+  id           Int        @id @default(autoincrement())
+  showReviewId Int
+  characterId  Int
+  showReview   ShowReview @relation(fields: [showReviewId], references: [id])
+  character    Character  @relation(fields: [characterId], references: [id])
+
+  @@unique([showReviewId, characterId])
+}
+
+model SeasonReviewCharacter {
+  id             Int           @id @default(autoincrement())
+  seasonReviewId Int
+  characterId    Int
+  seasonReview   SeasonReview  @relation(fields: [seasonReviewId], references: [id])
+  character      Character     @relation(fields: [characterId], references: [id])
+
+  @@unique([seasonReviewId, characterId])
+}
+
+model EpisodeReviewCharacter {
+  id             Int           @id @default(autoincrement())
+  episodeReviewId Int
+  characterId    Int
+  episodeReview  EpisodeReview @relation(fields: [episodeReviewId], references: [id])
+  character      Character     @relation(fields: [characterId], references: [id])
+
+  @@unique([episodeReviewId, characterId])
+}
+
+model ShowReviewTag {
+  id           Int        @id @default(autoincrement())
+  showReviewId Int
+  tagId        Int
+  showReview   ShowReview @relation(fields: [showReviewId], references: [id])
+  tag          Tag        @relation(fields: [tagId], references: [id])
+
+  @@unique([showReviewId, tagId])
+}
+
+model SeasonReviewTag {
+  id             Int           @id @default(autoincrement())
+  seasonReviewId Int
+  tagId          Int
+  seasonReview   SeasonReview  @relation(fields: [seasonReviewId], references: [id])
+  tag            Tag           @relation(fields: [tagId], references: [id])
+
+  @@unique([seasonReviewId, tagId])
+}
+
+model EpisodeReviewTag {
+  id             Int           @id @default(autoincrement())
+  episodeReviewId Int
+  tagId          Int
+  episodeReview  EpisodeReview @relation(fields: [episodeReviewId], references: [id])
+  tag            Tag           @relation(fields: [tagId], references: [id])
+
+  @@unique([episodeReviewId, tagId])
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  // Polymorphic relations
+  commentId Int?
+  comment   Comment? @relation(fields: [commentId], references: [id])
+  
+  reviewId  Int?
+  review    Review?  @relation(fields: [reviewId], references: [id])
+  
+  predictionId Int?
+  prediction   Prediction? @relation(fields: [predictionId], references: [id])
+  
+  showReviewId Int?
+  showReview   ShowReview? @relation(fields: [showReviewId], references: [id])
+  
+  seasonReviewId Int?
+  seasonReview   SeasonReview? @relation(fields: [seasonReviewId], references: [id])
+  
+  episodeReviewId Int?
+  episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
+  
+  createdAt DateTime @default(now())
+
+  // Ensure only one like per user per entity
+  @@unique([userId, commentId])
+  @@unique([userId, reviewId])
+  @@unique([userId, predictionId])
+  @@unique([userId, showReviewId])
+  @@unique([userId, seasonReviewId])
+  @@unique([userId, episodeReviewId])
+}
+
+model ReviewComment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  // Polymorphic relations to different review types
+  showReviewId Int?
+  showReview   ShowReview? @relation(fields: [showReviewId], references: [id])
+  
+  seasonReviewId Int?
+  seasonReview   SeasonReview? @relation(fields: [seasonReviewId], references: [id])
+  
+  episodeReviewId Int?
+  episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
+  
+  createdAt DateTime @default(now())
 }
 

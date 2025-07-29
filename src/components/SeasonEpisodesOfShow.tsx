@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
 import RatingComponent from "./RatingComponent";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,6 +35,7 @@ export default function SeasonEpisodesOfShow({
     showId: number;
     onSeasonSelect?: (seasonId: number) => void;
 }) {
+    const { user } = useUser();
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]);
     const [expandedOverview, setExpandedOverview] = useState(false);
     const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>(
@@ -215,10 +217,16 @@ export default function SeasonEpisodesOfShow({
                                 : `Season ${selectedSeason.seasonNumber}`}
                         </h3>
                     </Link>
-                    <RatingComponent
-                        entityType="season"
-                        entityId={selectedSeason.id}
-                    />
+                    {user ? (
+                        <RatingComponent
+                            entityType="season"
+                            entityId={selectedSeason.id}
+                        />
+                    ) : (
+                        <p className="text-green-200 text-sm">
+                            Log in to rate this season!
+                        </p>
+                    )}
                 </div>
 
                 {/* Scrollable Episodes Container */}
@@ -232,7 +240,7 @@ export default function SeasonEpisodesOfShow({
                         return (
                             <div
                                 key={episode.id}
-                                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-500 rounded"
+                                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-800 rounded"
                             >
                                 <div className="mb-2 sm:mb-0">
                                     <h4 className="font-medium text-green-500">
@@ -249,10 +257,12 @@ export default function SeasonEpisodesOfShow({
                                         </p>
                                     )}
                                 </div>
-                                <RatingComponent
-                                    entityType="episode"
-                                    entityId={episode.id}
-                                />
+                                {user && (
+                                    <RatingComponent
+                                        entityType="episode"
+                                        entityId={episode.id}
+                                    />
+                                )}
                             </div>
                         );
                     })}
