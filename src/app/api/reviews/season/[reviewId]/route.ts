@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: { reviewId: string } }
+    request: NextRequest,
+    { params }: { params: Promise<{ reviewId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -12,7 +12,8 @@ export async function DELETE(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const reviewId = parseInt(params.reviewId);
+        const { reviewId: reviewIdParam } = await params;
+        const reviewId = parseInt(reviewIdParam);
         if (isNaN(reviewId)) {
             return NextResponse.json(
                 { error: "Invalid review ID" },
