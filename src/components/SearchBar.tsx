@@ -134,7 +134,7 @@ const SearchBar = ({
                         className="h-10 w-10 flex items-center justify-center hover:bg-green-100 rounded-full transition-colors duration-200 cursor-pointer"
                     >
                         <FaMagnifyingGlass
-                            className={`w-6 h-6 text-white`}
+                            className={`w-6 h-6 text-green-400`}
                             title={showSearch ? "Submit Search" : "Open Search"}
                         />
                     </button>
@@ -172,7 +172,7 @@ const SearchBar = ({
                                         className="h-full w-10 flex items-center justify-center"
                                     >
                                         <FaMagnifyingGlass
-                                            className={`w-6 h-6 text-white`}
+                                            className={`w-6 h-6 text-green-400`}
                                             title={
                                                 showSearch
                                                     ? "Submit Search"

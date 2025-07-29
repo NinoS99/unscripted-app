@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
+import Image from "next/image";
 import EditProfileForm from "./EditProfileForm";
 
 export default function ProfilePopup() {
@@ -63,8 +64,10 @@ export default function ProfilePopup() {
                 className="rounded-full overflow-hidden border-2 border-gray-200 hover:border-green-500 transition-all flex items-center justify-center w-9 h-9 cursor-pointer" // Fixed dimensions
                 aria-label="Profile menu"
             >
-                <img
-                    src={user.imageUrl}
+                <Image
+                    src={user.imageUrl?.includes('clerk.com') 
+                        ? user.imageUrl 
+                        : `${user.imageUrl}?v=${user.id}`}
                     alt="Profile"
                     width={36} // Slightly larger than container to prevent squishing
                     height={36}

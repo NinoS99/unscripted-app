@@ -20,12 +20,12 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <div className=" bg-gray-600"> 
+          <div className=" bg-gray-900"> 
             <div className="lg:px-16 xl:px-32 2xl:px-64 mx-auto w-full">
               <Navbar/>
             </div>
           </div>
-          <div className="min-h-screen bg-gray-600">
+          <div className="min-h-screen bg-gray-900">
             <div className="md:px-8 lg:px-16 xl:px-32 2xl:px-64 mx-auto w-full">
               {children}
             </div>

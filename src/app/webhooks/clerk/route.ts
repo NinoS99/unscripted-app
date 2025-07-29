@@ -84,11 +84,13 @@ export async function POST(req: Request) {
                     data: {
                         username: username,
                         profilePicture: imageUrl || "/noAvatar.png",
+                        updatedAt: new Date(),
                     },
                 });
+                console.log(`User ${evt.data.id} updated with profile picture: ${imageUrl}`);
                 return new Response("User has been updated!", { status: 200 });
             } catch (err) {
-                console.log(err);
+                console.error("Failed to update user:", err);
                 return new Response("Failed to update the user!", {
                     status: 500,
                 });

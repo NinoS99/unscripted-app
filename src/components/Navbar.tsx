@@ -3,11 +3,11 @@ import Image from "next/image";
 import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
 import SearchBar from "./SearchBar";
-import { FiFilm, FiBell, FiEdit2 } from "react-icons/fi";
+import { FiFilm, FiBell, FiEdit2, FiUser } from "react-icons/fi";
 
 const Navbar = () => {
     return (
-        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gradient-to-t from-gray-600/70 to-transparent p-4 container mx-auto">
+        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gradient-to-t from-gray-900/70 to-transparent p-4 container mx-auto">
             {/* LEFT - Logo */}
             <div className="md:hidden lg:block">
                 <Link href="/">
@@ -48,17 +48,14 @@ const Navbar = () => {
                         </div>
                     </SignedIn>
                     <SignedOut>
-                        <div className="flex items-center gap-2 text-sm md:text-base">
-                            <Image
-                                src="/login.png"
-                                alt=""
-                                width={20}
-                                height={20}
-                                className="w-5 h-5 md:w-6 md:h-6"
-                            />
-                            <Link className="text-green-500 text-lg" href="/sign-in">
-                                Login/Register
-                            </Link>
+                        <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
+                            <SearchBar />
+                            <div className="flex items-center gap-2 text-sm md:text-base">
+                                <FiUser className="w-5 h-5 md:w-6 md:h-6 text-green-200" />
+                                <Link className="text-white text-lg hover:text-green-200 transition-all duration-300" href="/sign-in">
+                                    Login/Register
+                                </Link>
+                            </div>
                         </div>
                     </SignedOut>
                 </ClerkLoaded>

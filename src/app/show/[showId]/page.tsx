@@ -1,8 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import RatingComponent from "../../../components/RatingComponent";
 import FavouriteButton from "../../../components/FavouriteButton";
+import ShowReviewButton from "../../../components/ReviewButton";
 import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
+import EntityReviews from "../../../components/EntityReviews";
 import { format } from "date-fns";
 
 const prisma = new PrismaClient();
@@ -13,6 +16,7 @@ export default async function ShowPage({
     params: Promise<{ showId: string }>;
 }) {
     const { showId } = await params;
+    const { userId } = await auth();
 
     const show = await prisma.show.findUnique({
         where: { id: Number(showId) },
@@ -58,7 +62,7 @@ export default async function ShowPage({
     }));
 
     return (
-        <div className="min-h-screen bg-gray-100 container mx-auto">
+        <div className="min-h-screen bg-gray-900 container mx-auto">
             {/* Desktop Cover Photo */}
             <div className="relative h-96 md:h-[32rem] w-full overflow-hidden hidden md:block">
                 {show.backdropPath ? (
@@ -161,7 +165,7 @@ export default async function ShowPage({
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-600">
+            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-900">
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                     {/* Left Column - Same as before but adjusted for mobile */}
                     <div className="flex-shrink-0 w-full md:w-64">
@@ -182,19 +186,47 @@ export default async function ShowPage({
                         {/* Action Buttons - Same Width as Poster */}
                         <div className="w-full mt-4 space-y-4">
                             <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
-                                <div className="flex items-center justify-between">
-                                    <FavouriteButton
-                                        entityType="show"
-                                        entityId={show.id}
-                                    />
-                                    <div className="flex items-center gap-2 mr-2">
-                                        <RatingComponent
+                                {userId ? (
+                                    <div className="flex items-center justify-between">
+                                        <FavouriteButton
                                             entityType="show"
                                             entityId={show.id}
                                         />
+                                        <div className="flex items-center gap-2 mr-2">
+                                            <RatingComponent
+                                                entityType="show"
+                                                entityId={show.id}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="flex items-center justify-center py-1">
+                                        <p className="text-green-200 text-center text-sm">
+                                            Log in to rate, favourite or review this show!
+                                        </p>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Review Button */}
+                            {userId && (
+                                <ShowReviewButton
+                                    show={{
+                                        id: show.id,
+                                        name: show.name,
+                                        posterPath: show.posterPath,
+                                        firstAirDate: show.firstAirDate,
+                                        characters: show.seasons.flatMap(season => 
+                                            season.characters.map(character => ({
+                                                id: character.id,
+                                                name: character.person.name,
+                                                characterName: character.showRole,
+                                                profilePath: character.person.profilePath,
+                                            }))
+                                        ),
+                                    }}
+                                />
+                            )}
 
                             {/* Watch On Section */}
                             {show.ShowsOnNetworks.length > 0 && (
@@ -266,6 +298,13 @@ export default async function ShowPage({
                                         />
                                     </div>
                                 )}
+
+                                {/* Reviews Section */}
+                                <EntityReviews
+                                    entityType="show"
+                                    entityId={show.id}
+                                    entityName={show.name}
+                                />
                             </div>
                         </div>
                     </div>
