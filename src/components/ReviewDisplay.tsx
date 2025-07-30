@@ -226,7 +226,7 @@ export default function ReviewDisplay({
                                     {review.userFavorite && (
                                         <div className="flex items-center gap-1">
                                             <GiRose className="w-5 h-5 text-red-400 fill-current" />
-                                            <span className="text-sm text-red-400 font-medium pl-1">Liked by reviewer</span>
+                                            <span className="text-sm text-red-400 font-medium pl-1">Reviewer gave this a rose</span>
                                         </div>
                                     )}
                                     {review.spoiler && (
@@ -318,7 +318,7 @@ export default function ReviewDisplay({
                                     {review.userFavorite && (
                                         <div className="flex items-center gap-1">
                                             <GiRose className="w-5 h-5 text-red-400 fill-current" />
-                                            <span className="text-sm text-red-400 font-medium pl-1">Liked by reviewer</span>
+                                            <span className="text-sm text-red-400 font-medium pl-1">Reviewer gave this a rose</span>
                                         </div>
                                     )}
                                     {review.spoiler && (
