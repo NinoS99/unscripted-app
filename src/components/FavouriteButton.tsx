@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FaHeart, FaRegHeart } from 'react-icons/fa'
+import { GiRose } from 'react-icons/gi'
 
 type EntityType = 'show' | 'season' | 'episode' | 'character'
 
@@ -73,9 +73,9 @@ export default function FavouriteButton({
             disabled={isLoading}
         >
             {isFavorite ? (
-                <FaHeart className="text-red-500 text-xl" />
+                <GiRose className="text-red-500 text-xl" />
             ) : (
-                <FaRegHeart className="text-gray-700 text-xl" />
+                <GiRose className="text-gray-700 text-xl" />
             )}
         </button>
     )

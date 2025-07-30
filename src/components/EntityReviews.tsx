@@ -205,7 +205,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
                     href={`/reviews/${entityType}/${entityId}`}
                     className="text-green-400 hover:text-green-300 transition-colors font-medium"
                 >
-                    View All Reviews ({reviews.length})
+                    More
                 </Link>
             </div>
 

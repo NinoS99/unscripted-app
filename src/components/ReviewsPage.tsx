@@ -608,7 +608,7 @@ export default function ReviewsPage({ entityType, entityId, entityName, entity, 
 
                 {/* Results Info */}
                 {filteredReviews.length > 0 && (
-                    <div className="mt-4 text-center text-sm text-gray-400">
+                    <div className="mt-4 text-center text-sm text-gray-400 mb-8">
                         Showing {startIndex + 1}-{Math.min(endIndex, filteredReviews.length)} of {filteredReviews.length} reviews
                     </div>
                 )}

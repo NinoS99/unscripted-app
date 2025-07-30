@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { format } from "date-fns";
-import { FiSend } from "react-icons/fi";
+import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 interface ReviewComment {
     id: number;
@@ -28,6 +28,8 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const commentsPerPage = 10;
 
     const fetchComments = useCallback(async () => {
         try {
@@ -157,39 +159,69 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                         No comments yet. Be the first to comment!
                     </div>
                 ) : (
-                    comments.map((comment) => (
-                        <div key={comment.id} className="py-4 border-b border-gray-700">
-                            <div className="flex gap-3">
-                                <div className="flex-shrink-0">
-                                    <Image
-                                        src={comment.user.profilePicture || "/noAvatar.png"}
-                                        alt={comment.user.username}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full object-cover h-10 w-10"
-                                        onError={(e) => {
-                                            // Fallback to noAvatar if image fails
-                                            const target = e.target as HTMLImageElement;
-                                            target.src = "/noAvatar.png";
-                                        }}
-                                    />
-                                </div>
-                                <div className="flex-grow">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold text-white">
-                                            {comment.user.username}
-                                        </span>
-                                        <span className="text-sm text-gray-400">
-                                            {format(new Date(comment.createdAt), "MMM d, yyyy")}
-                                        </span>
+                    <>
+                        {/* Paginated Comments */}
+                        {comments
+                            .slice((currentPage - 1) * commentsPerPage, currentPage * commentsPerPage)
+                            .map((comment) => (
+                                <div key={comment.id} className="py-4 border-b border-gray-700">
+                                    <div className="flex gap-3">
+                                        <div className="flex-shrink-0">
+                                            <Image
+                                                src={comment.user.profilePicture || "/noAvatar.png"}
+                                                alt={comment.user.username}
+                                                width={40}
+                                                height={40}
+                                                className="rounded-full object-cover h-10 w-10"
+                                                onError={(e) => {
+                                                    // Fallback to noAvatar if image fails
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.src = "/noAvatar.png";
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex-grow">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="font-semibold text-white">
+                                                    {comment.user.username}
+                                                </span>
+                                                <span className="text-sm text-gray-400">
+                                                    {format(new Date(comment.createdAt), "MMM d, yyyy")}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-200 whitespace-pre-wrap">
+                                                {comment.content}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-gray-200 whitespace-pre-wrap">
-                                        {comment.content}
-                                    </p>
                                 </div>
-                            </div>
+                            ))}
+                        
+                        {/* Pagination */}
+                        <div className="flex items-center justify-center gap-3 py-4 pb-6">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1 || comments.length <= commentsPerPage}
+                                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <FiChevronLeft className="w-3 h-3" />
+                                Previous
+                            </button>
+                            
+                            <span className="text-sm text-gray-400">
+                                Page {currentPage} of {Math.max(1, Math.ceil(comments.length / commentsPerPage))}
+                            </span>
+                            
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(comments.length / commentsPerPage), prev + 1))}
+                                disabled={currentPage === Math.ceil(comments.length / commentsPerPage) || comments.length <= commentsPerPage}
+                                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Next
+                                <FiChevronRight className="w-3 h-3" />
+                            </button>
                         </div>
-                    ))
+                    </>
                 )}
             </div>
         </div>

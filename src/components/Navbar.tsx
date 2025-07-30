@@ -56,7 +56,7 @@ const Navbar = () => {
                             <div className="flex items-center gap-2 text-sm md:text-base">
                                 <FiUser className="w-5 h-5 md:w-6 md:h-6 text-green-200" />
                                 <Link className="text-white text-lg hover:text-green-200 transition-all duration-300" href="/sign-in">
-                                    Login/Register
+                                    Login/Sign Up
                                 </Link>
                             </div>
                         </div>
