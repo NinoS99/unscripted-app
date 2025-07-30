@@ -6,8 +6,11 @@ import FavouriteButton from "@/components/FavouriteButton";
 import EpisodesOfSeason from "@/components/EpisodesOfSeason";
 import SeasonReviewButton from "@/components/SeasonReviewButton";
 import EntityReviews from "@/components/EntityReviews";
+import RatingDistributionChart from "@/components/RatingDistributionChart";
 import { format } from "date-fns";
 import Link from "next/link";
+import { FiFileText } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
 
@@ -47,6 +50,17 @@ export default async function SeasonPage({
                     person: true,
                 },
             },
+            seasonReviews: {
+                include: {
+                    _count: {
+                        select: {
+                            likes: true,
+                        },
+                    },
+                },
+            },
+            favorites: true,
+            ratings: true,
         },
     });
 
@@ -70,6 +84,23 @@ export default async function SeasonPage({
         tmdbRating: episode.tmdbRating || undefined,
         stillPath: episode.stillPath || undefined,
     }));
+
+    // Calculate statistics
+    const totalReviews = season.seasonReviews.length;
+    const totalLikes = season.favorites.length; // Count of favorites from users
+    const totalRatings = season.ratings.length;
+    const averageRating = totalRatings > 0 
+        ? (season.ratings.reduce((sum, rating) => sum + rating.rating, 0) / totalRatings).toFixed(1)
+        : "No ratings";
+
+    // Calculate rating distribution
+    const ratingDistribution = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(rating => {
+        const count = season.ratings.filter(r => r.rating === rating).length;
+        const percentage = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
+        return { rating, count, percentage };
+    });
+
+
 
     return (
         <div className="min-h-screen bg-gray-100 container mx-auto">
@@ -144,8 +175,6 @@ export default async function SeasonPage({
                             style={{
                                 aspectRatio: "2/3",
                                 backgroundColor: "#1f2937",
-                                borderBottom: "4px solid #4ade80",
-                                borderTop: "4px solid #4ade80",
                             }}
                         >
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -197,9 +226,23 @@ export default async function SeasonPage({
                             />
                         </div>
 
+                        {/* Statistics */}
+                        <div className="w-full mb-4 px-4 py-2">
+                            <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
+                                <div className="flex items-center gap-1">
+                                    <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                    <span>{totalLikes}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <FiFileText className="w-4 h-4 text-blue-400" />
+                                    <span>{totalReviews}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Action Buttons */}
-                        <div className="w-full mt-4 space-y-4">
-                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
+                        <div className="w-full space-y-4">
+                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
                                 {userId ? (
                                     <div className="flex items-center justify-between">
                                         <FavouriteButton
@@ -248,13 +291,21 @@ export default async function SeasonPage({
 
                     {/* Right Column */}
                     <div className="flex-grow min-w-0">
-                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col border-2 border-green-200">
+                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col">
                             <div className="overflow-y-auto p-6 flex-grow">
+                                {/* Rating Distribution Chart */}
+                                <RatingDistributionChart 
+                                    averageRating={averageRating}
+                                    totalRatings={totalRatings}
+                                    ratingDistribution={ratingDistribution}
+                                />
+
                                 {season.overview && (
                                     <div className="mb-8">
                                         <h2 className="text-xl font-semibold text-green-500 mb-3">
                                             Season Overview
                                         </h2>
+                                        <div className="border-b border-gray-600 mb-4"></div>
                                         <p className="text-white whitespace-pre-line">
                                             {season.overview}
                                         </p>
@@ -263,6 +314,10 @@ export default async function SeasonPage({
 
                                 {/* Episodes Section */}
                                 <div className="mb-8">
+                                    <h2 className="text-xl font-semibold text-green-500 mb-4">
+                                        Episodes
+                                    </h2>
+                                    <div className="border-b border-gray-600 mb-4"></div>
                                     <EpisodesOfSeason
                                         episodes={episodesWithFormattedDates}
                                         seasonNumber={season.seasonNumber}
@@ -275,7 +330,7 @@ export default async function SeasonPage({
                                 <EntityReviews
                                     entityType="season"
                                     entityId={season.id}
-                                    entityName={`${season.show.name} - Season ${season.seasonNumber}`}
+                                    entityName={`${season.show.name} - ${season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}`}
                                 />
                             </div>
                         </div>

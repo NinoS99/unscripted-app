@@ -1,6 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import prisma from "@/lib/client";
 
 export async function POST() {
     try {
@@ -23,17 +22,10 @@ export async function POST() {
             );
         }
 
-        // Update the user's profile picture in the database
-        const updatedUser = await prisma.user.update({
-            where: { id: userId },
-            data: {
-                profilePicture: user.imageUrl || "/noAvatar.png",
-            },
-        });
-
+        // No longer storing profile pictures in database - always fetch from Clerk
         return NextResponse.json({
-            message: "Profile picture synced successfully",
-            profilePicture: updatedUser.profilePicture,
+            message: "Profile picture sync no longer needed - using Clerk directly",
+            profilePicture: user.imageUrl || "/noAvatar.png",
         });
 
     } catch (error) {

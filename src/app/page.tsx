@@ -21,7 +21,7 @@ export default async function Home() {
       </h1>
       <p className="text-lg max-w-xl text-green-200">
         {username
-          ? "Welcome back to unscripted. Dive into the latest Reality TV predictions and community insights!"
+          ? "Welcome back to unscripted. Dive into the latest Reality TV discussions, insights and drama!"
           : "unscripted is your hub for Reality TV predictions and discussions. Sign up to get started!"}
       </p>
     </div>

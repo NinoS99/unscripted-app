@@ -102,6 +102,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                     select: {
                                         id: true,
                                         name: true,
+                                        posterPath: true,
                                     },
                                 },
                             },
@@ -198,8 +199,9 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
             notFound();
         }
 
-        // Get the reviewer's rating for this entity
+        // Get the reviewer's rating and favorite status for this entity
         let userRating;
+        let userFavorite;
         switch (reviewType) {
             case "show":
                 userRating = await prisma.rating.findUnique({
@@ -208,6 +210,12 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                             userId: review.user.id,
                             showId: entity.id,
                         },
+                    },
+                });
+                userFavorite = await prisma.favorite.findFirst({
+                    where: {
+                        userId: review.user.id,
+                        showId: entity.id,
                     },
                 });
                 break;
@@ -220,6 +228,12 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                         },
                     },
                 });
+                userFavorite = await prisma.favorite.findFirst({
+                    where: {
+                        userId: review.user.id,
+                        seasonId: entity.id,
+                    },
+                });
                 break;
             case "episode":
                 userRating = await prisma.rating.findUnique({
@@ -230,13 +244,20 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                         },
                     },
                 });
+                userFavorite = await prisma.favorite.findFirst({
+                    where: {
+                        userId: review.user.id,
+                        episodeId: entity.id,
+                    },
+                });
                 break;
         }
 
-        // Add userRating to the review object
+        // Add userRating and userFavorite to the review object
         const reviewWithRating = {
             ...review,
             userRating: userRating?.rating,
+            userFavorite: !!userFavorite,
         };
 
         // Construct availableImages based on review type
@@ -245,7 +266,12 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
             seasonPosterPath: reviewType === "season" && 'posterPath' in entity ? entity.posterPath : 
                              reviewType === "episode" && 'season' in entity && 'posterPath' in entity.season ? entity.season.posterPath : null,
             showPosterPath: reviewType === "show" && 'posterPath' in entity ? entity.posterPath :
+                           reviewType === "season" && 'show' in entity && 'posterPath' in entity.show ? entity.show.posterPath :
                            reviewType === "episode" && 'season' in entity && 'show' in entity.season && 'posterPath' in entity.season.show ? entity.season.show.posterPath : null,
+        } as {
+            episodeStillPath?: string | null;
+            seasonPosterPath?: string | null;
+            showPosterPath?: string | null;
         };
 
         return (

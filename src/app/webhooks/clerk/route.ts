@@ -41,7 +41,6 @@ export async function POST(req: Request) {
         const userId = data.id;
         const email = data.email_addresses?.[0]?.email_address;
         const username = data.username;
-        const imageUrl = data.image_url;
 
         if (!userId) {
             return NextResponse.json(
@@ -63,7 +62,7 @@ export async function POST(req: Request) {
                         id: evt.data.id,
                         email: email,
                         username: username,
-                        profilePicture: imageUrl || "/noAvatar.png",
+                        profilePicture: "/noAvatar.png", // Always use default, fetch from Clerk when needed
                     },
                 });
                 return new Response("User has been created!", { status: 200 });
@@ -83,11 +82,11 @@ export async function POST(req: Request) {
                     },
                     data: {
                         username: username,
-                        profilePicture: imageUrl || "/noAvatar.png",
+                        // Don't update profilePicture - always fetch from Clerk when needed
                         updatedAt: new Date(),
                     },
                 });
-                console.log(`User ${evt.data.id} updated with profile picture: ${imageUrl}`);
+                console.log(`User ${evt.data.id} updated`);
                 return new Response("User has been updated!", { status: 200 });
             } catch (err) {
                 console.error("Failed to update user:", err);

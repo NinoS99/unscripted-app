@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
 export async function POST(request: Request) {
@@ -119,7 +119,25 @@ export async function GET(request: Request) {
             orderBy: { createdAt: "asc" },
         });
 
-        return NextResponse.json({ comments });
+        // Get current user data from Clerk for profile picture comparison
+        const currentUserData = await currentUser();
+
+        // Update comments with current user's profile picture if applicable
+        const commentsWithUpdatedProfilePictures = comments.map(comment => {
+            const profilePicture = currentUserData?.id === comment.user.id 
+                ? currentUserData.imageUrl || comment.user.profilePicture
+                : comment.user.profilePicture;
+
+            return {
+                ...comment,
+                user: {
+                    ...comment.user,
+                    profilePicture,
+                },
+            };
+        });
+
+        return NextResponse.json({ comments: commentsWithUpdatedProfilePictures });
 
     } catch (error) {
         console.error("Error fetching review comments:", error);

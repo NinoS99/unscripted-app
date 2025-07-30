@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { FiTag, FiUser } from "react-icons/fi";
+import { FiTag, FiUser, FiStar } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 import LikeButton from "./LikeButton";
 import ReviewComments from "./ReviewComments";
 
@@ -17,6 +18,7 @@ interface ReviewDisplayProps {
             spoiler: boolean;
             createdAt: Date;
             userRating?: number;
+            userFavorite?: boolean;
             user: {
                 id: string;
                 username: string;
@@ -89,9 +91,9 @@ export default function ReviewDisplay({
             case "show":
                 return entity?.name || "Unknown Show";
             case "season":
-                return `${entity?.show?.name || "Unknown Show"} - Season ${entity?.seasonNumber}`;
+                return `${entity?.show?.name || "Unknown Show"} - ${entity?.seasonNumber === 0 ? "Specials" : `Season ${entity?.seasonNumber}`}`;
             case "episode":
-                return `${entity?.season?.show?.name || "Unknown Show"} - S${entity?.season?.seasonNumber}E${entity?.episodeNumber} - ${entity?.name || "Unknown Episode"}`;
+                return `${entity?.season?.show?.name || "Unknown Show"} - ${entity?.season?.seasonNumber === 0 ? "S" : `S${entity?.season?.seasonNumber}E`}${entity?.episodeNumber} - ${entity?.name || "Unknown Episode"}`;
         }
     };
 
@@ -111,11 +113,27 @@ export default function ReviewDisplay({
             case "show":
                 return entity?.posterPath;
             case "season":
-                return entity?.posterPath;
+                // Priority order: season poster → show poster
+                return entity?.posterPath || 
+                       availableImages?.showPosterPath;
             case "episode":
                 // Priority order: episode still → season poster → show poster
                 return availableImages?.episodeStillPath || 
                        availableImages?.seasonPosterPath || 
+                       availableImages?.showPosterPath;
+        }
+    };
+
+    const getDesktopPosterPath = () => {
+        switch (reviewType) {
+            case "show":
+                return entity?.posterPath;
+            case "season":
+                return availableImages?.seasonPosterPath || 
+                       availableImages?.showPosterPath;
+            case "episode":
+                // For desktop, prefer season poster → show poster (skip episode still)
+                return availableImages?.seasonPosterPath || 
                        availableImages?.showPosterPath;
         }
     };
@@ -194,17 +212,28 @@ export default function ReviewDisplay({
                                     </p>
                                 </div>
 
-                                {/* User's Rating */}
-                                <div>
-                                    <p className="text-sm text-gray-400 mb-2">User&apos;s Rating</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-2xl font-bold text-green-400">
-                                            {review.userRating || "Not rated"}
-                                        </span>
-                                        {review.userRating && (
+                                {/* User's Rating and Favorite Status */}
+                                <div className="flex items-center gap-4">
+                                    {review.userRating && (
+                                        <div className="flex items-center gap-1">
+                                            <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
+                                            <span className="text-lg font-semibold text-yellow-400">
+                                                {review.userRating}
+                                            </span>
                                             <span className="text-sm text-gray-400">/ 5</span>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
+                                    {review.userFavorite && (
+                                        <div className="flex items-center gap-1">
+                                            <GiRose className="w-5 h-5 text-red-400 fill-current" />
+                                            <span className="text-sm text-red-400 font-medium pl-1">Liked by reviewer</span>
+                                        </div>
+                                    )}
+                                    {review.spoiler && (
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Date Fields */}
@@ -242,7 +271,7 @@ export default function ReviewDisplay({
                             <div className="flex-shrink-0">
                                 <Link href={getEntityLink()}>
                                     <Image
-                                        src={getPosterPath() ? `https://image.tmdb.org/t/p/w500${getPosterPath()}` : "/noPoster.jpg"}
+                                        src={getDesktopPosterPath() ? `https://image.tmdb.org/t/p/w500${getDesktopPosterPath()}` : "/noPoster.jpg"}
                                         alt={getEntityName()}
                                         width={200}
                                         height={300}
@@ -275,17 +304,28 @@ export default function ReviewDisplay({
                                     )}
                                 </div>
 
-                                {/* User's Rating */}
-                                <div className="mb-4">
-                                    <p className="text-sm text-gray-400 mb-2">User&apos;s Rating</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-2xl font-bold text-green-400">
-                                            {review.userRating || "Not rated"}
-                                        </span>
-                                        {review.userRating && (
+                                {/* User's Rating and Favorite Status */}
+                                <div className="mb-4 flex items-center gap-4">
+                                    {review.userRating && (
+                                        <div className="flex items-center gap-1">
+                                            <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
+                                            <span className="text-lg font-semibold text-yellow-400">
+                                                {review.userRating}
+                                            </span>
                                             <span className="text-sm text-gray-400">/ 5</span>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
+                                    {review.userFavorite && (
+                                        <div className="flex items-center gap-1">
+                                            <GiRose className="w-5 h-5 text-red-400 fill-current" />
+                                            <span className="text-sm text-red-400 font-medium pl-1">Liked by reviewer</span>
+                                        </div>
+                                    )}
+                                    {review.spoiler && (
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Date Fields */}
@@ -319,12 +359,11 @@ export default function ReviewDisplay({
 
                         {/* Review Content */}
                         <div className="mb-8">
-                            <h2 className="text-xl font-semibold mb-4">Review</h2>
-                            <div className="bg-gray-800 rounded-lg p-6">
-                                <p className="whitespace-pre-wrap leading-relaxed">
-                                    {review?.content}
-                                </p>
-                            </div>
+                            <h2 className="text-xl font-semibold text-green-500 mb-4">Review</h2>
+                            <div className="border-b border-gray-600 mb-4"></div>
+                            <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                {review?.content}
+                            </p>
                         </div>
 
                         {/* Like Button */}
@@ -341,10 +380,11 @@ export default function ReviewDisplay({
                         {/* Tags */}
                         {review?.tags && review.tags.length > 0 && (
                             <div className="mb-8">
-                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <h3 className="text-lg font-semibold text-green-500 mb-4 flex items-center gap-2">
                                     <FiTag className="text-green-400" />
                                     Tags
                                 </h3>
+                                <div className="border-b border-gray-600 mb-4"></div>
                                 <div className="flex flex-wrap gap-2">
                                     {review.tags.map((tagRelation) => (
                                         <span
@@ -361,15 +401,16 @@ export default function ReviewDisplay({
                         {/* Favourite Characters (Show and Season only) */}
                         {reviewType !== "episode" && getFavouriteCharacters() && getFavouriteCharacters()!.length > 0 && (
                             <div className="mb-8">
-                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <h3 className="text-lg font-semibold text-green-500 mb-4 flex items-center gap-2">
                                     <FiUser className="text-green-400" />
-                                    Favourite Characters
+                                    Favourite &apos;Characters&apos;
                                 </h3>
+                                <div className="border-b border-gray-600 mb-4"></div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {getFavouriteCharacters()!.map((character) => (
                                         <div
                                             key={character.id}
-                                            className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg"
+                                            className="flex items-center gap-3 py-3 border-b border-gray-700"
                                         >
                                             <Image
                                                 src={character.person?.profilePath ? `https://image.tmdb.org/t/p/w500${character.person.profilePath}` : "/noAvatar.png"}
@@ -379,7 +420,7 @@ export default function ReviewDisplay({
                                                 className="rounded-md object-cover"
                                             />
                                             <div>
-                                                <p className="font-medium">{character.person?.name || "Unknown"}</p>
+                                                <p className="font-medium text-white">{character.person?.name || "Unknown"}</p>
                                                 {character.showRole && (
                                                     <p className="text-sm text-gray-400">
                                                         as {character.showRole}

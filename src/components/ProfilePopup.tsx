@@ -5,7 +5,7 @@ import Image from "next/image";
 import EditProfileForm from "./EditProfileForm";
 
 export default function ProfilePopup() {
-    const { user } = useUser();
+    const { user, isLoaded } = useUser();
     const { signOut, openUserProfile } = useClerk();
     const [showPopup, setShowPopup] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
@@ -54,7 +54,8 @@ export default function ProfilePopup() {
         setShowPopup(false);
     };
 
-    if (!user) return null;
+    // Don't render until user is loaded
+    if (!isLoaded || !user) return null;
 
     return (
         <div className="relative" ref={popupRef}>
@@ -65,13 +66,16 @@ export default function ProfilePopup() {
                 aria-label="Profile menu"
             >
                 <Image
-                    src={user.imageUrl?.includes('clerk.com') 
-                        ? user.imageUrl 
-                        : `${user.imageUrl}?v=${user.id}`}
+                    src={user.imageUrl || "/noAvatar.png"}
                     alt="Profile"
                     width={36} // Slightly larger than container to prevent squishing
                     height={36}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                        // Fallback to noAvatar if image fails
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/noAvatar.png";
+                    }}
                 />
             </button>
 

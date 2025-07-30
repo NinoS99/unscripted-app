@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
-import { FiHeart } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 
 interface LikeButtonProps {
     entityType: "comment" | "review" | "prediction" | "showReview" | "seasonReview" | "episodeReview";
@@ -79,7 +79,7 @@ export default function LikeButton({
     if (!user) {
         return (
             <div className="flex items-center gap-1 text-gray-400">
-                <FiHeart className={`${getSizeClasses(size)}`} />
+                <GiRose className={`${getSizeClasses(size)}`} />
                 {showCount && <span className="text-sm">{likeCount}</span>}
             </div>
         );
@@ -95,7 +95,7 @@ export default function LikeButton({
                     : "text-gray-400 hover:text-red-500"
             } ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
-            <FiHeart
+                            <GiRose
                 className={`${getSizeClasses(size)} ${
                     isLiked ? "fill-current" : ""
                 }`}
