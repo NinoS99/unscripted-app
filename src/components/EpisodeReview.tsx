@@ -19,6 +19,7 @@ interface EpisodeReviewProps {
         season: {
             id: number;
             seasonNumber: number;
+            posterPath?: string | null;
             show: {
                 id: number;
                 name: string;
@@ -44,6 +45,11 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
     const [newTag, setNewTag] = useState("");
     const [spoiler, setSpoiler] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Date validation
+    const today = new Date().toISOString().split('T')[0];
+    const isWatchedDateValid = !watchedOn || watchedOn <= today;
+    const isFormValid = reviewContent.trim() && isWatchedDateValid;
 
     const formatDate = (date: Date | null) =>
         date ? format(date, "MMMM d, yyyy") : null;
@@ -141,7 +147,7 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
                     </button>
                 </div>
 
-                <div className="p-4 md:p-6">
+                <div className="p-6 md:p-6">
                     <div className="flex flex-col lg:flex-row gap-6">
                         {/* Left Side - Episode Info */}
                         <div className="flex-shrink-0 flex flex-col items-center">
@@ -153,23 +159,24 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
                                 />
                             </div>
                             
-                            <div className="relative w-32 h-48 md:w-48 md:h-72 rounded-lg overflow-hidden shadow-lg">
+                            {/* Poster - Hidden on mobile, visible on desktop */}
+                            <div className="hidden md:block relative w-32 h-48 md:w-48 md:h-72 rounded-lg overflow-hidden shadow-lg">
                                 <Image
                                     src={
-                                        episode.stillPath
-                                            ? `https://image.tmdb.org/t/p/w500${episode.stillPath}`
+                                        episode.season.posterPath
+                                            ? `https://image.tmdb.org/t/p/w500${episode.season.posterPath}`
                                             : episode.season.show.posterPath
                                             ? `https://image.tmdb.org/t/p/w500${episode.season.show.posterPath}`
                                             : "/noPoster.jpg"
                                     }
-                                    alt={`${episode.season.show.name} S${episode.season.seasonNumber}E${episode.episodeNumber} - ${episode.name}`}
+                                    alt={`${episode.season.show.name} ${episode.season.seasonNumber === 0 ? "Special " : `S${episode.season.seasonNumber}E`}${episode.episodeNumber} - ${episode.name}`}
                                     fill
                                     className="object-cover"
                                 />
                             </div>
                             <div className="mt-4 text-center">
                                 <h3 className="text-sm font-bold text-white">
-                                    {episode.season.show.name} - S{episode.season.seasonNumber}E{episode.episodeNumber}
+                                    {episode.season.show.name} - {episode.season.seasonNumber === 0 ? "Special " : `S${episode.season.seasonNumber}E`}{episode.episodeNumber}
                                 </h3>
                                 <p className="text-sm text-gray-300 mt-1">
                                     {episode.name}
@@ -192,7 +199,7 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
                         {/* Right Side - Review Form */}
                         <div className="flex-grow space-y-4 md:space-y-6">
                             {/* Watched On Date */}
-                            <div>
+                            <div className="relative h-20">
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
                                     Watched On
                                 </label>
@@ -200,8 +207,22 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
                                     type="date"
                                     value={watchedOn}
                                     onChange={(e) => setWatchedOn(e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                    max={today}
+                                    className={`w-32 md:w-full px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
+                                        !isWatchedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
+                                    }`}
+                                    style={{
+                                        colorScheme: 'dark',
+                                        '--webkit-datetime-edit-fields-wrapper': 'color: white',
+                                        '--webkit-datetime-edit-text': 'color: white',
+                                        '--webkit-datetime-edit-month-field': 'color: white',
+                                        '--webkit-datetime-edit-day-field': 'color: white',
+                                        '--webkit-datetime-edit-year-field': 'color: white',
+                                    } as React.CSSProperties}
                                 />
+                                {!isWatchedDateValid && (
+                                    <p className="text-red-400 text-xs mt-1 ml-1">Date error!</p>
+                                )}
                             </div>
 
                             {/* Review Content */}
@@ -278,7 +299,7 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
                             <div className="flex justify-end pt-4 border-t border-gray-600">
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting || !reviewContent.trim()}
+                                    disabled={isSubmitting || !isFormValid}
                                     className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {isSubmitting ? (

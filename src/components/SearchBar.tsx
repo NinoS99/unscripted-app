@@ -134,7 +134,7 @@ const SearchBar = ({
                         className="h-10 w-10 flex items-center justify-center hover:bg-green-100 rounded-full transition-colors duration-200 cursor-pointer"
                     >
                         <FaMagnifyingGlass
-                            className={`w-6 h-6 text-green-400`}
+                            className={`w-6 h-6 text-white`}
                             title={showSearch ? "Submit Search" : "Open Search"}
                         />
                     </button>
@@ -146,7 +146,7 @@ const SearchBar = ({
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="fixed top-16 left-0 right-0 bg-gray-600 z-50 px-4 py-2 shadow-md"
+                                className="fixed top-16 left-0 right-0 bg-gray-900 z-50 px-4 py-2 shadow-md"
                             >
                                 <div className="flex items-center h-10 bg-white rounded-lg border border-gray-300 w-full">
                                     <button
@@ -172,7 +172,7 @@ const SearchBar = ({
                                         className="h-full w-10 flex items-center justify-center"
                                     >
                                         <FaMagnifyingGlass
-                                            className={`w-6 h-6 text-green-400`}
+                                            className={`w-6 h-6 text-gray-400`}
                                             title={
                                                 showSearch
                                                     ? "Submit Search"

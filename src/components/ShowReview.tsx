@@ -36,6 +36,13 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     const [favouriteCharacters, setFavouriteCharacters] = useState<number[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Date validation
+    const today = new Date().toISOString().split('T')[0];
+    const isStartedDateValid = !startedOn || startedOn <= today;
+    const isEndedDateValid = !endedOn || endedOn <= today;
+    const isDateRangeValid = !startedOn || !endedOn || startedOn <= endedOn;
+    const isFormValid = reviewContent.trim() && isStartedDateValid && isEndedDateValid && isDateRangeValid;
+
     const formatDate = (date: Date | null) =>
         date ? format(date, "MMMM d, yyyy") : null;
 
@@ -150,7 +157,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                     </button>
                 </div>
 
-                <div className="p-4 md:p-6">
+                <div className="p-6 md:p-6">
                     <div className="flex flex-col lg:flex-row gap-6">
                         {/* Left Side - Show Info */}
                         <div className="flex-shrink-0 flex flex-col items-center">
@@ -162,7 +169,8 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                 />
                             </div>
                             
-                            <div className="relative w-32 h-48 md:w-48 md:h-72 rounded-lg overflow-hidden shadow-lg">
+                            {/* Poster - Hidden on mobile, visible on desktop */}
+                            <div className="hidden md:block relative w-32 h-48 md:w-48 md:h-72 rounded-lg overflow-hidden shadow-lg">
                                 <Image
                                     src={
                                         show.posterPath
@@ -194,8 +202,8 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                         {/* Right Side - Review Form */}
                         <div className="flex-grow space-y-4 md:space-y-6">
                             {/* Date Inputs */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                            <div className="flex justify-between gap-2 h-20">
+                                <div className="relative">
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Started On
                                     </label>
@@ -203,10 +211,24 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                         type="date"
                                         value={startedOn}
                                         onChange={(e) => setStartedOn(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                        max={today}
+                                        className={`w-32 md:w-full px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
+                                            !isStartedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
+                                        }`}
+                                        style={{
+                                            colorScheme: 'dark',
+                                            '--webkit-datetime-edit-fields-wrapper': 'color: white',
+                                            '--webkit-datetime-edit-text': 'color: white',
+                                            '--webkit-datetime-edit-month-field': 'color: white',
+                                            '--webkit-datetime-edit-day-field': 'color: white',
+                                            '--webkit-datetime-edit-year-field': 'color: white',
+                                        } as React.CSSProperties}
                                     />
+                                    {!isStartedDateValid && (
+                                        <p className="text-red-400 text-xs mt-1 ml-1">Date error!</p>
+                                    )}
                                 </div>
-                                <div>
+                                <div className="relative">
                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                         Ended On
                                     </label>
@@ -214,8 +236,26 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                         type="date"
                                         value={endedOn}
                                         onChange={(e) => setEndedOn(e.target.value)}
-                                        className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                        max={today}
+                                        min={startedOn || undefined}
+                                        className={`w-32 md:w-full px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
+                                            !isEndedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
+                                        }`}
+                                        style={{
+                                            colorScheme: 'dark',
+                                            '--webkit-datetime-edit-fields-wrapper': 'color: white',
+                                            '--webkit-datetime-edit-text': 'color: white',
+                                            '--webkit-datetime-edit-month-field': 'color: white',
+                                            '--webkit-datetime-edit-day-field': 'color: white',
+                                            '--webkit-datetime-edit-year-field': 'color: white',
+                                        } as React.CSSProperties}
                                     />
+                                    {!isEndedDateValid && (
+                                        <p className="text-red-400 text-xs mt-1 ml-1">Time traveler?</p>
+                                    )}
+                                    {!isDateRangeValid && (
+                                        <p className="text-red-400 text-xs mt-1 ml-1">Hmm...</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -292,7 +332,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                 {show.characters && show.characters.length > 0 && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Favourite Characters
+                                            Favourite &apos;Characters&apos;
                                         </label>
                                         <div className="max-h-32 overflow-y-auto space-y-2">
                                             {show.characters.map((character) => (
@@ -341,7 +381,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                             <div className="flex justify-end pt-4 border-t border-gray-600">
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={isSubmitting || !reviewContent.trim()}
+                                    disabled={isSubmitting || !isFormValid}
                                     className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {isSubmitting ? (

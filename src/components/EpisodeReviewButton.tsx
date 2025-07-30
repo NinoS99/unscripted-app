@@ -14,6 +14,7 @@ interface EpisodeReviewButtonProps {
         season: {
             id: number;
             seasonNumber: number;
+            posterPath?: string | null;
             show: {
                 id: number;
                 name: string;

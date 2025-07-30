@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { FiHeart, FiMessageCircle, FiStar } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
+import { FiMessageCircle, FiStar } from "react-icons/fi";
+
 
 interface Review {
     id: number;
@@ -12,6 +14,7 @@ interface Review {
     createdAt: string;
     userRating?: number;
     userFavorite?: boolean;
+    spoiler: boolean;
     user: {
         id: string;
         username: string;
@@ -32,6 +35,7 @@ interface EntityReviewsProps {
 export default function EntityReviews({ entityType, entityId }: EntityReviewsProps) {
     const [reviews, setReviews] = useState<Review[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showSpoilers, setShowSpoilers] = useState<{ [key: number]: boolean }>({});
 
     const fetchReviews = useCallback(async () => {
         try {
@@ -70,69 +74,110 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
         return content.substring(0, maxLength) + "...";
     };
 
-    const renderReviewCard = (review: Review) => (
-        <div key={review.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-            <div className="flex items-start gap-3 mb-3">
-                <div className="flex-shrink-0">
-                    <Image
-                        src={review.user.profilePicture?.includes('clerk.com') 
-                            ? review.user.profilePicture 
-                            : `${review.user.profilePicture || "/noAvatar.png"}?v=${review.user.id}`}
-                        alt={review.user.username}
-                        width={48}
-                        height={48}
-                        className="w-8 h-8 rounded-full object-cover"
-                    />
-                </div>
+    const toggleSpoiler = (reviewId: number) => {
+        setShowSpoilers(prev => ({
+            ...prev,
+            [reviewId]: !prev[reviewId]
+        }));
+    };
+
+    const renderReviewRow = (review: Review) => {
+        return (
+            <div key={review.id} className="py-4 border-b border-gray-700">
+                <div className="flex items-start gap-3 mb-3">
+                    {/* User Profile Pic */}
+                    <div className="flex-shrink-0">
+                        <Image
+                            src={review.user.profilePicture || "/noAvatar.png"}
+                            alt={review.user.username}
+                            width={40}
+                            height={40}
+                            className="w-10 h-10 rounded-full object-cover"
+                            onError={(e) => {
+                                // Fallback to noAvatar if image fails
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/noAvatar.png";
+                            }}
+                        />
+                    </div>
+                
+                {/* Main Content */}
                 <div className="flex-grow min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    {/* Top Row: Username and Date/Rating/Favorite */}
+                    <div className="flex items-center justify-between mb-2">
                         <Link 
                             href={`/${review.user.username}/review/${entityType}/${review.id}`}
                             className="font-semibold text-white hover:text-green-400 transition-colors"
                         >
                             {review.user.username}
                         </Link>
+                        <div className="flex items-center gap-3 text-sm">
+                            <span className="text-gray-400">
+                                {format(new Date(review.createdAt), "MMM d, yyyy")}
+                            </span>
+                            {review.userRating && (
+                                <div className="flex items-center gap-1 text-yellow-400">
+                                    <FiStar className="w-4 h-4 fill-current" />
+                                    <span className="font-medium">{review.userRating}</span>
+                                </div>
+                            )}
+                            {review.userFavorite && (
+                                <div className="flex items-center gap-1 text-red-400">
+                                    <GiRose className="w-4 h-4 fill-current" />
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-3 mb-1">
-                        {review.userRating && (
-                            <div className="flex items-center gap-1 text-yellow-400">
-                                <FiStar className="w-4 h-4 fill-current" />
-                                <span className="text-sm font-medium">{review.userRating}</span>
+                    
+                    {/* Review Content */}
+                    <div className="mb-3">
+                        {review.spoiler ? (
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>
+                                    <button
+                                        onClick={() => toggleSpoiler(review.id)}
+                                        className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
+                                    >
+                                        {showSpoilers[review.id] ? "Hide Spoiler" : "Show Spoiler"}
+                                    </button>
+                                </div>
+                                <p className={`text-gray-200 leading-relaxed transition-all duration-300 ${
+                                    showSpoilers[review.id] 
+                                        ? "blur-none" 
+                                        : "blur-sm select-none"
+                                }`}>
+                                    {truncateContent(review.content, 200)}
+                                </p>
                             </div>
-                        )}
-                        {review.userFavorite && (
-                            <div className="flex items-center gap-1 text-red-400">
-                                <FiHeart className="w-4 h-4 fill-current" />
-                            </div>
+                        ) : (
+                            <p className="text-gray-200 leading-relaxed">
+                                {truncateContent(review.content, 200)}
+                            </p>
                         )}
                     </div>
-                    <p className="text-sm text-gray-400">
-                        {format(new Date(review.createdAt), "MMM d, yyyy")}
-                    </p>
-                </div>
-            </div>
-            
-            <p className="text-gray-200 mb-3 leading-relaxed">
-                {truncateContent(review.content)}
-            </p>
-            
-            <div className="flex items-center gap-4 text-sm text-gray-400">
-                <div className="flex items-center gap-1">
-                    <FiHeart className="w-4 h-4" />
-                    <span>{review._count.likes}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <FiMessageCircle className="w-4 h-4" />
-                    <span>{review._count.comments}</span>
+                    
+                    {/* Bottom Row: Likes and Comments */}
+                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                        <div className="flex items-center gap-1">
+                            <GiRose className="w-4 h-4" />
+                            <span>{review._count.likes}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <FiMessageCircle className="w-4 h-4" />
+                            <span>{review._count.comments}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    );
+        );
+    };
 
     if (isLoading) {
         return (
             <div className="mt-8">
-                <h2 className="text-2xl font-bold text-white mb-6">Reviews</h2>
+                <h2 className="text-xl font-semibold text-green-500 mb-4">Reviews</h2>
                 <div className="text-gray-400 text-center py-8">Loading reviews...</div>
             </div>
         );
@@ -141,7 +186,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
     if (reviews.length === 0) {
         return (
             <div className="mt-8">
-                <h2 className="text-2xl font-bold text-white mb-6">Reviews</h2>
+                <h2 className="text-xl font-semibold text-green-500 mb-4">Reviews</h2>
                 <div className="text-gray-400 text-center py-8">
                     No reviews yet. Be the first to review this {entityType}!
                 </div>
@@ -155,7 +200,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
     return (
         <div className="mt-8">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Reviews</h2>
+                <h2 className="text-xl font-semibold text-green-500">Reviews</h2>
                 <Link
                     href={`/reviews/${entityType}/${entityId}`}
                     className="text-green-400 hover:text-green-300 transition-colors font-medium"
@@ -168,8 +213,9 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
             {mostPopular.length > 0 && (
                 <div className="mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4">Most Popular</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {mostPopular.map(renderReviewCard)}
+                    <div className="border-b border-gray-600 mb-4"></div>
+                    <div className="space-y-0">
+                        {mostPopular.map(renderReviewRow)}
                     </div>
                 </div>
             )}
@@ -178,8 +224,9 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
             {mostRecent.length > 0 && (
                 <div className="mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4">Most Recent</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {mostRecent.map(renderReviewCard)}
+                    <div className="border-b border-gray-600 mb-4"></div>
+                    <div className="space-y-0">
+                        {mostRecent.map(renderReviewRow)}
                     </div>
                 </div>
             )}

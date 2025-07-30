@@ -5,13 +5,11 @@ import RatingComponent from "@/components/RatingComponent";
 import FavouriteButton from "@/components/FavouriteButton";
 import EpisodeReviewButton from "@/components/EpisodeReviewButton";
 import EntityReviews from "@/components/EntityReviews";
+import RatingDistributionChart from "@/components/RatingDistributionChart";
 import { format } from "date-fns";
 import Link from "next/link";
-import {
-    CalendarIcon,
-    FilmIcon,
-    TvIcon,
-} from "@heroicons/react/24/outline";
+import { FiFileText } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
 
@@ -51,6 +49,17 @@ export default async function EpisodePage({
                     },
                 },
             },
+            episodeReviews: {
+                include: {
+                    _count: {
+                        select: {
+                            likes: true,
+                        },
+                    },
+                },
+            },
+            favorites: true,
+            ratings: true,
         },
     });
 
@@ -75,6 +84,23 @@ export default async function EpisodePage({
         episode.season.posterPath || episode.season.show.posterPath;
 
     const desktopBackdropPath = episode.stillPath || episode.season.show.backdropPath;
+
+    // Calculate statistics
+    const totalReviews = episode.episodeReviews.length;
+    const totalLikes = episode.favorites.length; // Count of favorites from users
+    const totalRatings = episode.ratings.length;
+    const averageRating = totalRatings > 0 
+        ? (episode.ratings.reduce((sum, rating) => sum + rating.rating, 0) / totalRatings).toFixed(1)
+        : "No ratings";
+
+    // Calculate rating distribution
+    const ratingDistribution = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(rating => {
+        const count = episode.ratings.filter(r => r.rating === rating).length;
+        const percentage = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
+        return { rating, count, percentage };
+    });
+
+
 
     return (
         <div className="min-h-screen bg-gray-100 container mx-auto">
@@ -148,8 +174,6 @@ export default async function EpisodePage({
                             style={{
                                 aspectRatio: "16/9",
                                 backgroundColor: "#1f2937",
-                                borderBottom: "4px solid #4ade80",
-                                borderTop: "4px solid #4ade80",
                             }}
                         >
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -199,9 +223,23 @@ export default async function EpisodePage({
                             />
                         </div>
 
+                        {/* Statistics */}
+                        <div className="w-full mb-4 px-4 py-2">
+                            <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
+                                <div className="flex items-center gap-1">
+                                    <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                    <span>{totalLikes}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <FiFileText className="w-4 h-4 text-blue-400" />
+                                    <span>{totalReviews}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Action Buttons */}
-                        <div className="w-full mt-4 space-y-4">
-                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
+                        <div className="w-full space-y-4">
+                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
                                 {userId ? (
                                     <div className="flex items-center justify-between">
                                         <FavouriteButton
@@ -236,6 +274,7 @@ export default async function EpisodePage({
                                         season: {
                                             id: episode.season.id,
                                             seasonNumber: episode.season.seasonNumber,
+                                            posterPath: episode.season.posterPath,
                                             show: {
                                                 id: Number(showId),
                                                 name: episode.season.show.name,
@@ -250,48 +289,33 @@ export default async function EpisodePage({
 
                     {/* Right Column */}
                     <div className="flex-grow min-w-0">
-                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col border-2 border-green-200">
+                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col">
                             <div className="overflow-y-auto p-6 flex-grow">
+                                {/* Rating Distribution Chart */}
+                                <RatingDistributionChart 
+                                    averageRating={averageRating}
+                                    totalRatings={totalRatings}
+                                    ratingDistribution={ratingDistribution}
+                                />
+
                                 {episode.overview && (
                                     <div className="mb-5">
                                         <h2 className="text-xl font-semibold text-green-500 mb-3">
                                             Episode Overview
                                         </h2>
+                                        <div className="border-b border-gray-600 mb-4"></div>
                                         <p className="text-white whitespace-pre-line">
                                             {episode.overview}
                                         </p>
                                     </div>
                                 )}
 
-                                {/* Episode Details */}
-                                <div className="flex flex-wrap gap-4 text-white items-center mb-8">
-                                    <div className="flex items-center">
-                                        <TvIcon className="h-4 w-4 mr-1 text-green-400" />
-                                        <span>
-                                            {episode.season.seasonNumber === 0
-                                                ? "Specials"
-                                                : `S${episode.season.seasonNumber}`}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <FilmIcon className="h-4 w-4 mr-1 text-green-400" />
-                                        <span>E{episode.episodeNumber}</span>
-                                    </div>
-                                    {episode.airDate && (
-                                        <div className="flex items-center">
-                                            <CalendarIcon className="h-4 w-4 mr-1 text-green-400" />
-                                            <span>
-                                                {formatDate(episode.airDate)}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
 
                                 {/* Reviews Section */}
                                 <EntityReviews
                                     entityType="episode"
                                     entityId={episode.id}
-                                    entityName={`${episode.season.show.name} - S${episode.season.seasonNumber}E${episode.episodeNumber} - ${episode.name}`}
+                                    entityName={`${episode.season.show.name} - ${episode.season.seasonNumber === 0 ? "S" : `S${episode.season.seasonNumber}E`}${episode.episodeNumber} - ${episode.name}`}
                                 />
                             </div>
                         </div>

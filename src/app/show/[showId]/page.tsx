@@ -6,7 +6,10 @@ import FavouriteButton from "../../../components/FavouriteButton";
 import ShowReviewButton from "../../../components/ReviewButton";
 import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
 import EntityReviews from "../../../components/EntityReviews";
+import RatingDistributionChart from "../../../components/RatingDistributionChart";
 import { format } from "date-fns";
+import { FiFileText } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
 
@@ -37,6 +40,17 @@ export default async function ShowPage({
                     },
                 },
             },
+            showReviews: {
+                include: {
+                    _count: {
+                        select: {
+                            likes: true,
+                        },
+                    },
+                },
+            },
+            favorites: true,
+            ratings: true,
         },
     });
 
@@ -60,6 +74,23 @@ export default async function ShowPage({
             formattedAirDate: formatDate(ep.airDate),
         })),
     }));
+
+    // Calculate statistics
+    const totalReviews = show.showReviews.length;
+    const totalLikes = show.favorites.length; // Count of favorites from users
+    const totalRatings = show.ratings.length;
+    const averageRating = totalRatings > 0 
+        ? (show.ratings.reduce((sum, rating) => sum + rating.rating, 0) / totalRatings).toFixed(1)
+        : "No ratings";
+
+    // Calculate rating distribution
+    const ratingDistribution = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(rating => {
+        const count = show.ratings.filter(r => r.rating === rating).length;
+        const percentage = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
+        return { rating, count, percentage };
+    });
+
+
 
     return (
         <div className="min-h-screen bg-gray-900 container mx-auto">
@@ -127,8 +158,6 @@ export default async function ShowPage({
                             style={{
                                 aspectRatio: "2/3",
                                 backgroundColor: "#1f2937", // gray-800
-                                borderBottom: "4px solid #4ade80",
-                                borderTop: "4px solid #4ade80",
                             }}
                         >
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -183,9 +212,23 @@ export default async function ShowPage({
                             />
                         </div>
 
+                        {/* Statistics */}
+                        <div className="w-full mb-4 px-4 py-2">
+                            <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
+                                <div className="flex items-center gap-1">
+                                    <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                    <span>{totalLikes}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <FiFileText className="w-4 h-4 text-blue-400" />
+                                    <span>{totalReviews}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Action Buttons - Same Width as Poster */}
-                        <div className="w-full mt-4 space-y-4">
-                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2 border-1 border-green-200">
+                        <div className="w-full space-y-4">
+                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
                                 {userId ? (
                                     <div className="flex items-center justify-between">
                                         <FavouriteButton
@@ -230,7 +273,7 @@ export default async function ShowPage({
 
                             {/* Watch On Section */}
                             {show.ShowsOnNetworks.length > 0 && (
-                                <div className="rounded-lg shadow p-4 border-1 border-green-200">
+                                <div className="rounded-lg shadow p-4">
                                     <h3 className="text-md font-semibold text-green-500 mb-2">
                                         Watch On
                                     </h3>
@@ -266,7 +309,7 @@ export default async function ShowPage({
                     <div className="flex-grow min-w-0">
                         {" "}
                         {/* Added min-w-0 to prevent overflow */}
-                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col border-2 border-green-200">
+                        <div className="rounded-lg shadow overflow-hidden h-full flex flex-col">
                             {/* Scrollable Content Area */}
                             <div className="overflow-y-auto p-6 flex-grow ">
                                 {show.tagline && (
@@ -275,11 +318,19 @@ export default async function ShowPage({
                                     </p>
                                 )}
 
+                                {/* Rating Distribution Chart */}
+                                <RatingDistributionChart 
+                                    averageRating={averageRating}
+                                    totalRatings={totalRatings}
+                                    ratingDistribution={ratingDistribution}
+                                />
+
                                 {show.overview && (
                                     <div className="mb-8">
                                         <h2 className="text-xl font-semibold text-green-500 mb-3">
                                             Overview
                                         </h2>
+                                        <div className="border-b border-gray-600 mb-4"></div>
                                         <p className="text-white whitespace-pre-line">
                                             {show.overview}
                                         </p>
@@ -292,6 +343,7 @@ export default async function ShowPage({
                                         <h2 className="text-xl font-semibold text-green-500 mb-4">
                                             Seasons
                                         </h2>
+                                        <div className="border-b border-gray-600 mb-4"></div>
                                         <SeasonEpisodesOfShow
                                             seasons={seasonsWithFormattedDates}
                                             showId={show.id}

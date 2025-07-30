@@ -100,6 +100,7 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
     return (
         <div className="mt-6">
             <h3 className="text-lg font-semibold text-green-500 mb-4">Comments</h3>
+            <div className="border-b border-gray-600 mb-4"></div>
             
             {/* Add Comment Form */}
             {user && (
@@ -107,13 +108,16 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                     <div className="flex gap-3">
                         <div className="flex-shrink-0">
                             <Image
-                                src={user.imageUrl?.includes('clerk.com') 
-                                    ? user.imageUrl 
-                                    : `${user.imageUrl || "/noAvatar.png"}?v=${user.id}`}
+                                src={user.imageUrl || "/noAvatar.png"}
                                 alt={user.username || "User"}
                                 width={40}
                                 height={40}
                                 className="rounded-full object-cover h-10 w-10"
+                                onError={(e) => {
+                                    // Fallback to noAvatar if image fails
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "/noAvatar.png";
+                                }}
                             />
                         </div>
                         <div className="flex-grow">
@@ -147,27 +151,30 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
             )}
 
             {/* Comments List */}
-            <div className="space-y-4">
+            <div className="space-y-0">
                 {comments.length === 0 ? (
                     <div className="text-gray-400 text-center py-8">
                         No comments yet. Be the first to comment!
                     </div>
                 ) : (
                     comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3">
-                            <div className="flex-shrink-0">
-                                <Image
-                                    src={comment.user.profilePicture?.includes('clerk.com') 
-                                        ? comment.user.profilePicture 
-                                        : `${comment.user.profilePicture || "/noAvatar.png"}?v=${comment.user.id}`}
-                                    alt={comment.user.username}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full object-cover h-10 w-10"
-                                />
-                            </div>
-                            <div className="flex-grow">
-                                <div className="bg-gray-800 rounded-lg p-4">
+                        <div key={comment.id} className="py-4 border-b border-gray-700">
+                            <div className="flex gap-3">
+                                <div className="flex-shrink-0">
+                                    <Image
+                                        src={comment.user.profilePicture || "/noAvatar.png"}
+                                        alt={comment.user.username}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full object-cover h-10 w-10"
+                                        onError={(e) => {
+                                            // Fallback to noAvatar if image fails
+                                            const target = e.target as HTMLImageElement;
+                                            target.src = "/noAvatar.png";
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex-grow">
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className="font-semibold text-white">
                                             {comment.user.username}

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
 import SearchBar from "./SearchBar";
+import ClientOnly from "./ClientOnly";
 import { FiFilm, FiBell, FiEdit2, FiUser } from "react-icons/fi";
 
 const Navbar = () => {
@@ -44,7 +45,9 @@ const Navbar = () => {
                                 />
                             </div>
                             <SearchBar />
-                            <ProfilePopup />
+                            <ClientOnly fallback={<div className="w-9 h-9 rounded-full bg-gray-600 animate-pulse" />}>
+                                <ProfilePopup />
+                            </ClientOnly>
                         </div>
                     </SignedIn>
                     <SignedOut>
