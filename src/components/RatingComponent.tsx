@@ -29,6 +29,7 @@ export default function RatingComponent({
     const [showMobileRatingModal, setShowMobileRatingModal] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
     const [hoverRating, setHoverRating] = useState<number>(0);
+    const [showRemoveButton, setShowRemoveButton] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -95,6 +96,7 @@ export default function RatingComponent({
         try {
             setIsLoading(true);
             setError(null);
+            setShowRemoveButton(false); // Ensure X button is hidden when rating
 
             const response = await fetch("/api/ratings", {
                 method: "POST",
@@ -263,15 +265,28 @@ export default function RatingComponent({
         <div className="flex flex-col gap-1">
             {!isMobile && (
                 <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-0.5">
+                    <div className="flex items-center gap-0.5 relative">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <div key={star} className="relative w-6 h-6">
+                                {rating > 0 && star === 1 && !isLoading && (
+                                    <button
+                                        onClick={handleRemoveRating}
+                                        disabled={isLoading}
+                                        className={`absolute -left-4.5 top-1/2 transform -translate-y-1/2 flex items-center justify-center text-gray-200 hover:text-red-700 transition-colors z-30 ${
+                                            showRemoveButton ? 'opacity-100' : 'opacity-0'
+                                        }`}
+                                        onMouseEnter={() => setShowRemoveButton(true)}
+                                        onMouseLeave={() => setShowRemoveButton(false)}
+                                        aria-label="Remove rating"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                )}
+                                
                                 <button
                                     className="absolute left-0 top-0 w-1/2 h-full z-10"
                                     onClick={() => handleRating(star - 0.5)}
-                                    onMouseEnter={() =>
-                                        setHoverRating(star - 0.5)
-                                    }
+                                    onMouseEnter={() => setHoverRating(star - 0.5)}
                                     onMouseLeave={() => setHoverRating(0)}
                                     disabled={isLoading}
                                     aria-label={`Rate ${star - 0.5} out of 5`}
@@ -290,26 +305,13 @@ export default function RatingComponent({
                             </div>
                         ))}
                     </div>
-
-                    {rating > 0 && (
-                        <button
-                            onClick={handleRemoveRating}
-                            disabled={isLoading}
-                            className={`text-gray-200 hover:text-red-700 transition-colors ${
-                                isLoading ? "opacity-50 cursor-not-allowed" : ""
-                            }`}
-                            aria-label="Remove rating"
-                        >
-                            <FaTimes />
-                        </button>
-                    )}
                 </div>
             )}
 
             {isMobile && (
                 <div className="flex items-center gap-2">
                     {rating > 0 ? (
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-0.8">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <div key={star}>
                                     {renderStar(star, "text-xl")}
@@ -339,30 +341,6 @@ export default function RatingComponent({
 
             {isMobile && showMobileRatingModal && <MobileRatingModal />}
 
-            {isLoading && (
-                <div className="flex items-center justify-center">
-                    <svg
-                        className="animate-spin h-2 w-2 text-green-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                    >
-                        <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                        ></circle>
-                        <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                        ></path>
-                    </svg>
-                </div>
-            )}
             {error && <span className="text-xs text-red-500">{error}</span>}
         </div>
     );

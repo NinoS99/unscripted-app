@@ -16,7 +16,18 @@ interface ShowDetails {
   poster_path: string | null;
   backdrop_path: string | null;
   created_by: CreatorDetails[];
-  next_episode_to_air: any;
+  next_episode_to_air: {
+    air_date: string;
+    episode_number: number;
+    id: number;
+    name: string;
+    overview: string;
+    production_code: string;
+    season_number: number;
+    still_path: string | null;
+    vote_average: number;
+    vote_count: number;
+  } | null;
   networks: NetworkDetails[];
   seasons: Array<{
     id: number;
@@ -24,6 +35,8 @@ interface ShowDetails {
     episode_count: number;
     poster_path: string | null;
     vote_average: number;
+    air_date: string | null;
+    overview: string;
   }>;
 }
 
@@ -90,7 +103,7 @@ interface DiscoverResponse {
   }>;
 }
 
-function safePath(path: any): string | null {
+function safePath(path: string | null | undefined): string | null {
   if (typeof path !== "string") return null;
   const trimmed = path.trim().toLowerCase();
   return trimmed === "" || trimmed === "null" || trimmed === "[null]"
@@ -155,7 +168,14 @@ async function createShow(showData: ShowDetails) {
   return show;
 }
 
-async function createSeason(showId: number, season: any) {
+async function createSeason(showId: number, season: {
+  season_number: number;
+  episode_count: number;
+  air_date: string | null;
+  overview: string;
+  poster_path: string | null;
+  vote_average: number;
+}) {
   return await prisma.season.create({
     data: {
       showId,
@@ -172,7 +192,14 @@ async function createSeason(showId: number, season: any) {
   });
 }
 
-async function createEpisodes(seasonId: number, episodes: any[]) {
+async function createEpisodes(seasonId: number, episodes: Array<{
+  episode_number: number;
+  name: string;
+  overview: string | null;
+  vote_average: number;
+  still_path: string | null;
+  air_date: string | null;
+}>) {
   return await prisma.episode.createMany({
     data: episodes.map((ep) => ({
       episodeNumber: ep.episode_number,

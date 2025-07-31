@@ -71,7 +71,7 @@ export default async function SearchPage(props: {
             <h1 className="text-l font-semibold text-green-300">
                 SHOWING MATCHES FOR &quot;{query}&quot;
             </h1>
-            <div className="border-t border-gray-200 mb-8"></div>
+            <div className="border-t border-gray-600 mb-8"></div>
 
             {shows.length === 0 ? (
                 <p className="text-green-300">No shows found</p>
@@ -99,13 +99,12 @@ export default async function SearchPage(props: {
                                             className="object-cover"
                                             priority={false}
                                         />
-                                    </div>
-
-                                    {/* Show name (always visible) */}
-                                    <div className="p-2 text-sm font-medium text-black min-h-[40px] flex items-center justify-center bg-gray-300">
-                                        <span className="line-clamp-2 text-s sm:text-sm text-center justify-center">
-                                            {show.name}
-                                        </span>
+                                        {/* Show name overlaid at bottom */}
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                            <span className="text-sm font-bold text-white line-clamp-2">
+                                                {show.name}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Desktop hover overlay */}

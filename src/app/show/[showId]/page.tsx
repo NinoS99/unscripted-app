@@ -3,12 +3,15 @@ import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import RatingComponent from "../../../components/RatingComponent";
 import FavouriteButton from "../../../components/FavouriteButton";
+import WatchedButton from "../../../components/WatchedButton";
+import WatchedStatusDisplay from "../../../components/WatchedStatusDisplay";
+import CompletionNotification from "../../../components/CompletionNotification";
 import ShowReviewButton from "../../../components/ReviewButton";
 import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
 import EntityReviews from "../../../components/EntityReviews";
 import RatingDistributionChart from "../../../components/RatingDistributionChart";
 import { format } from "date-fns";
-import { FiFileText } from "react-icons/fi";
+import { FaPenSquare, FaEye } from "react-icons/fa";
 import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
@@ -51,6 +54,7 @@ export default async function ShowPage({
             },
             favorites: true,
             ratings: true,
+            watched: true,
         },
     });
 
@@ -77,6 +81,7 @@ export default async function ShowPage({
 
     // Calculate statistics
     const totalReviews = show.showReviews.length;
+    const totalWatched = show.watched.length; // Count of users who watched
     const totalLikes = show.favorites.length; // Count of favorites from users
     const totalRatings = show.ratings.length;
     const averageRating = totalRatings > 0 
@@ -127,6 +132,7 @@ export default async function ShowPage({
                                     .join(", ")}
                             </p>
                         )}
+                        <WatchedStatusDisplay entityType="show" entityId={show.id} />
                     </div>
                 </div>
             </div>
@@ -189,6 +195,7 @@ export default async function ShowPage({
                                         .join(", ")}
                                 </p>
                             )}
+                            <WatchedStatusDisplay entityType="show" entityId={show.id} />
                         </div>
                     </div>
                 </div>
@@ -215,12 +222,16 @@ export default async function ShowPage({
                         {/* Statistics */}
                         <div className="w-full mb-4 px-4 py-2">
                             <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1" title={totalWatched === 0 ? "No users have watched" : totalWatched === 1 ? "Watched by 1 user" : `Watched by ${totalWatched} users`}>
+                                    <FaEye className="w-4 h-4 text-green-400" />
+                                    <span>{totalWatched}</span>
+                                </div>
+                                <div className="flex items-center gap-1" title={totalLikes === 0 ? "No users gave a rose" : totalLikes === 1 ? "1 user gave a rose" : `${totalLikes} users gave a rose`}>
                                     <GiRose className="w-4 h-4 text-red-400 fill-current" />
                                     <span>{totalLikes}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <FiFileText className="w-4 h-4 text-blue-400" />
+                                <div className="flex items-center gap-1" title={totalReviews === 0 ? "No users left a review" : totalReviews === 1 ? "1 user left a review" : `${totalReviews} users left a review`}>
+                                    <FaPenSquare className="w-4 h-4 text-blue-400" />
                                     <span>{totalReviews}</span>
                                 </div>
                             </div>
@@ -230,22 +241,30 @@ export default async function ShowPage({
                         <div className="w-full space-y-4">
                             <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
                                 {userId ? (
-                                    <div className="flex items-center justify-between">
-                                        <FavouriteButton
-                                            entityType="show"
-                                            entityId={show.id}
-                                        />
-                                        <div className="flex items-center gap-2 mr-2">
-                                            <RatingComponent
-                                                entityType="show"
-                                                entityId={show.id}
-                                            />
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FavouriteButton
+                                                    entityType="show"
+                                                    entityId={show.id}
+                                                />
+                                                <WatchedButton
+                                                    entityType="show"
+                                                    entityId={show.id}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2 mr-2">
+                                                <RatingComponent
+                                                    entityType="show"
+                                                    entityId={show.id}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center py-1">
                                         <p className="text-green-200 text-center text-sm">
-                                            Log in to rate, favourite or review this show!
+                                            Log in to rate, favourite, watch or review this show!
                                         </p>
                                     </div>
                                 )}
@@ -362,6 +381,13 @@ export default async function ShowPage({
                     </div>
                 </div>
             </div>
+            
+            {/* Completion Notification */}
+            <CompletionNotification
+                entityType="show"
+                entityId={show.id}
+                entityName={show.name}
+            />
         </div>
     );
 }

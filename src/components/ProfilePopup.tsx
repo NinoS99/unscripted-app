@@ -50,7 +50,22 @@ export default function ProfilePopup() {
 
     const handleAccountSettings = () => {
         clerkModalActive.current = true;
-        openUserProfile();
+        openUserProfile({
+            appearance: {
+                variables: {
+                    colorPrimary: '#22c55e', // green-500
+                    colorBackground: '#111827', // gray-900
+                    colorText: '#ffffff', // white
+                    colorTextSecondary: '#9ca3af', // gray-400
+                    colorInputBackground: '#374151', // gray-700
+                    colorInputText: '#ffffff', // white
+                    colorNeutral: '#6b7280', // gray-500
+                    colorSuccess: '#10b981', // green-500
+                    colorWarning: '#f59e0b', // amber-500
+                    colorDanger: '#ef4444', // red-500
+                }
+            }
+        });
         setShowPopup(false);
     };
 
@@ -81,11 +96,11 @@ export default function ProfilePopup() {
 
             {/* Profile popup */}
             {showPopup && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-50 border border-gray-200 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-64 bg-gray-900 rounded-md shadow-lg z-50 border border-gray-600 animate-fade-in">
                     <div className="p-1">
                         <button
                             onClick={handleAccountSettings}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-400 rounded"
                         >
                             Account Settings
                         </button>
@@ -95,14 +110,14 @@ export default function ProfilePopup() {
                                 setShowEditForm(true);
                                 setShowPopup(false);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-400 rounded"
                         >
                             Edit Bio & Socials
                         </button>
                         
                         <button
                             onClick={() => signOut()}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-400 rounded"
                         >
                             Sign Out
                         </button>

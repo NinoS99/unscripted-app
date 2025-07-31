@@ -75,7 +75,7 @@ async function getGuestStars(
     return episode.guest_stars || [];
 }
 
-function safePath(path: any): string | null {
+function safePath(path: string | null | undefined): string | null {
     if (typeof path !== "string") return null;
     const trimmed = path.trim().toLowerCase();
     return trimmed === "" || trimmed === "null" || trimmed === "[null]"
