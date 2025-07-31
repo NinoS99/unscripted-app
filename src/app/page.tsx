@@ -181,25 +181,25 @@ export default async function Home() {
                 <div className="text-3xl font-bold text-green-500 mb-2">
                   {totalReviews}
                 </div>
-                <div className="text-gray-300">Show Reviews</div>
+                <div className="text-gray-300">Reviews Made</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-6 text-center">
                 <div className="text-3xl font-bold text-green-500 mb-2">
                   {totalComments}
                 </div>
-                <div className="text-gray-300">Show Comments</div>
+                <div className="text-gray-300">Comments Made</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-6 text-center">
                 <div className="text-3xl font-bold text-green-500 mb-2">
                   {totalLikes}
                 </div>
-                <div className="text-gray-300">Show Likes</div>
+                <div className="text-gray-300">Roses Given</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-6 text-center">
                 <div className="text-3xl font-bold text-green-500 mb-2">
                   {totalStarsSum._sum.rating || 0}
                 </div>
-                <div className="text-gray-300">Total Stars Given</div>
+                <div className="text-gray-300">Stars Given</div>
               </div>
             </div>
           </section>

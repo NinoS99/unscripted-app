@@ -3,13 +3,17 @@ import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import RatingComponent from "@/components/RatingComponent";
 import FavouriteButton from "@/components/FavouriteButton";
+import WatchedButton from "@/components/WatchedButton";
+import WatchedStatusDisplay from "@/components/WatchedStatusDisplay";
+import CompletionNotification from "@/components/CompletionNotification";
 import EpisodesOfSeason from "@/components/EpisodesOfSeason";
 import SeasonReviewButton from "@/components/SeasonReviewButton";
 import EntityReviews from "@/components/EntityReviews";
 import RatingDistributionChart from "@/components/RatingDistributionChart";
+import SeasonNavigation from "@/components/SeasonNavigation";
 import { format } from "date-fns";
 import Link from "next/link";
-import { FiFileText } from "react-icons/fi";
+import { FaPenSquare, FaEye } from "react-icons/fa";
 import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
@@ -33,6 +37,7 @@ export default async function SeasonPage({
         include: {
             show: {
                 select: {
+                    id: true,
                     name: true,
                     posterPath: true,
                     backdropPath: true,
@@ -61,6 +66,7 @@ export default async function SeasonPage({
             },
             favorites: true,
             ratings: true,
+            watched: true,
         },
     });
 
@@ -87,6 +93,7 @@ export default async function SeasonPage({
 
     // Calculate statistics
     const totalReviews = season.seasonReviews.length;
+    const totalWatched = season.watched.length; // Count of users who watched
     const totalLikes = season.favorites.length; // Count of favorites from users
     const totalRatings = season.ratings.length;
     const averageRating = totalRatings > 0 
@@ -142,8 +149,12 @@ export default async function SeasonPage({
                                     .join(", ")}
                             </p>
                         )}
+                        <WatchedStatusDisplay entityType="season" entityId={season.id} />
                     </div>
                 </div>
+
+                {/* Season Navigation */}
+                <SeasonNavigation showId={showId} currentSeasonNumber={season.seasonNumber} />
             </div>
 
             {/* Mobile Layout */}
@@ -198,6 +209,9 @@ export default async function SeasonPage({
                                 : `Season ${season.seasonNumber}`}
                         </h2>
                     </div>
+
+                    {/* Season Navigation - Mobile */}
+                    <SeasonNavigation showId={showId} currentSeasonNumber={season.seasonNumber} />
                 </div>
             </div>
 
@@ -229,12 +243,16 @@ export default async function SeasonPage({
                         {/* Statistics */}
                         <div className="w-full mb-4 px-4 py-2">
                             <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1" title={totalWatched === 0 ? "No users have watched" : totalWatched === 1 ? "Watched by 1 user" : `Watched by ${totalWatched} users`}>
+                                    <FaEye className="w-4 h-4 text-green-400" />
+                                    <span>{totalWatched}</span>
+                                </div>
+                                <div className="flex items-center gap-1" title={totalLikes === 0 ? "No users gave a rose" : totalLikes === 1 ? "1 user gave a rose" : `${totalLikes} users gave a rose`}>
                                     <GiRose className="w-4 h-4 text-red-400 fill-current" />
                                     <span>{totalLikes}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <FiFileText className="w-4 h-4 text-blue-400" />
+                                <div className="flex items-center gap-1" title={totalReviews === 0 ? "No users left a review" : totalReviews === 1 ? "1 user left a review" : `${totalReviews} users left a review`}>
+                                    <FaPenSquare className="w-4 h-4 text-blue-400" />
                                     <span>{totalReviews}</span>
                                 </div>
                             </div>
@@ -244,22 +262,32 @@ export default async function SeasonPage({
                         <div className="w-full space-y-4">
                             <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
                                 {userId ? (
-                                    <div className="flex items-center justify-between">
-                                        <FavouriteButton
-                                            entityType="season"
-                                            entityId={season.id}
-                                        />
-                                        <div className="flex items-center gap-2 mr-2">
-                                            <RatingComponent
-                                                entityType="season"
-                                                entityId={season.id}
-                                            />
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FavouriteButton
+                                                    entityType="season"
+                                                    entityId={season.id}
+                                                />
+                                                                        <WatchedButton
+                            entityType="season"
+                            entityId={season.id}
+                            showId={showId}
+                            seasonNumber={season.seasonNumber}
+                        />
+                                            </div>
+                                            <div className="flex items-center gap-2 mr-2">
+                                                <RatingComponent
+                                                    entityType="season"
+                                                    entityId={season.id}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center py-1">
                                         <p className="text-green-200 text-center text-sm">
-                                            Log in to rate, favourite or review this season!
+                                            Log in to rate, favourite, watch or review this season!
                                         </p>
                                     </div>
                                 )}
@@ -337,6 +365,15 @@ export default async function SeasonPage({
                     </div>
                 </div>
             </div>
+            
+            {/* Completion Notification */}
+            <CompletionNotification
+                entityType="show"
+                entityId={season.show.id}
+                entityName={season.show.name}
+                showId={showId}
+                seasonNumber={season.seasonNumber}
+            />
         </div>
     );
 }

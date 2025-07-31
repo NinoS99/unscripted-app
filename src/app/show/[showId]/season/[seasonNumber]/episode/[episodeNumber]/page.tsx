@@ -3,12 +3,16 @@ import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import RatingComponent from "@/components/RatingComponent";
 import FavouriteButton from "@/components/FavouriteButton";
+import WatchedButton from "@/components/WatchedButton";
+import WatchedStatusDisplay from "@/components/WatchedStatusDisplay";
 import EpisodeReviewButton from "@/components/EpisodeReviewButton";
 import EntityReviews from "@/components/EntityReviews";
 import RatingDistributionChart from "@/components/RatingDistributionChart";
+import CompletionNotification from "@/components/CompletionNotification";
+import EpisodeNavigation from "@/components/EpisodeNavigation";
 import { format } from "date-fns";
 import Link from "next/link";
-import { FiFileText } from "react-icons/fi";
+import { FaPenSquare, FaEye } from "react-icons/fa";
 import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
@@ -60,6 +64,7 @@ export default async function EpisodePage({
             },
             favorites: true,
             ratings: true,
+            watched: true,
         },
     });
 
@@ -87,6 +92,7 @@ export default async function EpisodePage({
 
     // Calculate statistics
     const totalReviews = episode.episodeReviews.length;
+    const totalWatched = episode.watched.length; // Count of users who watched
     const totalLikes = episode.favorites.length; // Count of favorites from users
     const totalRatings = episode.ratings.length;
     const averageRating = totalRatings > 0 
@@ -104,6 +110,16 @@ export default async function EpisodePage({
 
     return (
         <div className="min-h-screen bg-gray-100 container mx-auto">
+            {/* Completion Notification */}
+            <CompletionNotification
+                entityType="season"
+                entityId={episode.season.id}
+                entityName={`${episode.season.show.name} - Season ${episode.season.seasonNumber === 0 ? "Specials" : episode.season.seasonNumber}`}
+                showId={Number(showId)}
+                seasonNumber={episode.season.seasonNumber}
+                episodeId={episode.id}
+                episodeNumber={episode.episodeNumber}
+            />
             {/* Desktop Cover Photo */}
             <div className="relative h-96 md:h-[32rem] w-full overflow-hidden hidden md:block">
                 {episode.season.show.backdropPath ? (
@@ -147,7 +163,15 @@ export default async function EpisodePage({
                                     .join(", ")}
                             </p>
                         )}
+                        <WatchedStatusDisplay entityType="episode" entityId={episode.id} />
                     </div>
+
+                    {/* Episode Navigation */}
+                    <EpisodeNavigation 
+                        showId={Number(showId)} 
+                        currentSeasonNumber={episode.season.seasonNumber} 
+                        currentEpisodeNumber={episode.episodeNumber} 
+                    />
                 </div>
             </div>
 
@@ -201,7 +225,15 @@ export default async function EpisodePage({
                         <h3 className="text-md font-bold text-white">
                             Episode {episode.episodeNumber}: {episode.name}
                         </h3>
+                        <WatchedStatusDisplay entityType="episode" entityId={episode.id} />
                     </div>
+
+                    {/* Episode Navigation - Mobile */}
+                    <EpisodeNavigation 
+                        showId={Number(showId)} 
+                        currentSeasonNumber={episode.season.seasonNumber} 
+                        currentEpisodeNumber={episode.episodeNumber} 
+                    />
                 </div>
             </div>
 
@@ -226,12 +258,16 @@ export default async function EpisodePage({
                         {/* Statistics */}
                         <div className="w-full mb-4 px-4 py-2">
                             <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1" title={totalWatched === 0 ? "No users have watched" : totalWatched === 1 ? "Watched by 1 user" : `Watched by ${totalWatched} users`}>
+                                    <FaEye className="w-4 h-4 text-green-400" />
+                                    <span>{totalWatched}</span>
+                                </div>
+                                <div className="flex items-center gap-1" title={totalLikes === 0 ? "No users gave a rose" : totalLikes === 1 ? "1 user gave a rose" : `${totalLikes} users gave a rose`}>
                                     <GiRose className="w-4 h-4 text-red-400 fill-current" />
                                     <span>{totalLikes}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <FiFileText className="w-4 h-4 text-blue-400" />
+                                <div className="flex items-center gap-1" title={totalReviews === 0 ? "No users left a review" : totalReviews === 1 ? "1 user left a review" : `${totalReviews} users left a review`}>
+                                    <FaPenSquare className="w-4 h-4 text-blue-400" />
                                     <span>{totalReviews}</span>
                                 </div>
                             </div>
@@ -241,22 +277,33 @@ export default async function EpisodePage({
                         <div className="w-full space-y-4">
                             <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
                                 {userId ? (
-                                    <div className="flex items-center justify-between">
-                                        <FavouriteButton
-                                            entityType="episode"
-                                            entityId={episode.id}
-                                        />
-                                        <div className="flex items-center gap-2 mr-2">
-                                            <RatingComponent
-                                                entityType="episode"
-                                                entityId={episode.id}
-                                            />
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FavouriteButton
+                                                    entityType="episode"
+                                                    entityId={episode.id}
+                                                />
+                                                <WatchedButton
+                                                    entityType="episode"
+                                                    entityId={episode.id}
+                                                    showId={Number(showId)}
+                                                    seasonId={episode.season.id}
+                                                    episodeNumber={episode.episodeNumber}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2 mr-2">
+                                                <RatingComponent
+                                                    entityType="episode"
+                                                    entityId={episode.id}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center py-1">
                                         <p className="text-green-200 text-center text-sm">
-                                            Log in to rate, favourite or review this episode!
+                                            Log in to rate, favourite, watch or review this episode!
                                         </p>
                                     </div>
                                 )}

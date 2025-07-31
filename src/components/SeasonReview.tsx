@@ -229,7 +229,7 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                                         } as React.CSSProperties}
                                     />
                                     {!isStartedDateValid && (
-                                        <p className="text-red-400 text-xs mt-1 ml-1">Date error!</p>
+                                        <p className="text-red-400 text-xs mt-1 ml-1">Hmm...</p>
                                     )}
                                 </div>
                                 <div className="relative">

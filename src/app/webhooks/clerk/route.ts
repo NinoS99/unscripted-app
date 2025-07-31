@@ -57,6 +57,26 @@ export async function POST(req: Request) {
 
         if (eventType === "user.created") {
             try {
+                // Check if user already exists (by Clerk ID)
+                const existingUser = await prisma.user.findUnique({
+                    where: { id: evt.data.id }
+                });
+
+                if (existingUser) {
+                    console.log(`User ${evt.data.id} already exists, skipping creation`);
+                    return new Response("User already exists!", { status: 200 });
+                }
+
+                // Check if username is already taken
+                const existingUsername = await prisma.user.findUnique({
+                    where: { username: username }
+                });
+
+                if (existingUsername) {
+                    console.log(`Username ${username} is already taken, cannot create user`);
+                    return new Response("Username already taken", { status: 409 });
+                }
+
                 await prisma.user.create({
                     data: {
                         id: evt.data.id,
