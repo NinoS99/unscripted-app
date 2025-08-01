@@ -8,7 +8,8 @@ import WatchedStatusDisplay from "@/components/WatchedStatusDisplay";
 import EpisodeReviewButton from "@/components/EpisodeReviewButton";
 import EntityReviews from "@/components/EntityReviews";
 import RatingDistributionChart from "@/components/RatingDistributionChart";
-import CompletionNotification from "@/components/CompletionNotification";
+import CompletionReviewPrompt from "@/components/CompletionReviewPrompt";
+
 import EpisodeNavigation from "@/components/EpisodeNavigation";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -110,16 +111,8 @@ export default async function EpisodePage({
 
     return (
         <div className="min-h-screen bg-gray-100 container mx-auto">
-            {/* Completion Notification */}
-            <CompletionNotification
-                entityType="season"
-                entityId={episode.season.id}
-                entityName={`${episode.season.show.name} - Season ${episode.season.seasonNumber === 0 ? "Specials" : episode.season.seasonNumber}`}
-                showId={Number(showId)}
-                seasonNumber={episode.season.seasonNumber}
-                episodeId={episode.id}
-                episodeNumber={episode.episodeNumber}
-            />
+
+
             {/* Desktop Cover Photo */}
             <div className="relative h-96 md:h-[32rem] w-full overflow-hidden hidden md:block">
                 {episode.season.show.backdropPath ? (
@@ -289,7 +282,6 @@ export default async function EpisodePage({
                                                     entityId={episode.id}
                                                     showId={Number(showId)}
                                                     seasonId={episode.season.id}
-                                                    episodeNumber={episode.episodeNumber}
                                                 />
                                             </div>
                                             <div className="flex items-center gap-2 mr-2">
@@ -369,6 +361,20 @@ export default async function EpisodePage({
                     </div>
                 </div>
             </div>
+            
+            <CompletionReviewPrompt
+                entityType="season"
+                entityId={episode.season.id}
+                entityName={`${episode.season.show.name} - Season ${episode.season.seasonNumber === 0 ? "Specials" : episode.season.seasonNumber}`}
+                showId={Number(showId)}
+                seasonNumber={episode.season.seasonNumber}
+            />
+            
+            <CompletionReviewPrompt
+                entityType="show"
+                entityId={Number(showId)}
+                entityName={episode.season.show.name}
+            />
         </div>
     );
 }
