@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { FiX, FiCheck } from "react-icons/fi";
+import ErrorNotification from "./ErrorNotification";
 
 interface WatchedButtonProps {
     entityType: "show" | "season" | "episode";
@@ -11,8 +12,6 @@ interface WatchedButtonProps {
     showId?: number;
     seasonId?: number;
     episodeId?: number;
-    episodeNumber?: number;
-    seasonNumber?: number;
 }
 
 interface UnwatchedItem {
@@ -22,14 +21,24 @@ interface UnwatchedItem {
     url: string;
 }
 
+interface UnwatchConfirmationData {
+    entityType: "episode";
+    episodeName: string;
+    seasonName: string;
+    showName: string;
+    episodeId: number;
+    seasonId: number;
+    showId: number;
+    seasonWatched: boolean;
+    showWatched: boolean;
+}
+
 export default function WatchedButton({
     entityType,
     entityId,
     showId,
     seasonId,
     episodeId,
-    episodeNumber,
-    seasonNumber,
 }: WatchedButtonProps) {
     const { user } = useUser();
     const [isWatched, setIsWatched] = useState(false);
@@ -37,6 +46,10 @@ export default function WatchedButton({
     const [showPopup, setShowPopup] = useState(false);
     const [unwatchedItems, setUnwatchedItems] = useState<UnwatchedItem[]>([]);
     const [isConfirming, setIsConfirming] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [showError, setShowError] = useState(false);
+    const [showUnwatchConfirmation, setShowUnwatchConfirmation] = useState(false);
+    const [unwatchConfirmationData, setUnwatchConfirmationData] = useState<UnwatchConfirmationData | null>(null);
 
     const checkWatchedStatus = useCallback(async () => {
         try {
@@ -73,7 +86,72 @@ export default function WatchedButton({
 
         try {
             if (isWatched) {
-                // If already watched, unwatch it
+                // If already watched, check if we can unwatch it
+                const canUnwatchResponse = await fetch(`/api/watched/check-can-unwatch`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        entityType,
+                        entityId,
+                    }),
+                });
+
+                if (canUnwatchResponse.ok) {
+                    const canUnwatchData = await canUnwatchResponse.json();
+                    
+                    if (!canUnwatchData.canUnwatch) {
+                        setErrorMessage(canUnwatchData.message);
+                        setShowError(true);
+                        setIsLoading(false);
+                        return;
+                    }
+                }
+
+                // If this is an episode, show confirmation dialog
+                if (entityType === "episode" && seasonId && showId) {
+                    // Get episode details and check watched status
+                    const [episodeDetailsResponse, seasonWatchedResponse, showWatchedResponse] = await Promise.all([
+                        fetch(`/api/shows/${showId}/episodes/${entityId}`),
+                        fetch(`/api/watched/check`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ entityType: "season", entityId: seasonId })
+                        }),
+                        fetch(`/api/watched/check`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ entityType: "show", entityId: showId })
+                        })
+                    ]);
+
+                    if (episodeDetailsResponse.ok && seasonWatchedResponse.ok && showWatchedResponse.ok) {
+                        const episodeDetails = await episodeDetailsResponse.json();
+                        const seasonWatchedData = await seasonWatchedResponse.json();
+                        const showWatchedData = await showWatchedResponse.json();
+
+                        // Only show confirmation if season or show will be unwatched
+                        if (seasonWatchedData.isWatched || showWatchedData.isWatched) {
+                            setUnwatchConfirmationData({
+                                entityType: "episode",
+                                episodeName: episodeDetails.name,
+                                seasonName: `Season ${episodeDetails.season.seasonNumber}`,
+                                showName: episodeDetails.season.show.name,
+                                episodeId: entityId,
+                                seasonId: seasonId,
+                                showId: showId,
+                                seasonWatched: seasonWatchedData.isWatched,
+                                showWatched: showWatchedData.isWatched
+                            });
+                            setShowUnwatchConfirmation(true);
+                            setIsLoading(false);
+                            return;
+                        }
+                    }
+                }
+
+                // If we can unwatch, proceed
                 await markAsUnwatched();
             } else {
                 // If not watched, check for unwatched items first
@@ -114,36 +192,70 @@ export default function WatchedButton({
 
     const markAsWatched = async () => {
         try {
-            const response = await fetch(`/api/watched`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    entityType,
-                    entityId,
-                    showId,
-                    seasonId,
-                    episodeId,
-                }),
-            });
+            let response;
+            
+            // For episodes, use the special endpoint that handles auto-completion
+            if (entityType === "episode" && seasonId && showId) {
+                response = await fetch(`/api/watched/mark-episode-watched`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        episodeId: entityId,
+                        seasonId,
+                        showId,
+                    }),
+                });
+            } else if (entityType === "season" && showId) {
+                // For seasons, use the special endpoint that handles auto-completion
+                response = await fetch(`/api/watched/mark-season-watched`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        seasonId: entityId,
+                        showId,
+                    }),
+                });
+            } else {
+                // For shows, use the regular endpoint
+                response = await fetch(`/api/watched`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        entityType,
+                        entityId,
+                        showId,
+                        seasonId,
+                        episodeId,
+                    }),
+                });
+            }
 
             if (response.ok) {
+                const data = await response.json();
                 setIsWatched(true);
                 setShowPopup(false);
                 
-                // Check for completion if this is an episode
-                if (entityType === "episode" && seasonId) {
-                    await checkSeasonCompletion();
-                    // Also check if this episode completes the season
-                    await checkEpisodeCompletion();
-                }
-                
-                // Check for completion if this is a season
-                if (entityType === "season" && showId) {
-                    await checkShowCompletion();
-                    // Also check if this season completes the show
-                    await checkSeasonCompletionForShow();
+                // Show completion notification if auto-completed
+                if (data.autoCompleted) {
+                    if (data.autoCompleted.show) {
+                        // Show show completion notification (takes precedence)
+                        const event = new CustomEvent('showCompleted', {
+                            detail: { showId }
+                        });
+                        window.dispatchEvent(event);
+                    } else if (data.autoCompleted.season) {
+                        // Show season completion notification (only if show wasn't completed)
+                        const event = new CustomEvent('seasonCompleted', {
+                            detail: { seasonId, showId }
+                        });
+                        window.dispatchEvent(event);
+                    }
                 }
             }
         } catch (error) {
@@ -151,119 +263,7 @@ export default function WatchedButton({
         }
     };
 
-    const checkSeasonCompletion = async () => {
-        try {
-            const response = await fetch(`/api/watched/check-completion`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    entityType: "season",
-                    entityId: seasonId,
-                }),
-            });
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.isCompleted && data.autoMarked) {
-                    // Show completion notification
-                    const event = new CustomEvent('seasonCompleted', {
-                        detail: { seasonId, showId }
-                    });
-                    window.dispatchEvent(event);
-                }
-            }
-        } catch (error) {
-            console.error("Error checking season completion:", error);
-        }
-    };
-
-    const checkShowCompletion = async () => {
-        try {
-            const response = await fetch(`/api/watched/check-completion`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    entityType: "show",
-                    entityId: showId,
-                }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.isCompleted && data.autoMarked) {
-                    // Show completion notification
-                    const event = new CustomEvent('showCompleted', {
-                        detail: { showId }
-                    });
-                    window.dispatchEvent(event);
-                }
-            }
-        } catch (error) {
-            console.error("Error checking show completion:", error);
-        }
-    };
-
-    const checkEpisodeCompletion = async () => {
-        try {
-            const response = await fetch(`/api/watched/check-episode-completion`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    episodeId: entityId,
-                    episodeNumber: episodeNumber,
-                    seasonId: seasonId,
-                }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.isLastEpisode && data.completesSeason) {
-                    // Show completion notification for season
-                    const event = new CustomEvent('seasonCompleted', {
-                        detail: { seasonId, showId }
-                    });
-                    window.dispatchEvent(event);
-                }
-            }
-        } catch (error) {
-            console.error("Error checking episode completion:", error);
-        }
-    };
-
-    const checkSeasonCompletionForShow = async () => {
-        try {
-            const response = await fetch(`/api/watched/check-season-completion`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    seasonId: entityId,
-                    seasonNumber: seasonNumber,
-                    showId: showId,
-                }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.isLastSeason && data.completesShow) {
-                    // Show completion notification for show
-                    const event = new CustomEvent('showCompleted', {
-                        detail: { showId }
-                    });
-                    window.dispatchEvent(event);
-                }
-            }
-        } catch (error) {
-            console.error("Error checking season completion for show:", error);
-        }
-    };
 
     const markAsUnwatched = async () => {
         try {
@@ -284,6 +284,41 @@ export default function WatchedButton({
         } catch (error) {
             console.error("Error marking as unwatched:", error);
         }
+    };
+
+    const handleUnwatchConfirmation = async () => {
+        if (!unwatchConfirmationData) return;
+        
+        setIsConfirming(true);
+        try {
+            // Unwatch the episode, season, and show
+            const response = await fetch(`/api/watched/unwatch-episode-cascade`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    episodeId: unwatchConfirmationData.episodeId,
+                    seasonId: unwatchConfirmationData.seasonId,
+                    showId: unwatchConfirmationData.showId,
+                }),
+            });
+
+            if (response.ok) {
+                setIsWatched(false);
+                setShowUnwatchConfirmation(false);
+                setUnwatchConfirmationData(null);
+            }
+        } catch (error) {
+            console.error("Error unwatching episode cascade:", error);
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
+    const handleUnwatchCancel = () => {
+        setShowUnwatchConfirmation(false);
+        setUnwatchConfirmationData(null);
     };
 
     const handleConfirmWatched = async () => {
@@ -323,6 +358,13 @@ export default function WatchedButton({
                     <FiEyeOff className="text-black text-xl" />
                 )}
             </button>
+
+            <ErrorNotification
+                message={errorMessage}
+                isVisible={showError}
+                onClose={() => setShowError(false)}
+                duration={5000}
+            />
 
             {/* Popup Modal */}
             {showPopup && (
@@ -406,6 +448,86 @@ export default function WatchedButton({
                                     <>
                                         <FiCheck className="w-4 h-4" />
                                         Confirm
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Unwatch Confirmation Modal */}
+            {showUnwatchConfirmation && unwatchConfirmationData && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-800 rounded-lg max-w-md w-full">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                            <h3 className="text-lg font-semibold text-white">
+                                Confirm Unwatch Action
+                            </h3>
+                            <button
+                                onClick={handleUnwatchCancel}
+                                className="text-gray-400 hover:text-white transition-colors"
+                            >
+                                <FiX className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-4">
+                            <p className="text-gray-300 mb-4">
+                                Unwatching &quot;{unwatchConfirmationData.episodeName}&quot; will also unwatch:
+                            </p>
+                            
+                            <div className="space-y-2 mb-4">
+                                {unwatchConfirmationData.seasonWatched && (
+                                    <div className="flex items-center gap-2 p-2 bg-gray-700 rounded">
+                                        <FiEyeOff className="w-4 h-4 text-gray-400" />
+                                        <span className="text-sm text-white">
+                                            {unwatchConfirmationData.seasonName}
+                                        </span>
+                                    </div>
+                                )}
+                                {unwatchConfirmationData.showWatched && (
+                                    <div className="flex items-center gap-2 p-2 bg-gray-700 rounded">
+                                        <FiEyeOff className="w-4 h-4 text-gray-400" />
+                                        <span className="text-sm text-white">
+                                            {unwatchConfirmationData.showName}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <p className="text-sm text-gray-400">
+                                {unwatchConfirmationData.seasonWatched || unwatchConfirmationData.showWatched 
+                                    ? "This is because the episode is part of the season and show. You can re-watch them individually later."
+                                    : "This will only unwatch the episode."
+                                }
+                            </p>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex gap-3 p-4 border-t border-gray-700">
+                            <button
+                                onClick={handleUnwatchCancel}
+                                className="flex-1 px-4 py-2 text-gray-300 border border-gray-600 rounded hover:bg-gray-700 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleUnwatchConfirmation}
+                                disabled={isConfirming}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {isConfirming ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Unwatching...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiEyeOff className="w-4 h-4" />
+                                        Unwatch All
                                     </>
                                 )}
                             </button>

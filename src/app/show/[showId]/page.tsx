@@ -5,7 +5,8 @@ import RatingComponent from "../../../components/RatingComponent";
 import FavouriteButton from "../../../components/FavouriteButton";
 import WatchedButton from "../../../components/WatchedButton";
 import WatchedStatusDisplay from "../../../components/WatchedStatusDisplay";
-import CompletionNotification from "../../../components/CompletionNotification";
+import CompletionReviewPrompt from "../../../components/CompletionReviewPrompt";
+
 import ShowReviewButton from "../../../components/ReviewButton";
 import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
 import EntityReviews from "../../../components/EntityReviews";
@@ -382,12 +383,12 @@ export default async function ShowPage({
                 </div>
             </div>
             
-            {/* Completion Notification */}
-            <CompletionNotification
+            <CompletionReviewPrompt
                 entityType="show"
                 entityId={show.id}
                 entityName={show.name}
             />
+
         </div>
     );
 }

@@ -5,7 +5,8 @@ import RatingComponent from "@/components/RatingComponent";
 import FavouriteButton from "@/components/FavouriteButton";
 import WatchedButton from "@/components/WatchedButton";
 import WatchedStatusDisplay from "@/components/WatchedStatusDisplay";
-import CompletionNotification from "@/components/CompletionNotification";
+import CompletionReviewPrompt from "@/components/CompletionReviewPrompt";
+
 import EpisodesOfSeason from "@/components/EpisodesOfSeason";
 import SeasonReviewButton from "@/components/SeasonReviewButton";
 import EntityReviews from "@/components/EntityReviews";
@@ -273,7 +274,6 @@ export default async function SeasonPage({
                             entityType="season"
                             entityId={season.id}
                             showId={showId}
-                            seasonNumber={season.seasonNumber}
                         />
                                             </div>
                                             <div className="flex items-center gap-2 mr-2">
@@ -366,14 +366,20 @@ export default async function SeasonPage({
                 </div>
             </div>
             
-            {/* Completion Notification */}
-            <CompletionNotification
-                entityType="show"
-                entityId={season.show.id}
-                entityName={season.show.name}
+            <CompletionReviewPrompt
+                entityType="season"
+                entityId={season.id}
+                entityName={`${season.show.name} - Season ${season.seasonNumber}`}
                 showId={showId}
                 seasonNumber={season.seasonNumber}
             />
+            
+            <CompletionReviewPrompt
+                entityType="show"
+                entityId={showId}
+                entityName={season.show.name}
+            />
+
         </div>
     );
 }
