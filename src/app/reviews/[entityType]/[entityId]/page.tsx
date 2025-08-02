@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import prisma from "@/lib/client";
 import { notFound } from "next/navigation";
 import ReviewsPage from "@/components/ReviewsPage";
@@ -12,12 +10,7 @@ interface ReviewsPageProps {
 }
 
 export default async function ReviewsPageServer({ params }: ReviewsPageProps) {
-    const { userId } = await auth();
-    
-    // Redirect if not logged in
-    if (!userId) {
-        redirect("/sign-in");
-    }
+    // Allow public access to view reviews
 
     const { entityType, entityId } = await params;
 

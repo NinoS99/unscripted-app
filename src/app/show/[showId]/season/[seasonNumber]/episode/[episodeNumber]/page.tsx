@@ -294,8 +294,11 @@ export default async function EpisodePage({
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center py-1">
-                                        <p className="text-green-200 text-center text-sm">
-                                            Log in to rate, favourite, watch or review this episode!
+                                        <p className="text-gray-400 text-center text-sm">
+                                            <Link href={`/sign-in?redirect_url=${encodeURIComponent(`/show/${showId}/season/${seasonNumber}/episode/${episodeNumber}`)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                                                Sign in
+                                            </Link>{" "}
+                                            to rate, give a rose, watch or review this episode!
                                         </p>
                                     </div>
                                 )}
@@ -365,7 +368,7 @@ export default async function EpisodePage({
             <CompletionReviewPrompt
                 entityType="season"
                 entityId={episode.season.id}
-                entityName={`${episode.season.show.name} - Season ${episode.season.seasonNumber === 0 ? "Specials" : episode.season.seasonNumber}`}
+                entityName={`${episode.season.show.name} - ${episode.season.seasonNumber === 0 ? "Specials" : "Season " + episode.season.seasonNumber}`}
                 showId={Number(showId)}
                 seasonNumber={episode.season.seasonNumber}
             />

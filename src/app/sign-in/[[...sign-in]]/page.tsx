@@ -1,9 +1,16 @@
 import { SignIn } from '@clerk/nextjs';
 
-export default function Page() {
+interface PageProps {
+  searchParams: { redirect_url?: string };
+}
+
+export default function Page({ searchParams }: PageProps) {
+  const redirectUrl = searchParams.redirect_url || '/';
+  
   return (
   <div className='h-[calc(100vh-96px)] flex items-center justify-center'>
       <SignIn 
+        redirectUrl={redirectUrl}
         appearance={{
           variables: {
             colorPrimary: '#22c55e', // green-500

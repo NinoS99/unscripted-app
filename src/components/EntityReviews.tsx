@@ -59,14 +59,14 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
     const getMostPopular = () => {
         return [...reviews]
             .sort((a, b) => b._count.likes - a._count.likes)
-            .slice(0, 3);
+            .slice(0, 5);
     };
 
     // Get most recent reviews
     const getMostRecent = () => {
         return [...reviews]
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .slice(0, 3);
+            .slice(0, 5);
     };
 
     const truncateContent = (content: string, maxLength: number = 150) => {
@@ -83,7 +83,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
 
     const renderReviewRow = (review: Review) => {
         return (
-            <div key={review.id} className="py-4 border-b border-gray-700">
+            <div key={review.id} className="pt-4 pb-1 border-b border-gray-700">
                 <div className="flex items-start gap-3 mb-3">
                     {/* User Profile Pic */}
                     <div className="flex-shrink-0">
@@ -105,12 +105,15 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
                 <div className="flex-grow min-w-0">
                     {/* Top Row: Username and Date/Rating/Favorite */}
                     <div className="flex items-center justify-between mb-2">
-                        <Link 
-                            href={`/${review.user.username}/review/${entityType}/${review.id}`}
-                            className="font-semibold text-white hover:text-green-400 transition-colors"
-                        >
-                            {review.user.username}
-                        </Link>
+                        <span className="text-gray-300">
+                            Reviewed by{" "}
+                            <Link 
+                                href={`/${review.user.username}/review/${entityType}/${review.id}`}
+                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                            >
+                                {review.user.username}
+                            </Link>
+                        </span>
                         <div className="flex items-center gap-3 text-sm">
                             <span className="text-gray-400">
                                 {format(new Date(review.createdAt), "MMM d, yyyy")}
@@ -205,7 +208,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
                     href={`/reviews/${entityType}/${entityId}`}
                     className="text-green-400 hover:text-green-300 transition-colors font-medium"
                 >
-                    More
+                    See all reviews
                 </Link>
             </div>
 
@@ -213,7 +216,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
             {mostPopular.length > 0 && (
                 <div className="mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4">Most Popular</h3>
-                    <div className="border-b border-gray-600 mb-4"></div>
+                    <div className="border-b border-gray-600"></div>
                     <div className="space-y-0">
                         {mostPopular.map(renderReviewRow)}
                     </div>
@@ -224,7 +227,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
             {mostRecent.length > 0 && (
                 <div className="mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4">Most Recent</h3>
-                    <div className="border-b border-gray-600 mb-4"></div>
+                    <div className="border-b border-gray-600"></div>
                     <div className="space-y-0">
                         {mostRecent.map(renderReviewRow)}
                     </div>

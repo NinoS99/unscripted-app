@@ -30,6 +30,7 @@ interface ReviewsPageProps {
     entityType: "show" | "season" | "episode";
     entityId: number;
     entityName: string;
+    userId?: string | null;
     entity: {
         id: number;
         name?: string;

@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import prisma from "@/lib/client";
 import ReviewDisplay from "@/components/ReviewDisplay";
 import { notFound } from "next/navigation";
@@ -15,10 +14,7 @@ interface ReviewPageProps {
 export default async function ReviewPage({ params }: ReviewPageProps) {
     const { userId } = await auth();
     
-    // Redirect if not logged in
-    if (!userId) {
-        redirect("/sign-in");
-    }
+    // Allow public access to view reviews, but userId will be null if not logged in
 
     const { username, reviewType, reviewId } = await params;
 
@@ -66,9 +62,11 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 },
                             },
                         },
-                        likes: {
-                            where: { userId },
-                        },
+                        ...(userId && {
+                            likes: {
+                                where: { userId },
+                            },
+                        }),
                         _count: {
                             select: {
                                 likes: true,
@@ -121,9 +119,11 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 },
                             },
                         },
-                        likes: {
-                            where: { userId },
-                        },
+                        ...(userId && {
+                            likes: {
+                                where: { userId },
+                            },
+                        }),
                         _count: {
                             select: {
                                 likes: true,
@@ -175,9 +175,11 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 tag: true,
                             },
                         },
-                        likes: {
-                            where: { userId },
-                        },
+                        ...(userId && {
+                            likes: {
+                                where: { userId },
+                            },
+                        }),
                         _count: {
                             select: {
                                 likes: true,

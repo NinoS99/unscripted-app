@@ -5,6 +5,10 @@ import { useUser } from "@clerk/nextjs";
 import RatingComponent from "./RatingComponent";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { GiRose } from "react-icons/gi";
+import { FiEye } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 
 export default function SeasonEpisodesOfShow({
     seasons,
@@ -19,6 +23,7 @@ export default function SeasonEpisodesOfShow({
             id: number;
             episodeNumber: number;
             name: string;
+            overview?: string | null;
             formattedAirDate?: string | null;
         }[];
         characters: {
@@ -35,6 +40,7 @@ export default function SeasonEpisodesOfShow({
     showId: number;
     onSeasonSelect?: (seasonId: number) => void;
 }) {
+    const pathname = usePathname();
     const { user } = useUser();
     const [selectedSeason, setSelectedSeason] = useState(seasons[0]);
     const [expandedOverview, setExpandedOverview] = useState(false);
@@ -42,6 +48,9 @@ export default function SeasonEpisodesOfShow({
         {}
     );
     const [isMobile, setIsMobile] = useState(false);
+    const [seasonStatuses, setSeasonStatuses] = useState<Record<number, { isFavorited: boolean; isWatched: boolean }>>({});
+    const [episodeStatuses, setEpisodeStatuses] = useState<Record<number, { isFavorited: boolean; isWatched: boolean }>>({});
+    const [expandedEpisodes, setExpandedEpisodes] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
         const handleResize = () => {
@@ -58,6 +67,58 @@ export default function SeasonEpisodesOfShow({
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
+    useEffect(() => {
+        if (user) {
+            const fetchStatuses = async () => {
+                const seasonStatusesData: Record<number, { isFavorited: boolean; isWatched: boolean }> = {};
+                const episodeStatusesData: Record<number, { isFavorited: boolean; isWatched: boolean }> = {};
+                
+                // Fetch season statuses
+                await Promise.all(
+                    seasons.map(async (season) => {
+                        const [favoriteResponse, watchedResponse] = await Promise.all([
+                            fetch(`/api/favourites?entityType=season&entityId=${season.id}`),
+                            fetch(`/api/watched/check`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ entityType: "season", entityId: season.id })
+                            })
+                        ]);
+                        
+                        const isFavorited = favoriteResponse.ok ? (await favoriteResponse.json()).isFavorite : false;
+                        const isWatched = watchedResponse.ok ? (await watchedResponse.json()).isWatched : false;
+                        
+                        seasonStatusesData[season.id] = { isFavorited, isWatched };
+                    })
+                );
+                
+                // Fetch episode statuses for selected season
+                await Promise.all(
+                    selectedSeason.episodes.map(async (episode) => {
+                        const [favoriteResponse, watchedResponse] = await Promise.all([
+                            fetch(`/api/favourites?entityType=episode&entityId=${episode.id}`),
+                            fetch(`/api/watched/check`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ entityType: "episode", entityId: episode.id })
+                            })
+                        ]);
+                        
+                        const isFavorited = favoriteResponse.ok ? (await favoriteResponse.json()).isFavorite : false;
+                        const isWatched = watchedResponse.ok ? (await watchedResponse.json()).isWatched : false;
+                        
+                        episodeStatusesData[episode.id] = { isFavorited, isWatched };
+                    })
+                );
+                
+                setSeasonStatuses(seasonStatusesData);
+                setEpisodeStatuses(episodeStatusesData);
+            };
+            
+            fetchStatuses();
+        }
+    }, [user, seasons, selectedSeason]);
+
     const handleImageLoad = (personId: number) => {
         setLoadedImages((prev) => ({ ...prev, [personId]: true }));
     };
@@ -73,6 +134,15 @@ export default function SeasonEpisodesOfShow({
         setExpandedOverview(!expandedOverview);
     };
 
+    const toggleExpand = (episodeId: number) => {
+        setExpandedEpisodes((prev) => ({
+            ...prev,
+            [episodeId]: !prev[episodeId],
+        }));
+    };
+
+
+
     // Calculate the truncation length based on screen size
     const truncateLength = isMobile ? 300 : 500;
 
@@ -84,15 +154,27 @@ export default function SeasonEpisodesOfShow({
                     <button
                         key={season.id}
                         onClick={() => handleSeasonSelect(season)}
-                        className={`px-4 py-2 rounded-md whitespace-nowrap flex-shrink-0 ${
+                        className={`px-4 py-2 rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 ${
                             season.id === selectedSeason.id
                                 ? "bg-gray-800 text-green-600"
                                 : "bg-gray-100 text-black hover:bg-gray-200"
                         }`}
                     >
-                        {season.seasonNumber === 0
-                            ? "Specials"
-                            : `Season ${season.seasonNumber}`}
+                        <span>
+                            {season.seasonNumber === 0
+                                ? "Specials"
+                                : `Season ${season.seasonNumber}`}
+                        </span>
+                        {user && seasonStatuses[season.id] && (
+                            <div className="flex items-center gap-1">
+                                {seasonStatuses[season.id].isFavorited && (
+                                    <GiRose className="w-3 h-3 text-red-400 fill-current" title="Favorited" />
+                                )}
+                                {seasonStatuses[season.id].isWatched && (
+                                    <FiEye className="w-3 h-3 text-green-400" title="Watched" />
+                                )}
+                            </div>
+                        )}
                     </button>
                 ))}
             </div>
@@ -223,8 +305,11 @@ export default function SeasonEpisodesOfShow({
                             entityId={selectedSeason.id}
                         />
                     ) : (
-                        <p className="text-green-200 text-sm">
-                            Log in to rate this season!
+                        <p className="text-gray-400 text-sm">
+                            <Link href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                                Sign in
+                            </Link>{" "}
+                            to rate this season!
                         </p>
                     )}
                 </div>
@@ -240,28 +325,75 @@ export default function SeasonEpisodesOfShow({
                         return (
                             <div
                                 key={episode.id}
-                                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-800 rounded"
+                                className="flex flex-col p-3 bg-gray-800 rounded"
                             >
-                                <div className="mb-2 sm:mb-0">
-                                    <h4 className="font-medium text-green-500">
-                                        {selectedSeason.seasonNumber === 0
-                                            ? episode.name
-                                            : `${episode.episodeNumber}: ${episode.name}`}
-                                    </h4>
-                                    {episode.formattedAirDate && (
-                                        <p className="text-xs text-white">
-                                            {isFutureDate
-                                                ? "Airs on "
-                                                : "Aired on "}
-                                            {episode.formattedAirDate}
-                                        </p>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-2">
+                                    <div className="mb-2 sm:mb-0">
+                                        <div className="flex items-center gap-2">
+                                            <Link 
+                                            href={`/show/${showId}/season/${selectedSeason.seasonNumber}/episode/${episode.episodeNumber}`}
+                                            className="group flex items-center gap-2"
+                                            >
+                                            <h4 className="font-medium text-green-500 hover:text-green-400 transition-colors">
+                                                {selectedSeason.seasonNumber === 0
+                                                    ? episode.name
+                                                    : `${episode.episodeNumber}: ${episode.name}`}
+                                            </h4>
+                                            </Link>
+                                            {user && episodeStatuses[episode.id] && (
+                                                <div className="flex items-center gap-1">
+                                                    {episodeStatuses[episode.id].isFavorited && (
+                                                        <GiRose className="w-4 h-4 text-red-400 fill-current" title="Favorited" />
+                                                    )}
+                                                    {episodeStatuses[episode.id].isWatched && (
+                                                        <FiEye className="w-4 h-4 text-green-400" title="Watched" />
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {user && (
+                                        <RatingComponent
+                                            entityType="episode"
+                                            entityId={episode.id}
+                                        />
                                     )}
                                 </div>
-                                {user && (
-                                    <RatingComponent
-                                        entityType="episode"
-                                        entityId={episode.id}
-                                    />
+                                {episode.formattedAirDate && (
+                                    <p className="text-xs text-white mb-3 sm:mb-2 mt-0">
+                                        {isFutureDate
+                                            ? "Airs on "
+                                            : "Aired on "}
+                                        {episode.formattedAirDate}
+                                    </p>
+                                )}
+
+                                {episode.overview && (
+                                    <div className="mt-2 sm:mt-1">
+                                        <button
+                                            onClick={() =>
+                                                toggleExpand(episode.id)
+                                            }
+                                            className="flex items-center gap-1 text-green-400 hover:text-green-300 text-sm"
+                                        >
+                                            {expandedEpisodes[episode.id] ? (
+                                                <>
+                                                    <FiChevronUp className="w-4 h-4" />
+                                                    Hide episode overview
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FiChevronDown className="w-4 h-4" />
+                                                    Show episode overview
+                                                </>
+                                            )}
+                                        </button>
+                                        {expandedEpisodes[episode.id] && (
+                                            <div className="text-sm text-gray-200 mt-2">
+                                                {episode.overview}
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         );

@@ -19,6 +19,7 @@ interface UnwatchedItem {
     name: string;
     type: "season" | "episode";
     url: string;
+    seasonId?: number;
 }
 
 interface UnwatchConfirmationData {
@@ -50,6 +51,7 @@ export default function WatchedButton({
     const [showError, setShowError] = useState(false);
     const [showUnwatchConfirmation, setShowUnwatchConfirmation] = useState(false);
     const [unwatchConfirmationData, setUnwatchConfirmationData] = useState<UnwatchConfirmationData | null>(null);
+    const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
 
     const checkWatchedStatus = useCallback(async () => {
         try {
@@ -136,7 +138,7 @@ export default function WatchedButton({
                             setUnwatchConfirmationData({
                                 entityType: "episode",
                                 episodeName: episodeDetails.name,
-                                seasonName: `Season ${episodeDetails.season.seasonNumber}`,
+                                seasonName: episodeDetails.season.seasonNumber === 0 ? "Specials" : `Season ${episodeDetails.season.seasonNumber}`,
                                 showName: episodeDetails.season.show.name,
                                 episodeId: entityId,
                                 seasonId: seasonId,
@@ -331,6 +333,51 @@ export default function WatchedButton({
         window.open(item.url, "_blank");
     };
 
+    const toggleSeasonExpansion = (seasonId: number) => {
+        setExpandedSeasons(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(seasonId)) {
+                newSet.delete(seasonId);
+            } else {
+                newSet.add(seasonId);
+            }
+            return newSet;
+        });
+    };
+
+    const getSeasonEpisodes = (seasonId: number) => {
+        return unwatchedItems.filter(item => 
+            item.type === 'episode' && 
+            item.seasonId === seasonId
+        );
+    };
+
+    const getSeasonItems = () => {
+        const seasons = unwatchedItems.filter(item => item.type === 'season');
+        
+        // If we're viewing a season page and there are no seasons but there are episodes,
+        // create a virtual season item for the current season
+        if (seasons.length === 0 && entityType === 'season' && unwatchedItems.some(item => item.type === 'episode')) {
+            const episodes = unwatchedItems.filter(item => item.type === 'episode');
+            if (episodes.length > 0) {
+                // Create a virtual season using the first episode's seasonId
+                const virtualSeason = {
+                    id: episodes[0].seasonId!,
+                    name: entityId === 0 ? "Specials" : `Season ${entityId}`,
+                    type: 'season' as const,
+                    url: `/show/${showId}/season/${entityId}`,
+                    episodes: episodes
+                };
+                return [virtualSeason];
+            }
+        }
+        
+        return seasons.map(season => ({
+            ...season,
+            episodes: getSeasonEpisodes(season.id)
+        }));
+    };
+
     if (!user) {
         return null;
     }
@@ -396,25 +443,79 @@ export default function WatchedButton({
 
                             {unwatchedItems.length > 0 && (
                                 <div className="max-h-48 overflow-y-auto mb-4">
-                                    {unwatchedItems.map((item) => (
-                                        <div
-                                            key={`${item.type}-${item.id}`}
-                                            onClick={() => handleUnwatchedItemClick(item)}
-                                            className="flex items-center justify-between p-2 bg-gray-700 rounded mb-2 cursor-pointer hover:bg-gray-600 transition-colors"
-                                        >
-                                            <div className="flex-1">
-                                                <span className="text-sm text-white font-medium">
-                                                    {item.name}
-                                                </span>
-                                                <span className="block text-xs text-gray-400 capitalize">
-                                                    {item.type}
+                                    {/* If we're viewing a season page, show episodes directly */}
+                                    {entityType === 'season' && unwatchedItems.every(item => item.type === 'episode') ? (
+                                        unwatchedItems.map((episode) => (
+                                            <div
+                                                key={`episode-${episode.id}`}
+                                                onClick={() => handleUnwatchedItemClick(episode)}
+                                                className="flex items-center justify-between p-2 bg-gray-700 rounded mb-2 cursor-pointer hover:bg-gray-600 transition-colors"
+                                            >
+                                                <div className="flex-1">
+                                                    <span className="text-sm text-white font-medium">
+                                                        {episode.name}
+                                                    </span>
+                                                    <span className="block text-xs text-gray-400 capitalize">
+                                                        episode
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-gray-400">
+                                                    Click to view
                                                 </span>
                                             </div>
-                                            <span className="text-xs text-gray-400">
-                                                Click to view
-                                            </span>
-                                        </div>
-                                    ))}
+                                        ))
+                                    ) : (
+                                        /* Show seasons with collapsible episodes */
+                                        getSeasonItems().map((season) => (
+                                            <div key={`season-${season.id}`}>
+                                                {/* Season Item */}
+                                                <div className="flex items-center justify-between p-2 bg-gray-700 rounded mb-2">
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => toggleSeasonExpansion(season.id)}
+                                                            className="text-gray-400 hover:text-white transition-colors"
+                                                        >
+                                                            {expandedSeasons.has(season.id) ? '▼' : '▶'}
+                                                        </button>
+                                                        <span className="text-sm text-white font-medium">
+                                                            {season.name}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400">
+                                                            ({season.episodes.length} episodes)
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleUnwatchedItemClick(season)}
+                                                        className="text-xs text-gray-400 hover:text-white transition-colors"
+                                                    >
+                                                        View season
+                                                    </button>
+                                                </div>
+                                                
+                                                {/* Episodes (only if expanded) */}
+                                                {expandedSeasons.has(season.id) && season.episodes.map((episode) => (
+                                                    <div
+                                                        key={`episode-${episode.id}`}
+                                                        onClick={() => handleUnwatchedItemClick(episode)}
+                                                        className="flex items-center justify-between p-2 bg-gray-700 rounded mb-2 cursor-pointer hover:bg-gray-600 transition-colors ml-4"
+                                                    >
+                                                        <div className="flex-1">
+                                                            <span className="text-sm text-white font-medium">
+                                                                <span className="text-gray-500 mr-2">└─</span>
+                                                                {episode.name}
+                                                            </span>
+                                                            <span className="block text-xs text-gray-400 capitalize">
+                                                                episode
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-xs text-gray-400">
+                                                            Click to view
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             )}
 
@@ -480,19 +581,29 @@ export default function WatchedButton({
                             </p>
                             
                             <div className="space-y-2 mb-4">
-                                {unwatchConfirmationData.seasonWatched && (
+                                {unwatchConfirmationData.showWatched && (
+                                    <div className="p-2 bg-gray-700 rounded">
+                                        <div className="flex items-center gap-2">
+                                            <FiEyeOff className="w-4 h-4 text-gray-400" />
+                                            <span className="text-sm text-white font-medium">
+                                                {unwatchConfirmationData.showName}
+                                            </span>
+                                        </div>
+                                        {unwatchConfirmationData.seasonWatched && (
+                                            <div className="ml-6 mt-2 flex items-center gap-2">
+                                                <span className="text-gray-500 text-sm">└─</span>
+                                                <span className="text-sm text-gray-300">
+                                                    {unwatchConfirmationData.seasonName}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {unwatchConfirmationData.seasonWatched && !unwatchConfirmationData.showWatched && (
                                     <div className="flex items-center gap-2 p-2 bg-gray-700 rounded">
                                         <FiEyeOff className="w-4 h-4 text-gray-400" />
                                         <span className="text-sm text-white">
                                             {unwatchConfirmationData.seasonName}
-                                        </span>
-                                    </div>
-                                )}
-                                {unwatchConfirmationData.showWatched && (
-                                    <div className="flex items-center gap-2 p-2 bg-gray-700 rounded">
-                                        <FiEyeOff className="w-4 h-4 text-gray-400" />
-                                        <span className="text-sm text-white">
-                                            {unwatchConfirmationData.showName}
                                         </span>
                                     </div>
                                 )}

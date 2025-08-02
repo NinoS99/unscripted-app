@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { format } from "date-fns";
 import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
@@ -24,6 +26,7 @@ interface ReviewCommentsProps {
 
 export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsProps) {
     const { user } = useUser();
+    const pathname = usePathname();
     const [comments, setComments] = useState<ReviewComment[]>([]);
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -198,7 +201,7 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                             ))}
                         
                         {/* Pagination */}
-                        <div className="flex items-center justify-center gap-3 py-4 pb-6">
+                        <div className="flex items-center justify-center gap-3 py-4">
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1 || comments.length <= commentsPerPage}
@@ -224,6 +227,18 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                     </>
                 )}
             </div>
+            
+            {/* Sign in prompt for non-authenticated users */}
+            {!user && (
+                <div className="mt-1">
+                    <p className="text-gray-400 text-sm">
+                        <Link href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                            Sign in
+                        </Link>{" "}
+                        to leave a comment
+                    </p>
+                </div>
+            )}
         </div>
     );
 } 
