@@ -39,9 +39,22 @@ export async function POST(request: NextRequest) {
                 friendsOnly,
                 userId,
                 shows: {
-                    create: shows.map((show: { showId: number }, index: number) => ({
+                    create: shows.map((show: { 
+                        showId: number; 
+                        ranking?: number; 
+                        note?: string; 
+                        spoiler?: boolean; 
+                        muchWatchSeasons?: number[] 
+                    }, index: number) => ({
                         showId: show.showId,
-                        ranking: isRanked ? index + 1 : null
+                        ranking: show.ranking || (isRanked ? index + 1 : null),
+                        note: show.note,
+                        spoiler: show.spoiler || false,
+                        muchWatchSeasons: show.muchWatchSeasons && show.muchWatchSeasons.length > 0 ? {
+                            create: show.muchWatchSeasons.map((seasonId: number) => ({
+                                seasonId
+                            }))
+                        } : undefined
                     }))
                 },
                 tags: tags && tags.length > 0 ? {

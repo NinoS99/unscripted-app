@@ -17,6 +17,9 @@ interface Show {
 interface SelectedShow extends Show {
     ranking?: number;
     userRating?: number | null;
+    note?: string;
+    spoiler?: boolean;
+    muchWatchSeasons?: number[];
 }
 
 export default function CreateWatchListForm() {
@@ -43,6 +46,14 @@ export default function CreateWatchListForm() {
     // Drag and drop state
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    
+    // Note modal state
+    const [noteModalOpen, setNoteModalOpen] = useState(false);
+    const [editingShowIndex, setEditingShowIndex] = useState<number | null>(null);
+    const [noteText, setNoteText] = useState("");
+    const [noteSpoiler, setNoteSpoiler] = useState(false);
+    const [selectedSeasons, setSelectedSeasons] = useState<number[]>([]);
+    const [showSeasons, setShowSeasons] = useState<{id: number, seasonNumber: number}[]>([]);
     
     // Form submission
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -256,14 +267,17 @@ export default function CreateWatchListForm() {
                     isRanked,
                     shows: selectedShows.map(show => ({
                         showId: show.id,
-                        ranking: show.ranking
+                        ranking: show.ranking,
+                        note: show.note,
+                        spoiler: show.spoiler,
+                        muchWatchSeasons: show.muchWatchSeasons
                     }))
                 }),
             });
 
             if (response.ok) {
                 const data = await response.json();
-                router.push(`/watch-lists/${data.watchListId}`);
+                router.push(`/${user?.username}/watch-lists/${data.watchListId}`);
             } else {
                 const error = await response.json();
                 console.error("Failed to create watch list:", error);
@@ -277,9 +291,62 @@ export default function CreateWatchListForm() {
 
     const isFormValid = name.trim() && selectedShows.length > 0;
 
+    // Note modal handlers
+    const openNoteModal = async (showIndex: number) => {
+        const show = selectedShows[showIndex];
+        setEditingShowIndex(showIndex);
+        setNoteText(show.note || "");
+        setNoteSpoiler(show.spoiler || false);
+        setSelectedSeasons(show.muchWatchSeasons || []);
+        
+        // Fetch seasons for this show
+        try {
+            const response = await fetch(`/api/shows/${show.id}/seasons`);
+            if (response.ok) {
+                const data = await response.json();
+                setShowSeasons(data.seasons || []);
+            }
+        } catch (error) {
+            console.error("Error fetching seasons:", error);
+        }
+        
+        setNoteModalOpen(true);
+    };
+
+    const closeNoteModal = () => {
+        setNoteModalOpen(false);
+        setEditingShowIndex(null);
+        setNoteText("");
+        setNoteSpoiler(false);
+        setSelectedSeasons([]);
+        setShowSeasons([]);
+    };
+
+    const saveNote = () => {
+        if (editingShowIndex !== null) {
+            setSelectedShows(prev => prev.map((show, index) => 
+                index === editingShowIndex 
+                    ? { ...show, note: noteText, spoiler: noteSpoiler, muchWatchSeasons: selectedSeasons }
+                    : show
+            ));
+        }
+        closeNoteModal();
+    };
+
+    const toggleSeasonSelection = (seasonId: number) => {
+        setSelectedSeasons(prev => {
+            if (prev.includes(seasonId)) {
+                return prev.filter(id => id !== seasonId);
+            } else if (prev.length < 5) {
+                return [...prev, seasonId];
+            }
+            return prev;
+        });
+    };
+
     return (
-        <div className="bg-gray-700 rounded-lg max-w-6xl mx-auto">
-            <div className="p-3 md:p-8">
+        <div className="max-w-6xl mx-auto">
+            <div className="md:px-0 md:py-0">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Left Side */}
                     <div className="flex-grow space-y-6">
@@ -349,6 +416,7 @@ export default function CreateWatchListForm() {
                                         checked={privacy === "public"}
                                         onChange={(e) => setPrivacy(e.target.value as "public")}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500"
+                                        style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Public - Anyone can view</span>
                                 </label>
@@ -359,6 +427,7 @@ export default function CreateWatchListForm() {
                                         checked={privacy === "friends"}
                                         onChange={(e) => setPrivacy(e.target.value as "friends")}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500"
+                                        style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Friends Only - Only your friends can view</span>
                                 </label>
@@ -369,6 +438,7 @@ export default function CreateWatchListForm() {
                                         checked={privacy === "private"}
                                         onChange={(e) => setPrivacy(e.target.value as "private")}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500"
+                                        style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Private - Only you can view</span>
                                 </label>
@@ -377,15 +447,16 @@ export default function CreateWatchListForm() {
 
                         {/* Ranked List Checkbox */}
                         <div>
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    checked={isRanked}
-                                    onChange={(e) => setIsRanked(e.target.checked)}
-                                    className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
-                                />
-                                <span className="ml-2 text-white">This is a ranked list</span>
-                            </label>
+                                                            <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={isRanked}
+                                        onChange={(e) => setIsRanked(e.target.checked)}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                        style={{ accentColor: '#16a34a' }}
+                                    />
+                                    <span className="ml-2 text-white">This is a ranked list</span>
+                                </label>
                         </div>
                     </div>
 
@@ -465,7 +536,7 @@ export default function CreateWatchListForm() {
 
                     {/* Selected Shows List */}
                     {selectedShows.length > 0 && (
-                        <div className="bg-gray-600 rounded-md p-2 md:p-4">
+                        <div className="bg-gray-900 rounded-md p-4">
                             <h3 className="text-white font-medium mb-3">
                                 Selected Shows ({selectedShows.length})
                             </h3>
@@ -479,7 +550,7 @@ export default function CreateWatchListForm() {
                                         onDragLeave={handleDragLeave}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
-                                        className={`flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-md transition-all duration-200 ${
+                                        className={`flex items-center gap-3 p-3 rounded-md transition-all duration-200 ${
                                             isRanked ? 'cursor-move' : ''
                                         } ${
                                             draggedIndex === index 
@@ -514,6 +585,12 @@ export default function CreateWatchListForm() {
                                                     {formatDateShort(show.firstAirDate)}
                                                 </p>
                                             )}
+                                            <button
+                                                onClick={() => openNoteModal(index)}
+                                                className="text-green-400 hover:text-green-300 text-xs mt-1 transition-colors"
+                                            >
+                                                {show.note ? "Edit note" : "Add note"}
+                                            </button>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="hidden md:flex text-yellow-400 text-sm">
@@ -525,11 +602,11 @@ export default function CreateWatchListForm() {
                                                         </span>
                                                     ))
                                                 ) : (
-                                                    <span className="text-gray-400">Not rated</span>
+                                                    <span className="text-gray-400">Not rated by you</span>
                                                 )}
                                             </div>
                                             {isRanked && (
-                                                <div className="flex flex-col md:hidden">
+                                                <div className="flex flex-col">
                                                     <button
                                                         onClick={() => moveShowUp(index)}
                                                         disabled={index === 0}
@@ -560,12 +637,18 @@ export default function CreateWatchListForm() {
                     )}
                 </div>
 
-                {/* Submit Button */}
-                <div className="flex justify-end pt-6 border-t border-gray-600 mt-8">
+                {/* Submit and Cancel Buttons */}
+                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 pb-2 border-t border-gray-600 mt-8">
+                    <button
+                        onClick={() => router.back()}
+                        className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                        Cancel
+                    </button>
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting || !isFormValid}
-                        className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         {isSubmitting ? (
                             <>
@@ -578,6 +661,107 @@ export default function CreateWatchListForm() {
                     </button>
                 </div>
             </div>
+
+            {/* Note Modal */}
+            {noteModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-gray-600">
+                            <h2 className="text-xl font-bold text-white">Add Note</h2>
+                            <button
+                                onClick={closeNoteModal}
+                                className="text-gray-400 hover:text-white transition-colors"
+                            >
+                                <FiX className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* Note Text */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Note
+                                </label>
+                                <textarea
+                                    value={noteText}
+                                    onChange={(e) => setNoteText(e.target.value)}
+                                    placeholder="Add any notes about this show..."
+                                    rows={4}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                />
+                            </div>
+
+                            {/* Spoiler Checkbox */}
+                            <div>
+                                <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={noteSpoiler}
+                                        onChange={(e) => setNoteSpoiler(e.target.checked)}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                        style={{ accentColor: '#16a34a' }}
+                                    />
+                                    <span className="ml-2 text-white">Contains spoilers</span>
+                                </label>
+                            </div>
+
+                            {/* Must-Watch Seasons */}
+                            {showSeasons.length > 0 && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Must-Watch Seasons (select up to 5)
+                                    </label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {showSeasons.map((season) => (
+                                            <label
+                                                key={season.id}
+                                                className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${
+                                                    selectedSeasons.includes(season.id)
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedSeasons.includes(season.id)}
+                                                    onChange={() => toggleSeasonSelection(season.id)}
+                                                    className="w-4 h-4 mr-2"
+                                                    disabled={!selectedSeasons.includes(season.id) && selectedSeasons.length >= 5}
+                                                />
+                                                <span className="text-sm">
+                                                    {season.seasonNumber === 0 ? 'Specials' : `Season ${season.seasonNumber}`}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    {selectedSeasons.length >= 5 && (
+                                        <p className="text-yellow-400 text-xs mt-2">
+                                            Maximum 5 seasons selected
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Buttons */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-600">
+                                <button
+                                    onClick={closeNoteModal}
+                                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveNote}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                >
+                                    Save Note
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 } 

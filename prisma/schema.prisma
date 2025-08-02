@@ -86,6 +86,7 @@ model Season {
   tags          SeasonTag[]
   views         View[]
   watched       Watched[]
+  watchListShows WatchListShowSeason[]
 
   @@unique([showId, seasonNumber])
 }
@@ -557,9 +558,12 @@ model WatchListShow {
   watchListId Int
   showId      Int
   ranking     Int?
+  note        String?
+  spoiler     Boolean   @default(false)
   addedAt     DateTime  @default(now())
   watchList   WatchList @relation(fields: [watchListId], references: [id])
   show        Show      @relation(fields: [showId], references: [id])
+  muchWatchSeasons WatchListShowSeason[]
 
   @@unique([watchListId, showId])
   @@index([watchListId, ranking])
@@ -585,4 +589,14 @@ model WatchListComment {
   watchList   WatchList @relation(fields: [watchListId], references: [id])
 
   @@index([watchListId])
+}
+
+model WatchListShowSeason {
+  id              Int           @id @default(autoincrement())
+  watchListShowId Int
+  seasonId        Int
+  watchListShow   WatchListShow @relation(fields: [watchListShowId], references: [id])
+  season          Season        @relation(fields: [seasonId], references: [id])
+
+  @@unique([watchListShowId, seasonId])
 }

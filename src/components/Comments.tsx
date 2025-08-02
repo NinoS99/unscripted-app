@@ -8,10 +8,10 @@ import { usePathname } from "next/navigation";
 import { format } from "date-fns";
 import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
-interface ReviewComment {
+interface Comment {
     id: number;
     content: string;
-    createdAt: string;
+    createdAt: Date;
     user: {
         id: string;
         username: string;
@@ -19,62 +19,85 @@ interface ReviewComment {
     };
 }
 
-interface ReviewCommentsProps {
-    reviewType: "show" | "season" | "episode";
-    reviewId: number;
+interface CommentsProps {
+    entityType: "review" | "watchList";
+    entityId: number;
+    comments: Comment[];
+    onCommentAdded: (comment: Comment) => void;
+    reviewType?: "show" | "season" | "episode";
 }
 
-export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsProps) {
+export default function Comments({ entityType, entityId, comments: initialComments, onCommentAdded, reviewType }: CommentsProps) {
     const { user } = useUser();
     const pathname = usePathname();
-    const [comments, setComments] = useState<ReviewComment[]>([]);
+    const [comments, setComments] = useState<Comment[]>(initialComments);
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+
     const [currentPage, setCurrentPage] = useState(1);
     const commentsPerPage = 10;
 
+
+
     const fetchComments = useCallback(async () => {
         try {
-            const response = await fetch(
-                `/api/reviews/comments?reviewType=${reviewType}&reviewId=${reviewId}`
-            );
+            const endpoint = entityType === "review" 
+                ? `/api/reviews/comments?reviewType=${reviewType || "show"}&reviewId=${entityId}`
+                : `/api/watch-lists/comments?watchListId=${entityId}`;
+            
+            const response = await fetch(endpoint);
             if (response.ok) {
                 const data = await response.json();
-                setComments(data.comments);
+                setComments(data.comments || []);
             }
         } catch (error) {
             console.error("Error fetching comments:", error);
-        } finally {
-            setIsLoading(false);
         }
-    }, [reviewType, reviewId]);
+    }, [entityType, entityId, reviewType]);
 
     useEffect(() => {
-        fetchComments();
-    }, [fetchComments]);
+        // If no initial comments provided, fetch them
+        if (initialComments.length === 0) {
+            fetchComments();
+        } else {
+            setComments(initialComments);
+        }
+    }, [initialComments, fetchComments]);
 
     const handleSubmitComment = async () => {
         if (!user || !newComment.trim() || isSubmitting) return;
 
         setIsSubmitting(true);
         try {
-            const response = await fetch("/api/reviews/comments", {
+            const endpoint = entityType === "review" 
+                ? "/api/reviews/comments"
+                : "/api/watch-lists/comments";
+            
+            const body = entityType === "review" 
+                ? {
+                    reviewType: reviewType || "show",
+                    reviewId: entityId,
+                    content: newComment.trim(),
+                }
+                : {
+                    watchListId: entityId,
+                    content: newComment.trim(),
+                };
+
+            const response = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    reviewType,
-                    reviewId,
-                    content: newComment.trim(),
-                }),
+                body: JSON.stringify(body),
             });
 
             if (response.ok) {
+                const newCommentData = await response.json();
+                const comment = newCommentData.comment;
+                setComments(prev => [comment, ...prev]);
+                onCommentAdded(comment);
                 setNewComment("");
-                // Fetch updated comments
-                await fetchComments();
             } else {
                 const error = await response.json();
                 console.error("Failed to add comment:", error);
@@ -93,14 +116,7 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="mt-6">
-                <h3 className="text-lg font-semibold text-green-500 mb-4">Comments</h3>
-                <div className="text-gray-400 text-center py-4">Loading comments...</div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="mt-6">
@@ -109,7 +125,7 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
             
             {/* Add Comment Form */}
             {user && (
-                <div className="mb-6">
+                <div className="mb-4">
                     <div className="flex gap-3">
                         <div className="flex-shrink-0">
                             <Image
@@ -119,7 +135,6 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                                 height={40}
                                 className="rounded-full object-cover h-10 w-10"
                                 onError={(e) => {
-                                    // Fallback to noAvatar if image fails
                                     const target = e.target as HTMLImageElement;
                                     target.src = "/noAvatar.png";
                                 }}
@@ -177,7 +192,6 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                                                 height={40}
                                                 className="rounded-full object-cover h-10 w-10"
                                                 onError={(e) => {
-                                                    // Fallback to noAvatar if image fails
                                                     const target = e.target as HTMLImageElement;
                                                     target.src = "/noAvatar.png";
                                                 }}
@@ -185,9 +199,12 @@ export default function ReviewComments({ reviewType, reviewId }: ReviewCommentsP
                                         </div>
                                         <div className="flex-grow">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className="font-semibold text-white">
+                                                <Link 
+                                                    href={`/${comment.user.username}`}
+                                                    className="font-semibold text-white hover:text-green-400 transition-colors"
+                                                >
                                                     {comment.user.username}
-                                                </span>
+                                                </Link>
                                                 <span className="text-sm text-gray-400">
                                                     {format(new Date(comment.createdAt), "MMM d, yyyy")}
                                                 </span>

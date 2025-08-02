@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/client";
 
 export async function POST(request: NextRequest) {
     try {
@@ -31,6 +29,7 @@ export async function POST(request: NextRequest) {
                 ...(entityType === "showReview" && { showReviewId: entityId }),
                 ...(entityType === "seasonReview" && { seasonReviewId: entityId }),
                 ...(entityType === "episodeReview" && { episodeReviewId: entityId }),
+                ...(entityType === "watchList" && { watchListId: entityId }),
             },
         });
 
@@ -52,6 +51,7 @@ export async function POST(request: NextRequest) {
                     ...(entityType === "showReview" && { showReviewId: entityId }),
                     ...(entityType === "seasonReview" && { seasonReviewId: entityId }),
                     ...(entityType === "episodeReview" && { episodeReviewId: entityId }),
+                    ...(entityType === "watchList" && { watchListId: entityId }),
                 },
             });
 
@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
                     ...(entityType === "showReview" && { showReviewId: parseInt(entityId) }),
                     ...(entityType === "seasonReview" && { seasonReviewId: parseInt(entityId) }),
                     ...(entityType === "episodeReview" && { episodeReviewId: parseInt(entityId) }),
+                    ...(entityType === "watchList" && { watchListId: parseInt(entityId) }),
                 },
             }),
             prisma.like.findFirst({
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
                     ...(entityType === "showReview" && { showReviewId: parseInt(entityId) }),
                     ...(entityType === "seasonReview" && { seasonReviewId: parseInt(entityId) }),
                     ...(entityType === "episodeReview" && { episodeReviewId: parseInt(entityId) }),
+                    ...(entityType === "watchList" && { watchListId: parseInt(entityId) }),
                 },
             }),
         ]);
