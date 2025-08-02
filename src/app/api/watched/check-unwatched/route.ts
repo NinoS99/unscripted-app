@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
             name: string;
             type: "season" | "episode";
             url: string;
+            seasonId?: number;
         }> = [];
 
         if (entityType === "show") {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
                     if (!seasonWatched) {
                         unwatchedItems.push({
                             id: season.id,
-                            name: `Season ${season.seasonNumber}`,
+                            name: season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`,
                             type: "season",
                             url: `/show/${show.id}/season/${season.seasonNumber}`,
                         });
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
                                 name: `Episode ${episode.episodeNumber}: ${episode.name}`,
                                 type: "episode",
                                 url: `/show/${show.id}/season/${season.seasonNumber}/episode/${episode.episodeNumber}`,
+                                seasonId: season.id,
                             });
                         }
                     }
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
                             name: `Episode ${episode.episodeNumber}: ${episode.name}`,
                             type: "episode",
                             url: `/show/${season.show.id}/season/${season.seasonNumber}/episode/${episode.episodeNumber}`,
+                            seasonId: season.id,
                         });
                     }
                 }

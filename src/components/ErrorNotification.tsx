@@ -39,7 +39,7 @@ export default function ErrorNotification({
     if (!isVisible) return null;
 
     return (
-        <div className={`fixed top-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm transition-opacity duration-300 ${isShown ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`fixed top-4 right-4 left-4 md:left-auto bg-red-600 text-white p-4 rounded-lg shadow-lg z-50 max-w-sm mx-auto md:mx-0 transition-opacity duration-300 ${isShown ? 'opacity-100' : 'opacity-0'}`}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">

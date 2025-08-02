@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
+import Link from "next/link";
 import RatingComponent from "../../../components/RatingComponent";
 import FavouriteButton from "../../../components/FavouriteButton";
 import WatchedButton from "../../../components/WatchedButton";
@@ -36,6 +37,13 @@ export default async function ShowPage({
                 include: {
                     episodes: {
                         orderBy: { episodeNumber: "asc" },
+                        select: {
+                            id: true,
+                            episodeNumber: true,
+                            name: true,
+                            overview: true,
+                            airDate: true,
+                        },
                     },
                     characters: {
                         include: {
@@ -264,8 +272,11 @@ export default async function ShowPage({
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-center py-1">
-                                        <p className="text-green-200 text-center text-sm">
-                                            Log in to rate, favourite, watch or review this show!
+                                        <p className="text-gray-400 text-center text-sm">
+                                            <Link href={`/sign-in?redirect_url=${encodeURIComponent(`/show/${showId}`)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                                                Sign in
+                                            </Link>{" "}
+                                            to rate, give a rose, watch or review this show!
                                         </p>
                                     </div>
                                 )}

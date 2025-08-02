@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { FiTag, FiUser, FiStar } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import LikeButton from "./LikeButton";
-import ReviewComments from "./ReviewComments";
+import Comments from "./Comments";
 
 interface ReviewDisplayProps {
             review: {
@@ -42,6 +42,16 @@ interface ReviewDisplayProps {
                 };
             }>;
             likes: Array<{ id: number }>;
+            comments?: Array<{
+                id: number;
+                content: string;
+                createdAt: Date;
+                user: {
+                    id: string;
+                    username: string;
+                    profilePicture: string | null;
+                };
+            }>;
             _count: {
                 likes: number;
                 comments: number;
@@ -204,11 +214,14 @@ export default function ReviewDisplay({
                             <div className="mt-4 space-y-4 px-4">
                                 {/* Reviewed by */}
                                 <div>
-                                    <p className="text-green-400 text-sm mb-2">
+                                    <p className="text-gray-400 text-sm mb-2">
                                         Reviewed by{" "}
-                                        <span className="font-semibold">
+                                        <Link 
+                                            href={`/${review?.user?.username}`}
+                                            className="font-semibold text-white hover:text-green-400 transition-colors"
+                                        >
                                             {review?.user?.username}
-                                        </span>
+                                        </Link>
                                     </p>
                                 </div>
 
@@ -283,11 +296,14 @@ export default function ReviewDisplay({
                             {/* Entity Info */}
                             <div className="flex-grow">
                                 <div className="mb-4">
-                                    <p className="text-green-400 text-sm mb-2">
+                                    <p className="text-gray-400 text-sm mb-2">
                                         Reviewed by{" "}
-                                        <span className="font-semibold">
+                                        <Link 
+                                            href={`/${review?.user?.username}`}
+                                            className="font-semibold text-white hover:text-green-400 transition-colors"
+                                        >
                                             {review?.user?.username}
-                                        </span>
+                                        </Link>
                                     </p>
                                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
                                         <Link 
@@ -434,9 +450,12 @@ export default function ReviewDisplay({
                         )}
 
                         {/* Comments */}
-                        <ReviewComments
+                        <Comments
+                            entityType="review"
+                            entityId={review?.id}
+                            comments={[]}
+                            onCommentAdded={() => {}}
                             reviewType={reviewType}
-                            reviewId={review?.id}
                         />
                     </div>
                 </div>

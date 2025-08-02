@@ -4,7 +4,7 @@ import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
 import SearchBar from "./SearchBar";
 import ClientOnly from "./ClientOnly";
-import { FiFilm, FiBell, FiEdit2, FiUser } from "react-icons/fi";
+import { FiFilm, FiBell, FiList, FiUser } from "react-icons/fi";
 
 const Navbar = () => {
     return (
@@ -40,8 +40,9 @@ const Navbar = () => {
                                     text="Notifications"
                                 />
                                 <NavButton
-                                    icon={<FiEdit2 className="w-4 h-4 md:w-5 md:h-5" />}
-                                    text="Reviews"
+                                    icon={<FiList className="w-4 h-4 md:w-5 md:h-5" />}
+                                    text="Watch Lists"
+                                    href="/watch-lists"
                                 />
                             </div>
                             <SearchBar />
@@ -70,13 +71,22 @@ const Navbar = () => {
 interface NavButtonProps {
     icon: React.ReactNode;
     text: string;
+    href?: string;
 }
 
-const NavButton: React.FC<NavButtonProps> = ({ icon, text }) => (
-    <button className="flex items-center gap-1 md:gap-2 text-white hover:text-green-600 transition-all duration-300 text-sm md:text-base font-medium cursor-pointer whitespace-nowrap">
-        {icon}
-        <span>{text}</span>
-    </button>
-);
+const NavButton: React.FC<NavButtonProps> = ({ icon, text, href }) => {
+    const content = (
+        <div className="flex items-center gap-1 md:gap-2 text-white hover:text-green-600 transition-all duration-300 text-sm md:text-base font-medium cursor-pointer whitespace-nowrap">
+            {icon}
+            <span>{text}</span>
+        </div>
+    );
+
+    if (href) {
+        return <Link href={href}>{content}</Link>;
+    }
+
+    return <button>{content}</button>;
+};
 
 export default Navbar;
