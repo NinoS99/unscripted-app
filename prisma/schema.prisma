@@ -30,6 +30,8 @@ model User {
   showReviews    ShowReview[]
   views          View[]
   watched        Watched[]
+  watchLists     WatchList[]
+  watchListComments WatchListComment[]
 
   @@index([username])
   @@index([email])
@@ -61,6 +63,7 @@ model Show {
   ShowsOnNetworks  ShowsOnNetworks[]
   views            View[]
   watched          Watched[]
+  watchListShows   WatchListShow[]
 }
 
 model Season {
@@ -263,6 +266,7 @@ model Tag {
   seasons        SeasonTag[]
   showReviews    ShowReviewTag[]
   shows          ShowTag[]
+  watchLists     WatchListTag[]
 }
 
 model ShowTag {
@@ -313,6 +317,7 @@ model View {
   episodeId       Int?
   reviewId        Int?
   characterId     Int?
+  watchListId     Int?
   createdAt       DateTime       @default(now())
   episodeReviewId Int?
   seasonReviewId  Int?
@@ -325,12 +330,14 @@ model View {
   seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
   show            Show?          @relation(fields: [showId], references: [id])
   showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
+  watchList       WatchList?     @relation(fields: [watchListId], references: [id])
   user            User?          @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([showId])
   @@index([seasonId])
   @@index([episodeId])
+  @@index([watchListId])
 }
 
 model Prediction {
@@ -490,6 +497,7 @@ model Like {
   showReviewId    Int?
   seasonReviewId  Int?
   episodeReviewId Int?
+  watchListId     Int?
   createdAt       DateTime       @default(now())
   comment         Comment?       @relation(fields: [commentId], references: [id])
   episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
@@ -497,6 +505,7 @@ model Like {
   review          Review?        @relation(fields: [reviewId], references: [id])
   seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
   showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
+  watchList       WatchList?     @relation(fields: [watchListId], references: [id])
   user            User           @relation(fields: [userId], references: [id])
 
   @@unique([userId, commentId])
@@ -505,6 +514,7 @@ model Like {
   @@unique([userId, showReviewId])
   @@unique([userId, seasonReviewId])
   @@unique([userId, episodeReviewId])
+  @@unique([userId, watchListId])
 }
 
 model ReviewComment {
@@ -519,4 +529,60 @@ model ReviewComment {
   seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
   showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
   user            User           @relation(fields: [userId], references: [id])
+}
+
+model WatchList {
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String?
+  userId      String
+  isPublic    Boolean           @default(true)
+  friendsOnly Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User              @relation(fields: [userId], references: [id])
+  shows       WatchListShow[]
+  tags        WatchListTag[]
+  comments    WatchListComment[]
+  likes       Like[]
+  views       View[]
+
+  @@index([userId])
+  @@index([isPublic])
+  @@index([friendsOnly])
+}
+
+model WatchListShow {
+  id          Int       @id @default(autoincrement())
+  watchListId Int
+  showId      Int
+  ranking     Int?
+  addedAt     DateTime  @default(now())
+  watchList   WatchList @relation(fields: [watchListId], references: [id])
+  show        Show      @relation(fields: [showId], references: [id])
+
+  @@unique([watchListId, showId])
+  @@index([watchListId, ranking])
+}
+
+model WatchListTag {
+  id          Int       @id @default(autoincrement())
+  watchListId Int
+  tagId       Int
+  watchList   WatchList @relation(fields: [watchListId], references: [id])
+  tag         Tag       @relation(fields: [tagId], references: [id])
+
+  @@unique([watchListId, tagId])
+}
+
+model WatchListComment {
+  id          Int       @id @default(autoincrement())
+  content     String
+  userId      String
+  watchListId Int
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+  watchList   WatchList @relation(fields: [watchListId], references: [id])
+
+  @@index([watchListId])
 }
