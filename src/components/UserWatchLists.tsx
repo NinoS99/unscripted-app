@@ -64,20 +64,28 @@ export default function UserWatchLists({ user, watchLists, isOwnProfile }: UserW
             <div className="container mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex items-center gap-6 mb-6">
-                        <Image
-                            src={user.profilePicture || "/noAvatar.png"}
-                            alt={user.username}
-                            width={80}
-                            height={80}
-                            className="w-20 h-20 rounded-full object-cover"
-                        />
+                    <div className="flex items-center gap-4 md:gap-6 mb-6">
+                        <Link href={`/${user.username}`}>
+                            <Image
+                                src={user.profilePicture || "/noAvatar.png"}
+                                alt={user.username}
+                                width={80}
+                                height={80}
+                                className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover hover:opacity-80 transition-opacity"
+                            />
+                        </Link>
                         <div>
-                            <h1 className="text-3xl font-bold mb-2">
-                                {user.username}&apos;s Watch Lists
+                            <h1 className="text-xl md:text-3xl font-bold mb-2">
+                                Watch lists crafted by{" "}
+                                <Link 
+                                    href={`/${user.username}`}
+                                    className="text-green-400 hover:text-green-300 transition-colors"
+                                >
+                                    {user.username}
+                                </Link>
                             </h1>
                             {user.bio && (
-                                <p className="text-gray-300 text-lg">
+                                <p className="text-gray-300 text-base md:text-lg">
                                     {user.bio}
                                 </p>
                             )}
