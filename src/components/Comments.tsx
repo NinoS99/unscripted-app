@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,36 +33,8 @@ export default function Comments({ entityType, entityId, comments: initialCommen
     const [comments, setComments] = useState<Comment[]>(initialComments);
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-
     const [currentPage, setCurrentPage] = useState(1);
     const commentsPerPage = 10;
-
-
-
-    const fetchComments = useCallback(async () => {
-        try {
-            const endpoint = entityType === "review" 
-                ? `/api/reviews/comments?reviewType=${reviewType || "show"}&reviewId=${entityId}`
-                : `/api/watch-lists/comments?watchListId=${entityId}`;
-            
-            const response = await fetch(endpoint);
-            if (response.ok) {
-                const data = await response.json();
-                setComments(data.comments || []);
-            }
-        } catch (error) {
-            console.error("Error fetching comments:", error);
-        }
-    }, [entityType, entityId, reviewType]);
-
-    useEffect(() => {
-        // If no initial comments provided, fetch them
-        if (initialComments.length === 0) {
-            fetchComments();
-        } else {
-            setComments(initialComments);
-        }
-    }, [initialComments, fetchComments]);
 
     const handleSubmitComment = async () => {
         if (!user || !newComment.trim() || isSubmitting) return;
@@ -116,11 +88,9 @@ export default function Comments({ entityType, entityId, comments: initialCommen
         }
     };
 
-
-
     return (
         <div className="mt-6">
-            <h3 className="text-lg font-semibold text-green-500 mb-4">Comments</h3>
+            <h3 className="text-lg font-semibold text-green-500 mb-4">Comments ({comments.length})</h3>
             <div className="border-b border-gray-600 mb-4"></div>
             
             {/* Add Comment Form */}
@@ -186,7 +156,7 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                     <div className="flex gap-3">
                                         <div className="flex-shrink-0">
                                             <Image
-                                                src={comment.user.profilePicture || "/noAvatar.png"}
+                                                src={comment.user.id === user?.id ? user.imageUrl : (comment.user.profilePicture || "/noAvatar.png")}
                                                 alt={comment.user.username}
                                                 width={40}
                                                 height={40}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
 export async function POST(request: Request) {
@@ -144,9 +144,6 @@ export async function GET(request: Request) {
             orderBy: { createdAt: "desc" },
         });
 
-        // Get current user data from Clerk for profile picture comparison
-        const currentUserData = await currentUser();
-
         // Add _count data for likes and comments, plus user's rating and favorite status
         const reviewsWithCounts = await Promise.all(
             reviews.map(async (review) => {
@@ -169,14 +166,19 @@ export async function GET(request: Request) {
                         where: {
                             userId: review.user.id,
                             episodeId: parseInt(episodeId),
-                        },
-                    }),
+                            },
+                        }),
                 ]);
 
-                // Use Clerk's imageUrl if this is the current user, otherwise use stored profilePicture
-                const profilePicture = currentUserData?.id === review.user.id 
-                    ? currentUserData.imageUrl || review.user.profilePicture
-                    : review.user.profilePicture;
+                // Get Clerk imageUrl for the review author
+                let profilePicture = null;
+                try {
+                    const clerk = await clerkClient();
+                    const clerkUser = await clerk.users.getUser(review.user.id);
+                    profilePicture = clerkUser?.imageUrl;
+                } catch (error) {
+                    console.error(`Failed to fetch Clerk user for ${review.user.id}:`, error);
+                }
 
                 return {
                     ...review,

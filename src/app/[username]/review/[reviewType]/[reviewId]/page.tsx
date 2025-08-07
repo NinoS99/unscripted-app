@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 import ReviewDisplay from "@/components/ReviewDisplay";
 import { notFound } from "next/navigation";
@@ -67,6 +67,20 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 where: { userId },
                             },
                         }),
+                        comments: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true,
+                                        profilePicture: true,
+                                    },
+                                },
+                            },
+                            orderBy: {
+                                createdAt: "desc",
+                            },
+                        },
                         _count: {
                             select: {
                                 likes: true,
@@ -124,6 +138,20 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 where: { userId },
                             },
                         }),
+                        comments: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true,
+                                        profilePicture: true,
+                                    },
+                                },
+                            },
+                            orderBy: {
+                                createdAt: "desc",
+                            },
+                        },
                         _count: {
                             select: {
                                 likes: true,
@@ -180,6 +208,20 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 where: { userId },
                             },
                         }),
+                        comments: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        username: true,
+                                        profilePicture: true,
+                                    },
+                                },
+                            },
+                            orderBy: {
+                                createdAt: "desc",
+                            },
+                        },
                         _count: {
                             select: {
                                 likes: true,
@@ -255,9 +297,52 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                 break;
         }
 
+        // Get Clerk user data for review author and all comment authors
+        const clerk = await clerkClient();
+        
+        // Get Clerk image for review author
+        let reviewAuthorImage = null;
+        try {
+            const reviewAuthorClerkUser = await clerk.users.getUser(review.user.id);
+            reviewAuthorImage = reviewAuthorClerkUser?.imageUrl;
+        } catch (error) {
+            console.error(`Failed to fetch Clerk user for review author ${review.user.id}:`, error);
+        }
+
+        // Get Clerk images for all comment authors
+        const commentsWithClerkImages = await Promise.all(
+            (review.comments || []).map(async (comment) => {
+                try {
+                    const clerkUser = await clerk.users.getUser(comment.user.id);
+                    return {
+                        ...comment,
+                        user: {
+                            ...comment.user,
+                            profilePicture: clerkUser?.imageUrl,
+                        },
+                    };
+                } catch (error) {
+                    // If Clerk user lookup fails, log error but don't fall back
+                    console.error(`Failed to fetch Clerk user for ${comment.user.id}:`, error);
+                    return {
+                        ...comment,
+                        user: {
+                            ...comment.user,
+                            profilePicture: null,
+                        },
+                    };
+                }
+            })
+        );
+
         // Add userRating and userFavorite to the review object
         const reviewWithRating = {
             ...review,
+            user: {
+                ...review.user,
+                profilePicture: reviewAuthorImage,
+            },
+            comments: commentsWithClerkImages,
             userRating: userRating?.rating,
             userFavorite: !!userFavorite,
         };
