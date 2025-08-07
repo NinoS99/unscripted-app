@@ -247,6 +247,8 @@ export default async function ShowPage({
                                             name: character.person.name,
                                             characterName: character.showRole,
                                             profilePath: character.person.profilePath,
+                                            seasonId: season.id,
+                                            seasonNumber: season.seasonNumber,
                                         }))
                                     ),
                                 }}

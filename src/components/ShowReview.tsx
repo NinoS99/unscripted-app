@@ -5,8 +5,8 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { format } from "date-fns";
 import RatingComponent from "./RatingComponent";
-import FavouriteButton from "./FavouriteButton";
-import { FiX, FiTag, FiUser, FiLoader } from "react-icons/fi";
+import { FiX, FiTag, FiUser, FiLoader, FiChevronRight } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 
 interface ShowReviewProps {
     show: {
@@ -19,6 +19,8 @@ interface ShowReviewProps {
             name: string;
             characterName?: string | null;
             profilePath?: string | null;
+            seasonId: number;
+            seasonNumber: number;
         }[];
     };
     isOpen: boolean;
@@ -33,15 +35,23 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     const [tags, setTags] = useState<string[]>([]);
     const [newTag, setNewTag] = useState("");
     const [spoiler, setSpoiler] = useState(false);
-    const [favouriteCharacters, setFavouriteCharacters] = useState<number[]>([]);
+    const [favouriteCharacters, setFavouriteCharacters] = useState<number[]>(
+        []
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isFavorited, setIsFavorited] = useState(false);
+    const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
 
     // Date validation
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const isStartedDateValid = !startedOn || startedOn <= today;
     const isEndedDateValid = !endedOn || endedOn <= today;
     const isDateRangeValid = !startedOn || !endedOn || startedOn <= endedOn;
-    const isFormValid = reviewContent.trim() && isStartedDateValid && isEndedDateValid && isDateRangeValid;
+    const isFormValid =
+        reviewContent.trim() &&
+        isStartedDateValid &&
+        isEndedDateValid &&
+        isDateRangeValid;
 
     const formatDate = (date: Date | null) =>
         date ? format(date, "MMMM d, yyyy") : null;
@@ -54,7 +64,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     };
 
     const handleRemoveTag = (tagToRemove: string) => {
-        setTags(tags.filter(tag => tag !== tagToRemove));
+        setTags(tags.filter((tag) => tag !== tagToRemove));
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -65,12 +75,37 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     };
 
     const handleCharacterToggle = (characterId: number) => {
-        setFavouriteCharacters(prev => 
-            prev.includes(characterId) 
-                ? prev.filter(id => id !== characterId)
+        setFavouriteCharacters((prev) =>
+            prev.includes(characterId)
+                ? prev.filter((id) => id !== characterId)
                 : [...prev, characterId]
         );
     };
+
+    const toggleSeasonExpansion = (seasonId: number) => {
+        setExpandedSeasons((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(seasonId)) {
+                newSet.delete(seasonId);
+            } else {
+                newSet.add(seasonId);
+            }
+            return newSet;
+        });
+    };
+
+    // Group characters by season
+    const charactersBySeason = show.characters?.reduce((acc, character) => {
+        if (!acc[character.seasonId]) {
+            acc[character.seasonId] = {
+                seasonId: character.seasonId,
+                seasonNumber: character.seasonNumber,
+                characters: []
+            };
+        }
+        acc[character.seasonId].characters.push(character);
+        return acc;
+    }, {} as Record<number, { seasonId: number; seasonNumber: number; characters: typeof show.characters }>) || {};
 
     const handleSubmit = async () => {
         if (!user || !reviewContent.trim()) return;
@@ -103,11 +138,13 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                 setSpoiler(false);
                 setFavouriteCharacters([]);
                 onClose();
-                
+
                 // Show success message with link to view full review
                 if (data.reviewId) {
-                    alert(`Review submitted successfully! Click OK to view your review.`);
-                    window.open(`/${user.username}/review/show/${data.reviewId}`, '_blank');
+                    alert(
+                        `Review submitted successfully! Click OK to view your review of the show.`
+                    );
+                    window.location.href = `/${user.username}/review/show/${data.reviewId}`;
                 }
             } else {
                 const error = await response.json();
@@ -121,6 +158,25 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
             setIsSubmitting(false);
         }
     };
+
+    // Check favorite status when modal opens
+    useEffect(() => {
+        const checkFavoriteStatus = async () => {
+            if (isOpen && user) {
+                try {
+                    const response = await fetch(`/api/favourites?entityType=show&entityId=${show.id}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setIsFavorited(data.isFavorite);
+                    }
+                } catch (error) {
+                    console.error("Error checking favorite status:", error);
+                }
+            }
+        };
+
+        checkFavoriteStatus();
+    }, [isOpen, user, show.id]);
 
     // Close modal when clicking outside
     useEffect(() => {
@@ -148,7 +204,9 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
             <div className="bg-gray-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-600">
-                    <h2 className="text-xl font-bold text-white">Write a Review</h2>
+                    <h2 className="text-xl font-bold text-white">
+                        Write a Review
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-white transition-colors"
@@ -168,7 +226,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                     entityId={show.id}
                                 />
                             </div>
-                            
+
                             {/* Poster - Hidden on mobile, visible on desktop */}
                             <div className="hidden md:block relative w-32 h-48 md:w-48 md:h-72 rounded-lg overflow-hidden shadow-lg">
                                 <Image
@@ -183,20 +241,26 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                 />
                             </div>
                             <div className="mt-4 text-center">
-                                <h3 className="text-sm font-bold text-white">{show.name}</h3>
+                                <h3 className="text-sm font-bold text-white">
+                                    {show.name}
+                                </h3>
                                 {show.firstAirDate && (
                                     <p className="text-sm text-gray-300 mt-1">
-                                        First aired on {formatDate(show.firstAirDate)}
+                                        First aired on{" "}
+                                        {formatDate(show.firstAirDate)}
                                     </p>
                                 )}
                             </div>
-                            {/* Favorite */}
-                            <div className="flex flex-col items-center gap-4 mt-4">
-                                <FavouriteButton
-                                    entityType="show"
-                                    entityId={show.id}
-                                />
-                            </div>
+                                                         {/* Favorite Status */}
+                             <div className="flex flex-col items-center gap-4 mt-4">
+                                 <p className="text-sm text-gray-300 text-center">
+                                     {isFavorited 
+                                         ? "You have given this show a rose" 
+                                         : "You have not given this show a rose"
+                                     }
+                                 </p>
+                                 <GiRose className={`w-5 h-5 ${isFavorited ? 'text-rose-500' : 'text-gray-400'}`} />
+                             </div>
                         </div>
 
                         {/* Right Side - Review Form */}
@@ -210,22 +274,35 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                     <input
                                         type="date"
                                         value={startedOn}
-                                        onChange={(e) => setStartedOn(e.target.value)}
+                                        onChange={(e) =>
+                                            setStartedOn(e.target.value)
+                                        }
                                         max={today}
                                         className={`w-32 md:w-full px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
-                                            !isStartedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
+                                            !isStartedDateValid
+                                                ? "border-red-500 focus:border-red-400"
+                                                : "border-gray-500 focus:border-green-400"
                                         }`}
-                                        style={{
-                                            colorScheme: 'dark',
-                                            '--webkit-datetime-edit-fields-wrapper': 'color: white',
-                                            '--webkit-datetime-edit-text': 'color: white',
-                                            '--webkit-datetime-edit-month-field': 'color: white',
-                                            '--webkit-datetime-edit-day-field': 'color: white',
-                                            '--webkit-datetime-edit-year-field': 'color: white',
-                                        } as React.CSSProperties}
+                                        style={
+                                            {
+                                                colorScheme: "dark",
+                                                "--webkit-datetime-edit-fields-wrapper":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-text":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-month-field":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-day-field":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-year-field":
+                                                    "color: white",
+                                            } as React.CSSProperties
+                                        }
                                     />
                                     {!isStartedDateValid && (
-                                        <p className="text-red-400 text-xs mt-1 ml-1">Hmm...</p>
+                                        <p className="text-red-400 text-xs mt-1 ml-1">
+                                            Hmm...
+                                        </p>
                                     )}
                                 </div>
                                 <div className="relative">
@@ -235,26 +312,41 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                     <input
                                         type="date"
                                         value={endedOn}
-                                        onChange={(e) => setEndedOn(e.target.value)}
+                                        onChange={(e) =>
+                                            setEndedOn(e.target.value)
+                                        }
                                         max={today}
                                         min={startedOn || undefined}
                                         className={`w-32 md:w-full px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
-                                            !isEndedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
+                                            !isEndedDateValid
+                                                ? "border-red-500 focus:border-red-400"
+                                                : "border-gray-500 focus:border-green-400"
                                         }`}
-                                        style={{
-                                            colorScheme: 'dark',
-                                            '--webkit-datetime-edit-fields-wrapper': 'color: white',
-                                            '--webkit-datetime-edit-text': 'color: white',
-                                            '--webkit-datetime-edit-month-field': 'color: white',
-                                            '--webkit-datetime-edit-day-field': 'color: white',
-                                            '--webkit-datetime-edit-year-field': 'color: white',
-                                        } as React.CSSProperties}
+                                        style={
+                                            {
+                                                colorScheme: "dark",
+                                                "--webkit-datetime-edit-fields-wrapper":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-text":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-month-field":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-day-field":
+                                                    "color: white",
+                                                "--webkit-datetime-edit-year-field":
+                                                    "color: white",
+                                            } as React.CSSProperties
+                                        }
                                     />
                                     {!isEndedDateValid && (
-                                        <p className="text-red-400 text-xs mt-1 ml-1">Time traveler?</p>
+                                        <p className="text-red-400 text-xs mt-1 ml-1">
+                                            Time traveler?
+                                        </p>
                                     )}
                                     {!isDateRangeValid && (
-                                        <p className="text-red-400 text-xs mt-1 ml-1">Hmm...</p>
+                                        <p className="text-red-400 text-xs mt-1 ml-1">
+                                            Hmm...
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -266,7 +358,9 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                 </label>
                                 <textarea
                                     value={reviewContent}
-                                    onChange={(e) => setReviewContent(e.target.value)}
+                                    onChange={(e) =>
+                                        setReviewContent(e.target.value)
+                                    }
                                     placeholder="Share your thoughts about this show..."
                                     rows={6}
                                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
@@ -288,7 +382,9 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                             >
                                                 {tag}
                                                 <button
-                                                    onClick={() => handleRemoveTag(tag)}
+                                                    onClick={() =>
+                                                        handleRemoveTag(tag)
+                                                    }
                                                     className="hover:text-red-200"
                                                 >
                                                     <FiX className="w-3 h-3" />
@@ -300,7 +396,9 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                         <input
                                             type="text"
                                             value={newTag}
-                                            onChange={(e) => setNewTag(e.target.value)}
+                                            onChange={(e) =>
+                                                setNewTag(e.target.value)
+                                            }
                                             onKeyPress={handleKeyPress}
                                             placeholder="Add a tag..."
                                             className="flex-grow px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
@@ -312,69 +410,121 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                             <FiTag className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    
+
                                     {/* Spoiler Checkbox */}
                                     <div className="flex items-center mt-4">
                                         <input
                                             type="checkbox"
                                             id="spoiler"
                                             checked={spoiler}
-                                            onChange={(e) => setSpoiler(e.target.checked)}
+                                            onChange={(e) =>
+                                                setSpoiler(e.target.checked)
+                                            }
                                             className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
                                         />
-                                        <label htmlFor="spoiler" className="ml-2 text-sm text-gray-300">
+                                        <label
+                                            htmlFor="spoiler"
+                                            className="ml-2 text-sm text-gray-300"
+                                        >
                                             Contains spoilers
                                         </label>
                                     </div>
                                 </div>
 
-                                {/* Favourite Characters */}
-                                {show.characters && show.characters.length > 0 && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Favourite &apos;Characters&apos;
-                                        </label>
-                                        <div className="max-h-32 overflow-y-auto space-y-2">
-                                            {show.characters.map((character) => (
-                                                <div
-                                                    key={character.id}
-                                                    className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
-                                                        favouriteCharacters.includes(character.id)
-                                                            ? "bg-green-600 hover:bg-green-500"
-                                                            : "bg-gray-600 hover:bg-gray-500"
-                                                    }`}
-                                                    onClick={() => handleCharacterToggle(character.id)}
-                                                >
-                                                    <div className="flex items-center gap-2 flex-grow">
-                                                        {character.profilePath ? (
-                                                            <Image
-                                                                src={`https://image.tmdb.org/t/p/w45${character.profilePath}`}
-                                                                alt={character.name}
-                                                                width={24}
-                                                                height={24}
-                                                                className="rounded-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
-                                                                <FiUser className="w-3 h-3 text-gray-300" />
-                                                            </div>
-                                                        )}
-                                                        <div className="flex flex-col">
-                                                            <span className="text-sm text-white font-medium">
-                                                                {character.name}
-                                                            </span>
-                                                            {character.characterName && (
-                                                                <span className="text-xs text-gray-300">
-                                                                    as {character.characterName}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                                                                                  {/* Favourite Characters */}
+                                 {show.characters &&
+                                     show.characters.length > 0 && (
+                                         <div>
+                                             <label className="block text-sm font-medium text-gray-300 mb-2">
+                                                 Favourite &apos;Characters&apos;
+                                             </label>
+                                             <div className="max-h-64 overflow-y-auto space-y-2">
+                                                 {Object.values(charactersBySeason)
+                                                     .sort((a, b) => a.seasonNumber - b.seasonNumber)
+                                                     .map((season) => (
+                                                         <div key={season.seasonId}>
+                                                             {/* Season Header */}
+                                                             <div
+                                                                 className="flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer bg-gray-800 hover:bg-gray-700"
+                                                                 onClick={() => toggleSeasonExpansion(season.seasonId)}
+                                                             >
+                                                                 <div className="flex items-center gap-2 flex-grow">
+                                                                     <span className="text-sm font-medium text-white">
+                                                                         Season {season.seasonNumber}
+                                                                     </span>
+                                                                     <span className="text-xs text-gray-400">
+                                                                         ({season.characters.length} characters)
+                                                                     </span>
+                                                                 </div>
+                                                                 <div className={`transform transition-transform ${expandedSeasons.has(season.seasonId) ? 'rotate-90' : ''}`}>
+                                                                     <FiChevronRight className="w-4 h-4 text-gray-400" />
+                                                                 </div>
+                                                             </div>
+                                                             
+                                                             {/* Characters in Season */}
+                                                             {expandedSeasons.has(season.seasonId) && (
+                                                                 <div className="ml-4 space-y-1 mt-1">
+                                                                     {season.characters.map((character) => (
+                                                                         <div
+                                                                             key={character.id}
+                                                                             className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
+                                                                                 favouriteCharacters.includes(
+                                                                                     character.id
+                                                                                 )
+                                                                                     ? "bg-green-600 hover:bg-green-500"
+                                                                                     : "bg-gray-600 hover:bg-gray-500"
+                                                                             }`}
+                                                                             onClick={() =>
+                                                                                 handleCharacterToggle(
+                                                                                     character.id
+                                                                                 )
+                                                                             }
+                                                                         >
+                                                                             <div className="flex items-center gap-2 flex-grow">
+                                                                                 {character.profilePath ? (
+                                                                                     <Image
+                                                                                         src={`https://image.tmdb.org/t/p/w45${character.profilePath}`}
+                                                                                         alt={
+                                                                                             character.name
+                                                                                         }
+                                                                                         width={
+                                                                                             24
+                                                                                         }
+                                                                                         height={
+                                                                                             24
+                                                                                         }
+                                                                                         className="rounded-full object-cover"
+                                                                                     />
+                                                                                 ) : (
+                                                                                     <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
+                                                                                         <FiUser className="w-3 h-3 text-gray-300" />
+                                                                                     </div>
+                                                                                 )}
+                                                                                 <div className="flex flex-col">
+                                                                                     <span className="text-sm text-white font-medium">
+                                                                                         {
+                                                                                             character.name
+                                                                                         }
+                                                                                     </span>
+                                                                                     {character.characterName && (
+                                                                                         <span className="text-xs text-gray-300">
+                                                                                             as{" "}
+                                                                                             {
+                                                                                                 character.characterName
+                                                                                             }
+                                                                                         </span>
+                                                                                     )}
+                                                                                 </div>
+                                                                             </div>
+                                                                         </div>
+                                                                     ))}
+                                                                 </div>
+                                                             )}
+                                                         </div>
+                                                     ))}
+                                             </div>
+                                         </div>
+                                     )}
                             </div>
 
                             {/* Submit Button */}
@@ -400,4 +550,4 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
             </div>
         </div>
     );
-} 
+}

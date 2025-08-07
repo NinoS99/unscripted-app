@@ -95,6 +95,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ 
             message: "Episode review submitted successfully",
+            reviewId: review.id,
             review: {
                 id: review.id,
                 content: review.content,

@@ -58,6 +58,12 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 character: {
                                     include: {
                                         person: true,
+                                        season: {
+                                            select: {
+                                                id: true,
+                                                seasonNumber: true,
+                                            },
+                                        },
                                     },
                                 },
                             },
@@ -129,6 +135,12 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                 character: {
                                     include: {
                                         person: true,
+                                        season: {
+                                            select: {
+                                                id: true,
+                                                seasonNumber: true,
+                                            },
+                                        },
                                     },
                                 },
                             },
