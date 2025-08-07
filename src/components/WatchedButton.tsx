@@ -12,6 +12,7 @@ interface WatchedButtonProps {
     showId?: number;
     seasonId?: number;
     episodeId?: number;
+    onWatchedChange?: (isWatched: boolean) => void;
 }
 
 interface UnwatchedItem {
@@ -40,6 +41,7 @@ export default function WatchedButton({
     showId,
     seasonId,
     episodeId,
+    onWatchedChange,
 }: WatchedButtonProps) {
     const { user } = useUser();
     const [isWatched, setIsWatched] = useState(false);
@@ -242,6 +244,7 @@ export default function WatchedButton({
                 const data = await response.json();
                 setIsWatched(true);
                 setShowPopup(false);
+                onWatchedChange?.(true);
                 
                 // Show completion notification if auto-completed
                 if (data.autoCompleted) {
@@ -282,6 +285,7 @@ export default function WatchedButton({
 
             if (response.ok) {
                 setIsWatched(false);
+                onWatchedChange?.(false);
             }
         } catch (error) {
             console.error("Error marking as unwatched:", error);
@@ -310,6 +314,7 @@ export default function WatchedButton({
                 setIsWatched(false);
                 setShowUnwatchConfirmation(false);
                 setUnwatchConfirmationData(null);
+                onWatchedChange?.(false);
             }
         } catch (error) {
             console.error("Error unwatching episode cascade:", error);

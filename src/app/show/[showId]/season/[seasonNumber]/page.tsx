@@ -1,9 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
-import RatingComponent from "@/components/RatingComponent";
-import FavouriteButton from "@/components/FavouriteButton";
-import WatchedButton from "@/components/WatchedButton";
+import ShowActionButtons from "@/components/ShowActionButtons";
 import WatchedStatusDisplay from "@/components/WatchedStatusDisplay";
 import CompletionReviewPrompt from "@/components/CompletionReviewPrompt";
 
@@ -14,8 +12,6 @@ import RatingDistributionChart from "@/components/RatingDistributionChart";
 import SeasonNavigation from "@/components/SeasonNavigation";
 import { format } from "date-fns";
 import Link from "next/link";
-import { FaPenSquare, FaEye } from "react-icons/fa";
-import { GiRose } from "react-icons/gi";
 
 const prisma = new PrismaClient();
 
@@ -241,83 +237,38 @@ export default async function SeasonPage({
                             />
                         </div>
 
-                        {/* Statistics */}
-                        <div className="w-full mb-4 px-4 py-2">
-                            <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
-                                <div className="flex items-center gap-1" title={totalWatched === 0 ? "No users have watched" : totalWatched === 1 ? "Watched by 1 user" : `Watched by ${totalWatched} users`}>
-                                    <FaEye className="w-4 h-4 text-green-400" />
-                                    <span>{totalWatched}</span>
-                                </div>
-                                <div className="flex items-center gap-1" title={totalLikes === 0 ? "No users gave a rose" : totalLikes === 1 ? "1 user gave a rose" : `${totalLikes} users gave a rose`}>
-                                    <GiRose className="w-4 h-4 text-red-400 fill-current" />
-                                    <span>{totalLikes}</span>
-                                </div>
-                                <div className="flex items-center gap-1" title={totalReviews === 0 ? "No users left a review" : totalReviews === 1 ? "1 user left a review" : `${totalReviews} users left a review`}>
-                                    <FaPenSquare className="w-4 h-4 text-blue-400" />
-                                    <span>{totalReviews}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="w-full space-y-4">
-                            <div className="rounded-lg shadow pt-4 pb-4 pl-2 pr-2">
-                                {userId ? (
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <FavouriteButton
-                                                    entityType="season"
-                                                    entityId={season.id}
-                                                />
-                                                                        <WatchedButton
+                        <ShowActionButtons
+                            showId={showId}
                             entityType="season"
                             entityId={season.id}
-                            showId={showId}
+                            userId={userId}
+                            initialTotalWatched={totalWatched}
+                            initialTotalLikes={totalLikes}
+                            initialTotalReviews={totalReviews}
+                            showIdForRedirect={showId}
                         />
-                                            </div>
-                                            <div className="flex items-center gap-2 mr-2">
-                                                <RatingComponent
-                                                    entityType="season"
-                                                    entityId={season.id}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-center py-1">
-                                        <p className="text-gray-400 text-center text-sm">
-                                            <Link href={`/sign-in?redirect_url=${encodeURIComponent(`/show/${showId}/season/${seasonNumber}`)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
-                                                Sign in
-                                            </Link>{" "}
-                                            to rate, give a rose, watch or review this season!
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
                             
-                            {userId && (
-                                <SeasonReviewButton 
-                                    season={{
-                                        id: season.id,
-                                        seasonNumber: season.seasonNumber,
-                                        airDate: season.airDate,
-                                        posterPath: season.posterPath,
-                                        show: {
-                                            id: showId,
-                                            name: season.show.name,
-                                            posterPath: season.show.posterPath
-                                        },
-                                        characters: season.characters.map(char => ({
-                                            id: char.id,
-                                            name: char.person.name,
-                                            characterName: char.showRole,
-                                            profilePath: char.person.profilePath
-                                        }))
-                                    }}
-                                />
-                            )}
-                        </div>
+                        {userId && (
+                            <SeasonReviewButton 
+                                season={{
+                                    id: season.id,
+                                    seasonNumber: season.seasonNumber,
+                                    airDate: season.airDate,
+                                    posterPath: season.posterPath,
+                                    show: {
+                                        id: showId,
+                                        name: season.show.name,
+                                        posterPath: season.show.posterPath
+                                    },
+                                    characters: season.characters.map(char => ({
+                                        id: char.id,
+                                        name: char.person.name,
+                                        characterName: char.showRole,
+                                        profilePath: char.person.profilePath
+                                    }))
+                                }}
+                            />
+                        )}
                     </div>
 
                     {/* Right Column */}

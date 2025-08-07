@@ -1,52 +1,50 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { GiRose } from "react-icons/gi";
 
 interface LikeButtonProps {
-    entityType: "comment" | "review" | "prediction" | "showReview" | "seasonReview" | "episodeReview";
+    entityType: "comment" | "review" | "prediction" | "showReview" | "seasonReview" | "episodeReview" | "watchList";
     entityId: number;
-    initialLikeCount?: number;
     initialIsLiked?: boolean;
     size?: "sm" | "md" | "lg";
-    showCount?: boolean;
+    onLikeChange?: (isLiked: boolean) => void;
 }
 
 export default function LikeButton({
     entityType,
     entityId,
-    initialLikeCount = 0,
     initialIsLiked = false,
     size = "md",
-    showCount = true,
+    onLikeChange,
 }: LikeButtonProps) {
     const { user } = useUser();
-    const [likeCount, setLikeCount] = useState(initialLikeCount);
+    const pathname = usePathname();
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [isLoading, setIsLoading] = useState(false);
 
-    const fetchLikeData = useCallback(async () => {
-        try {
-            const response = await fetch(
-                `/api/likes?entityType=${entityType}&entityId=${entityId}`
-            );
-            if (response.ok) {
-                const data = await response.json();
-                setLikeCount(data.likeCount);
-                setIsLiked(data.isLiked);
-            }
-        } catch (error) {
-            console.error("Error fetching like data:", error);
-        }
-    }, [entityType, entityId]);
-
     // Fetch initial like data if not provided
     useEffect(() => {
-        if (user && !initialIsLiked && !initialLikeCount) {
+        if (user && !initialIsLiked) {
+            const fetchLikeData = async () => {
+                try {
+                    const response = await fetch(
+                        `/api/likes?entityType=${entityType}&entityId=${entityId}`
+                    );
+                    if (response.ok) {
+                        const data = await response.json();
+                        setIsLiked(data.isLiked);
+                    }
+                } catch (error) {
+                    console.error("Error fetching like data:", error);
+                }
+            };
             fetchLikeData();
         }
-    }, [user, fetchLikeData, initialIsLiked, initialLikeCount]);
+    }, [user, entityType, entityId, initialIsLiked]);
 
     const handleLike = async () => {
         if (!user || isLoading) return;
@@ -67,7 +65,7 @@ export default function LikeButton({
             if (response.ok) {
                 const data = await response.json();
                 setIsLiked(data.liked);
-                setLikeCount((prev: number) => data.liked ? prev + 1 : prev - 1);
+                onLikeChange?.(data.liked);
             }
         } catch (error) {
             console.error("Error handling like:", error);
@@ -77,10 +75,27 @@ export default function LikeButton({
     };
 
     if (!user) {
+        const getEntityDisplayName = (type: string) => {
+            switch (type) {
+                case "showReview":
+                case "seasonReview":
+                case "episodeReview":
+                    return "review";
+                case "watchList":
+                    return "watch list";
+                default:
+                    return type;
+            }
+        };
+
         return (
             <div className="flex items-center gap-1 text-gray-400">
-                <GiRose className={`${getSizeClasses(size)}`} />
-                {showCount && <span className="text-sm">{likeCount}</span>}
+                <p className="text-sm">
+                    <Link href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                        Sign in
+                    </Link>{" "}
+                    to like this {getEntityDisplayName(entityType)}
+                </p>
             </div>
         );
     }
@@ -95,14 +110,11 @@ export default function LikeButton({
                     : "text-gray-400 hover:text-red-500"
             } ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
-                            <GiRose
+            <GiRose
                 className={`${getSizeClasses(size)} ${
                     isLiked ? "fill-current" : ""
                 }`}
             />
-            {showCount && (
-                <span className="text-sm font-medium">{likeCount}</span>
-            )}
         </button>
     );
 }

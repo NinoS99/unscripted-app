@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { FiTag, FiUser, FiStar } from "react-icons/fi";
+import { FiTag, FiUser, FiStar, FiMessageCircle } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import LikeButton from "./LikeButton";
 import Comments from "./Comments";
@@ -96,6 +97,8 @@ export default function ReviewDisplay({
     entity,
     availableImages = {}
 }: ReviewDisplayProps) {
+    const [comments, setComments] = useState(review.comments || []);
+    const [likeCount, setLikeCount] = useState(review._count.likes || 0);
     const getEntityName = () => {
         switch (reviewType) {
             case "show":
@@ -161,7 +164,7 @@ export default function ReviewDisplay({
 
     const getFavouriteCharacters = () => {
         if (reviewType === "episode") return null;
-        return review?.favouriteCharacters?.map((fc) => fc.character) || [];
+        return review.favouriteCharacters?.map((fc) => fc.character) || [];
     };
 
     return (
@@ -217,10 +220,10 @@ export default function ReviewDisplay({
                                     <p className="text-gray-400 text-sm mb-2">
                                         Reviewed by{" "}
                                         <Link 
-                                            href={`/${review?.user?.username}`}
+                                            href={`/${review.user.username}`}
                                             className="font-semibold text-white hover:text-green-400 transition-colors"
                                         >
-                                            {review?.user?.username}
+                                            {review.user.username}
                                         </Link>
                                     </p>
                                 </div>
@@ -250,16 +253,16 @@ export default function ReviewDisplay({
                                 </div>
 
                                 {/* Date Fields */}
-                                <div>
+                                <div className="mb-4">
                                     {reviewType !== "episode" ? (
                                         <div className="space-y-2">
-                                            {review?.startedOn && (
+                                            {review.startedOn && (
                                                 <p className="text-sm">
                                                     <span className="text-gray-400">Started watching on:</span>{" "}
                                                     {format(review.startedOn, "MMM d, yyyy")}
                                                 </p>
                                             )}
-                                            {review?.endedOn && (
+                                            {review.endedOn && (
                                                 <p className="text-sm">
                                                     <span className="text-gray-400">Ended watching on:</span>{" "}
                                                     {format(review.endedOn, "MMM d, yyyy")}
@@ -267,13 +270,25 @@ export default function ReviewDisplay({
                                             )}
                                         </div>
                                     ) : (
-                                        review?.watchedOn && (
+                                        review.watchedOn && (
                                             <p className="text-sm">
                                                 <span className="text-gray-400">Watched on:</span>{" "}
                                                 {format(new Date(review.watchedOn), "MMM d, yyyy")}
                                             </p>
                                         )
                                     )}
+                                </div>
+
+                                {/* Stats */}
+                                <div className="flex items-center gap-6 text-gray-300">
+                                    <div className="flex items-center gap-1">
+                                        <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                        <span>{likeCount}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <FiMessageCircle className="w-4 h-4" />
+                                        <span>{review._count.comments || 0}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -299,10 +314,10 @@ export default function ReviewDisplay({
                                     <p className="text-gray-400 text-sm mb-2">
                                         Reviewed by{" "}
                                         <Link 
-                                            href={`/${review?.user?.username}`}
+                                            href={`/${review.user.username}`}
                                             className="font-semibold text-white hover:text-green-400 transition-colors"
                                         >
-                                            {review?.user?.username}
+                                            {review.user.username}
                                         </Link>
                                     </p>
                                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
@@ -348,13 +363,13 @@ export default function ReviewDisplay({
                                 <div className="mb-4">
                                     {reviewType !== "episode" ? (
                                         <div className="space-y-2">
-                                            {review?.startedOn && (
+                                            {review.startedOn && (
                                                 <p className="text-sm">
                                                     <span className="text-gray-400">Started watching on:</span>{" "}
                                                     {format(review.startedOn, "MMM d, yyyy")}
                                                 </p>
                                             )}
-                                            {review?.endedOn && (
+                                            {review.endedOn && (
                                                 <p className="text-sm">
                                                     <span className="text-gray-400">Ended watching on:</span>{" "}
                                                     {format(review.endedOn, "MMM d, yyyy")}
@@ -362,13 +377,25 @@ export default function ReviewDisplay({
                                             )}
                                         </div>
                                     ) : (
-                                        review?.watchedOn && (
+                                        review.watchedOn && (
                                             <p className="text-sm">
                                                 <span className="text-gray-400">Watched on:</span>{" "}
                                                 {format(new Date(review.watchedOn), "MMM d, yyyy")}
                                             </p>
                                         )
                                     )}
+                                </div>
+
+                                {/* Stats */}
+                                <div className="flex items-center gap-6 text-gray-300">
+                                    <div className="flex items-center gap-1">
+                                        <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                        <span>{likeCount}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <FiMessageCircle className="w-4 h-4" />
+                                        <span>{review._count.comments || 0}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -378,7 +405,7 @@ export default function ReviewDisplay({
                             <h2 className="text-xl font-semibold text-green-500 mb-4">Review</h2>
                             <div className="border-b border-gray-600 mb-4"></div>
                             <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">
-                                {review?.content}
+                                {review.content}
                             </p>
                         </div>
 
@@ -386,15 +413,17 @@ export default function ReviewDisplay({
                         <div className="mb-6">
                             <LikeButton
                                 entityType={`${reviewType}Review`}
-                                entityId={review?.id}
-                                initialLikeCount={review?._count?.likes || 0}
-                                initialIsLiked={review?.likes?.length > 0}
+                                entityId={review.id}
+                                initialIsLiked={review.likes?.length > 0}
                                 size="lg"
+                                onLikeChange={(isLiked) => {
+                                    setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+                                }}
                             />
                         </div>
 
                         {/* Tags */}
-                        {review?.tags && review.tags.length > 0 && (
+                        {review.tags && review.tags.length > 0 && (
                             <div className="mb-8">
                                 <h3 className="text-lg font-semibold text-green-500 mb-4 flex items-center gap-2">
                                     <FiTag className="text-green-400" />
@@ -452,9 +481,11 @@ export default function ReviewDisplay({
                         {/* Comments */}
                         <Comments
                             entityType="review"
-                            entityId={review?.id}
-                            comments={[]}
-                            onCommentAdded={() => {}}
+                            entityId={review.id}
+                            comments={comments}
+                            onCommentAdded={(comment) => {
+                                setComments(prev => [comment, ...prev]);
+                            }}
                             reviewType={reviewType}
                         />
                     </div>

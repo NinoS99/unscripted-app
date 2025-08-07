@@ -101,23 +101,25 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
                         />
                     </div>
                 
-                {/* Main Content */}
+                                {/* Main Content */}
                 <div className="flex-grow min-w-0">
                     {/* Top Row: Username and Date/Rating/Favorite */}
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-300">
-                            Reviewed by{" "}
-                            <Link 
-                                href={`/${review.user.username}/review/${entityType}/${review.id}`}
-                                className="font-semibold text-white hover:text-green-400 transition-colors"
-                            >
-                                {review.user.username}
-                            </Link>
-                        </span>
-                        <div className="flex items-center gap-3 text-sm">
-                            <span className="text-gray-400">
-                                {format(new Date(review.createdAt), "MMM d, yyyy")}
-                            </span>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-1 md:mb-0">
+                             <span className="text-gray-300">
+                                 Reviewed by{" "}
+                                 <Link 
+                                     href={`/${review.user.username}/review/${entityType}/${review.id}`}
+                                     className="font-semibold text-white hover:text-green-400 transition-colors"
+                                 >
+                                     {review.user.username}
+                                 </Link>
+                             </span>
+                             <span className="text-gray-400 text-sm">
+                                 {format(new Date(review.createdAt), "MMM d, yyyy")}
+                             </span>
+                         </div>
+                         <div className="flex items-center gap-3 text-sm">
                             {review.userRating && (
                                 <div className="flex items-center gap-1 text-yellow-400">
                                     <FiStar className="w-4 h-4 fill-current" />
@@ -160,7 +162,7 @@ export default function EntityReviews({ entityType, entityId }: EntityReviewsPro
                         )}
                     </div>
                     
-                    {/* Bottom Row: Likes and Comments */}
+                                                             {/* Bottom Row: Likes and Comments */}
                     <div className="flex items-center gap-4 text-sm text-gray-400">
                         <div className="flex items-center gap-1">
                             <GiRose className="w-4 h-4" />

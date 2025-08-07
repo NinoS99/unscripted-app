@@ -5,13 +5,17 @@ import { GiRose } from 'react-icons/gi'
 
 type EntityType = 'show' | 'season' | 'episode' | 'character'
 
+interface FavouriteButtonProps {
+    entityType: EntityType
+    entityId: number
+    onFavoriteChange?: (isFavorite: boolean) => void
+}
+
 export default function FavouriteButton({ 
     entityType, 
-    entityId 
-}: { 
-    entityType: EntityType
-    entityId: number 
-}) {
+    entityId,
+    onFavoriteChange
+}: FavouriteButtonProps) {
     const [isFavorite, setIsFavorite] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -47,7 +51,9 @@ export default function FavouriteButton({
             })
             
             if (!response.ok) throw new Error('Failed to update favorite')
-            setIsFavorite(!isFavorite)
+            const newFavoriteStatus = !isFavorite
+            setIsFavorite(newFavoriteStatus)
+            onFavoriteChange?.(newFavoriteStatus)
         } catch (error) {
             console.error('Error updating favourite:', error)
         } finally {
@@ -69,7 +75,8 @@ export default function FavouriteButton({
             className={`p-2 rounded-full shadow hover:bg-gray-100 transition-colors ${
                 isFavorite ? 'bg-red-100' : 'bg-green-200'
             }`}
-            aria-label={isFavorite ? "Remove from favourites" : "Add to favourites"}
+            aria-label={isFavorite ? "Remove rose" : "Add rose"}
+            title={isFavorite ? "Remove rose" : "Add rose"}
             disabled={isLoading}
         >
             {isFavorite ? (

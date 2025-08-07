@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { FiMessageCircle } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
+import LikeButton from "./LikeButton";
 import Comments from "./Comments";
 
 interface WatchListShow {
@@ -73,40 +73,9 @@ interface WatchListDetailProps {
 }
 
 export default function WatchListDetail({ watchList, userLiked }: WatchListDetailProps) {
-    const { user } = useUser();
-    const [likes, setLikes] = useState(watchList._count.likes);
-    const [isLiked, setIsLiked] = useState(userLiked);
-    const [isLiking, setIsLiking] = useState(false);
     const [comments, setComments] = useState(watchList.comments);
     const [showSpoilers, setShowSpoilers] = useState<{ [key: number]: boolean }>({});
-
-    const handleLike = async () => {
-        if (!user || isLiking) return;
-
-        setIsLiking(true);
-        try {
-            const response = await fetch("/api/likes", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    entityType: "watchList",
-                    entityId: watchList.id,
-                }),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setIsLiked(data.liked);
-                setLikes(prev => data.liked ? prev + 1 : prev - 1);
-            }
-        } catch (error) {
-            console.error("Error toggling like:", error);
-        } finally {
-            setIsLiking(false);
-        }
-    };
+    const [likeCount, setLikeCount] = useState(watchList._count.likes);
 
 
 
@@ -189,7 +158,7 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                 <span>{watchList.shows.length} show{watchList.shows.length !== 1 ? 's' : ''}</span>
                                 <div className="flex items-center gap-1">
                                     <GiRose className="w-4 h-4 text-red-400 fill-current" />
-                                    <span>{likes}</span>
+                                    <span>{likeCount}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <FiMessageCircle className="w-4 h-4" />
@@ -299,21 +268,17 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                 </div>
 
                 {/* Like Button */}
-                {user && (
-                    <div className="mb-8">
-                        <button
-                            onClick={handleLike}
-                            disabled={isLiking}
-                            className={`p-3 rounded-full transition-colors ${
-                                isLiked 
-                                    ? 'bg-red-600 text-white hover:bg-red-700' 
-                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                            <GiRose className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
-                        </button>
-                    </div>
-                )}
+                <div className="mb-8">
+                    <LikeButton
+                        entityType="watchList"
+                        entityId={watchList.id}
+                        initialIsLiked={userLiked}
+                        size="lg"
+                        onLikeChange={(isLiked) => {
+                            setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+                        }}
+                    />
+                </div>
 
                 {/* Comments Section */}
                 <Comments

@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/client";
 import WatchListDetail from "@/components/WatchListDetail";
@@ -108,6 +108,54 @@ export default async function WatchListPage({ params }: WatchListPageProps) {
         notFound();
     }
 
+    // Get Clerk user data for watch list author and all comment authors
+    const clerk = await clerkClient();
+    
+    // Get Clerk image for watch list author
+    let watchListAuthorImage = null;
+    try {
+        const watchListAuthorClerkUser = await clerk.users.getUser(watchList.user.id);
+        watchListAuthorImage = watchListAuthorClerkUser?.imageUrl;
+    } catch (error) {
+        console.error(`Failed to fetch Clerk user for watch list author ${watchList.user.id}:`, error);
+    }
+
+    // Get Clerk images for all comment authors
+    const commentsWithClerkImages = await Promise.all(
+        (watchList.comments || []).map(async (comment) => {
+                            try {
+                    const clerkUser = await clerk.users.getUser(comment.user.id);
+                    return {
+                        ...comment,
+                        user: {
+                            ...comment.user,
+                            profilePicture: clerkUser?.imageUrl,
+                        },
+                    };
+                } catch (error) {
+                    // If Clerk user lookup fails, log error but don't fall back
+                    console.error(`Failed to fetch Clerk user for ${comment.user.id}:`, error);
+                    return {
+                        ...comment,
+                        user: {
+                            ...comment.user,
+                            profilePicture: null,
+                        },
+                    };
+                }
+        })
+    );
+
+    // Update watch list with Clerk images
+    const watchListWithClerkImages = {
+        ...watchList,
+        user: {
+            ...watchList.user,
+            profilePicture: watchListAuthorImage,
+        },
+        comments: commentsWithClerkImages,
+    };
+
     // Check if user has liked this watch list
     let userLiked = false;
     if (userId) {
@@ -122,7 +170,7 @@ export default async function WatchListPage({ params }: WatchListPageProps) {
 
     return (
         <WatchListDetail 
-            watchList={watchList}
+            watchList={watchListWithClerkImages}
             userLiked={userLiked}
         />
     );

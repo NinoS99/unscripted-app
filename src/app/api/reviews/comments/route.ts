@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
 export async function POST(request: Request) {
@@ -60,14 +60,32 @@ export async function POST(request: Request) {
                 ...(reviewType === "season" && { seasonReviewId: reviewId }),
                 ...(reviewType === "episode" && { episodeReviewId: reviewId }),
             },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        profilePicture: true,
+                    },
+                },
+            },
         });
 
+        // Get Clerk user data for the comment author
+        const clerk = await clerkClient();
+        const clerkUser = await clerk.users.getUser(comment.user.id);
+        
         return NextResponse.json({ 
             message: "Comment added successfully",
             comment: {
                 id: comment.id,
                 content: comment.content,
                 createdAt: comment.createdAt,
+                user: {
+                    id: comment.user.id,
+                    username: comment.user.username,
+                    profilePicture: clerkUser?.imageUrl,
+                },
             }
         });
 
@@ -116,28 +134,44 @@ export async function GET(request: Request) {
                     },
                 },
             },
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: "desc" },
         });
 
-        // Get current user data from Clerk for profile picture comparison
-        const currentUserData = await currentUser();
+        // Get Clerk user data for all comment authors
+        const commentsWithClerkImages = await Promise.all(
+            comments.map(async (comment) => {
+                try {
+                    const clerk = await clerkClient();
+                    const clerkUser = await clerk.users.getUser(comment.user.id);
+                    
+                    return {
+                        id: comment.id,
+                        content: comment.content,
+                        createdAt: comment.createdAt,
+                        user: {
+                            id: comment.user.id,
+                            username: comment.user.username,
+                            profilePicture: clerkUser?.imageUrl,
+                        },
+                    };
+                } catch (error) {
+                    // If Clerk user lookup fails, log error but don't fall back
+                    console.error(`Failed to fetch Clerk user for ${comment.user.id}:`, error);
+                    return {
+                        id: comment.id,
+                        content: comment.content,
+                        createdAt: comment.createdAt,
+                        user: {
+                            id: comment.user.id,
+                            username: comment.user.username,
+                            profilePicture: null,
+                        },
+                    };
+                }
+            })
+        );
 
-        // Update comments with current user's profile picture if applicable
-        const commentsWithUpdatedProfilePictures = comments.map(comment => {
-            const profilePicture = currentUserData?.id === comment.user.id 
-                ? currentUserData.imageUrl || comment.user.profilePicture
-                : comment.user.profilePicture;
-
-            return {
-                ...comment,
-                user: {
-                    ...comment.user,
-                    profilePicture,
-                },
-            };
-        });
-
-        return NextResponse.json({ comments: commentsWithUpdatedProfilePictures });
+        return NextResponse.json({ comments: commentsWithClerkImages });
 
     } catch (error) {
         console.error("Error fetching review comments:", error);
