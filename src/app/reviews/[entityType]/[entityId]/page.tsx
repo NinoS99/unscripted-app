@@ -32,6 +32,18 @@ export default async function ReviewsPageServer({ params }: ReviewsPageProps) {
                         name: true,
                         posterPath: true,
                         firstAirDate: true,
+                        _count: {
+                            select: {
+                                favorites: true,
+                                watched: true,
+                                ratings: true,
+                            },
+                        },
+                        ratings: {
+                            select: {
+                                rating: true,
+                            },
+                        },
                     },
                 });
                 entityName = entity?.name;
@@ -45,6 +57,18 @@ export default async function ReviewsPageServer({ params }: ReviewsPageProps) {
                         seasonNumber: true,
                         posterPath: true,
                         airDate: true,
+                        _count: {
+                            select: {
+                                favorites: true,
+                                watched: true,
+                                ratings: true,
+                            },
+                        },
+                        ratings: {
+                            select: {
+                                rating: true,
+                            },
+                        },
                         show: {
                             select: {
                                 id: true,
@@ -66,6 +90,18 @@ export default async function ReviewsPageServer({ params }: ReviewsPageProps) {
                         name: true,
                         stillPath: true,
                         airDate: true,
+                        _count: {
+                            select: {
+                                favorites: true,
+                                watched: true,
+                                ratings: true,
+                            },
+                        },
+                        ratings: {
+                            select: {
+                                rating: true,
+                            },
+                        },
                         season: {
                             select: {
                                 id: true,
@@ -90,6 +126,18 @@ export default async function ReviewsPageServer({ params }: ReviewsPageProps) {
             notFound();
         }
 
+        // Calculate rating distribution from all ratings (not just reviews)
+        const ratingDistribution: { [key: number]: number } = {};
+        if ('ratings' in entity && entity.ratings) {
+            entity.ratings.forEach((rating: { rating: number }) => {
+                ratingDistribution[rating.rating] = (ratingDistribution[rating.rating] || 0) + 1;
+            });
+        }
+
+        // Get total likes and watched counts
+        const totalLikes = 'favorites' in entity._count ? entity._count.favorites : 0;
+        const totalWatched = 'watched' in entity._count ? entity._count.watched : 0;
+
         // Construct availableImages object for fallback logic
         let availableImages = {};
         if (entityType === "season" && 'show' in entity) {
@@ -112,6 +160,9 @@ export default async function ReviewsPageServer({ params }: ReviewsPageProps) {
                 entityName={entityName || "Unknown"}
                 entity={entity}
                 availableImages={availableImages}
+                totalLikes={totalLikes}
+                totalWatched={totalWatched}
+                ratingDistribution={ratingDistribution}
             />
         );
     } catch (error) {

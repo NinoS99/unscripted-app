@@ -14,6 +14,8 @@ interface ShowReviewButtonProps {
             name: string;
             characterName?: string | null;
             profilePath?: string | null;
+            seasonId: number;
+            seasonNumber: number;
         }[];
     };
 }

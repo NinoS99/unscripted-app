@@ -92,6 +92,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ 
             message: "Season review submitted successfully",
+            reviewId: review.id,
             review: {
                 id: review.id,
                 content: review.content,

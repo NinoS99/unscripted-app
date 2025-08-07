@@ -40,6 +40,10 @@ interface ReviewDisplayProps {
                         name: string;
                         profilePath: string | null;
                     };
+                    season?: {
+                        id: number;
+                        seasonNumber: number;
+                    };
                 };
             }>;
             likes: Array<{ id: number }>;
@@ -469,6 +473,11 @@ export default function ReviewDisplay({
                                                 {character.showRole && (
                                                     <p className="text-sm text-gray-400">
                                                         as {character.showRole}
+                                                    </p>
+                                                )}
+                                                {reviewType === "show" && character.season && (
+                                                    <p className="text-sm text-gray-500">
+                                                        Season {character.season.seasonNumber}
                                                     </p>
                                                 )}
                                             </div>

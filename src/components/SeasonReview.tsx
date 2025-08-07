@@ -5,8 +5,8 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { format } from "date-fns";
 import RatingComponent from "./RatingComponent";
-import FavouriteButton from "./FavouriteButton";
 import { FiX, FiTag, FiUser, FiLoader } from "react-icons/fi";
+import { GiRose } from "react-icons/gi";
 
 interface SeasonReviewProps {
     season: {
@@ -41,6 +41,7 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
     const [spoiler, setSpoiler] = useState(false);
     const [favouriteCharacters, setFavouriteCharacters] = useState<number[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isFavorited, setIsFavorited] = useState(false);
 
     // Date validation
     const today = new Date().toISOString().split('T')[0];
@@ -100,6 +101,7 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
             });
 
             if (response.ok) {
+                const data = await response.json();
                 // Reset form
                 setStartedOn("");
                 setEndedOn("");
@@ -108,7 +110,14 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                 setSpoiler(false);
                 setFavouriteCharacters([]);
                 onClose();
-                // You can add a success toast here
+                
+                // Show success message with link to view full review
+                if (data.reviewId) {
+                    alert(
+                        `Review submitted successfully! Click OK to view your review of the season.`
+                    );
+                    window.location.href = `/${user.username}/review/season/${data.reviewId}`;
+                }
             } else {
                 const error = await response.json();
                 console.error("Failed to submit season review:", error);
@@ -121,6 +130,25 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
             setIsSubmitting(false);
         }
     };
+
+    // Check favorite status when modal opens
+    useEffect(() => {
+        const checkFavoriteStatus = async () => {
+            if (isOpen && user) {
+                try {
+                    const response = await fetch(`/api/favourites?entityType=season&entityId=${season.id}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setIsFavorited(data.isFavorite);
+                    }
+                } catch (error) {
+                    console.error("Error checking favorite status:", error);
+                }
+            }
+        };
+
+        checkFavoriteStatus();
+    }, [isOpen, user, season.id]);
 
     // Close modal when clicking outside
     useEffect(() => {
@@ -194,13 +222,16 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                                     </p>
                                 )}
                             </div>
-                            {/* Favorite */}
-                            <div className="flex flex-col items-center gap-4 mt-4">
-                                <FavouriteButton
-                                    entityType="season"
-                                    entityId={season.id}
-                                />
-                            </div>
+                                                         {/* Favorite Status */}
+                             <div className="flex flex-col items-center gap-4 mt-4">
+                                 <p className="text-sm text-gray-300 text-center">
+                                     {isFavorited 
+                                         ? "You have given this season a rose" 
+                                         : "You have not given this season a rose"
+                                     }
+                                 </p>
+                                 <GiRose className={`w-5 h-5 ${isFavorited ? 'text-rose-500' : 'text-gray-400'}`} />
+                             </div>
                         </div>
 
                         {/* Right Side - Review Form */}
