@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiX } from "react-icons/fi";
+import { FiX, FiSearch } from "react-icons/fi";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 
 const SearchBar = ({
@@ -133,8 +133,8 @@ const SearchBar = ({
                         onClick={toggleSearch}
                         className="h-10 w-10 flex items-center justify-center hover:bg-green-100 rounded-full transition-colors duration-200 cursor-pointer"
                     >
-                        <FaMagnifyingGlass
-                            className={`w-6 h-6 text-white`}
+                        <FiSearch
+                            className={`w-5 h-5 text-white`}
                             title={showSearch ? "Submit Search" : "Open Search"}
                         />
                     </button>
@@ -171,8 +171,8 @@ const SearchBar = ({
                                         onClick={handleSearch}
                                         className="h-full w-10 flex items-center justify-center"
                                     >
-                                        <FaMagnifyingGlass
-                                            className={`w-6 h-6 text-gray-400`}
+                                        <FiSearch
+                                            className={`w-5 h-5 text-gray-400`}
                                             title={
                                                 showSearch
                                                     ? "Submit Search"
