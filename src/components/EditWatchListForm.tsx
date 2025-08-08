@@ -22,17 +22,63 @@ interface SelectedShow extends Show {
     muchWatchSeasons?: number[];
 }
 
-export default function CreateWatchListForm() {
+interface WatchListShow {
+    id: number;
+    ranking?: number | null;
+    note?: string | null;
+    spoiler?: boolean;
+    show: {
+        id: number;
+        name: string;
+        posterPath?: string | null;
+        firstAirDate?: Date | null;
+        tmdbRating?: number | null;
+    };
+    muchWatchSeasons: {
+        season: {
+            id: number;
+            seasonNumber: number;
+        };
+    }[];
+}
+
+interface WatchList {
+    id: number;
+    name: string;
+    description?: string | null;
+    isPublic: boolean;
+    friendsOnly: boolean;
+    user: {
+        id: string;
+        username: string;
+        profilePicture: string | null;
+    };
+    shows: WatchListShow[];
+    tags: {
+        tag: {
+            id: number;
+            name: string;
+        };
+    }[];
+}
+
+interface EditWatchListFormProps {
+    watchList: WatchList;
+}
+
+export default function EditWatchListForm({ watchList }: EditWatchListFormProps) {
     const { user } = useUser();
     const router = useRouter();
     
-    // Form state
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [tags, setTags] = useState<string[]>([]);
+    // Form state - pre-populated with existing data
+    const [name, setName] = useState(watchList.name);
+    const [description, setDescription] = useState(watchList.description || "");
+    const [tags, setTags] = useState<string[]>(watchList.tags.map(t => t.tag.name));
     const [newTag, setNewTag] = useState("");
-    const [privacy, setPrivacy] = useState<"public" | "private" | "friends">("public");
-    const [isRanked, setIsRanked] = useState(false);
+    const [privacy, setPrivacy] = useState<"public" | "private" | "friends">(
+        watchList.friendsOnly ? "friends" : watchList.isPublic ? "public" : "private"
+    );
+    const [isRanked, setIsRanked] = useState(watchList.shows.some(s => s.ranking !== null));
     
     // Search state
     const [searchQuery, setSearchQuery] = useState("");
@@ -40,37 +86,39 @@ export default function CreateWatchListForm() {
     const [isSearching, setIsSearching] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     
-    // Selected shows
-    const [selectedShows, setSelectedShows] = useState<SelectedShow[]>([]);
-
-    // Check for showId in URL query params
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const showId = urlParams.get('showId');
-        
-        if (showId) {
-            // Fetch show details and add to selected shows
-            fetchShowAndAdd(parseInt(showId));
-        }
-    }, []);
-
-    const fetchShowAndAdd = async (showId: number) => {
-        try {
-            const response = await fetch(`/api/search?q=${showId}&type=id`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.shows && data.shows.length > 0) {
-                    const show = data.shows[0];
-                    const newShow: SelectedShow = {
-                        ...show,
-                        ranking: isRanked ? 1 : undefined,
-                    };
-                    setSelectedShows([newShow]);
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching show:", error);
-        }
+    // Selected shows - pre-populated with existing shows
+    const [selectedShows, setSelectedShows] = useState<SelectedShow[]>(
+        watchList.shows.map(ws => ({
+            id: ws.show.id,
+            name: ws.show.name,
+            posterPath: ws.show.posterPath,
+            firstAirDate: ws.show.firstAirDate,
+            tmdbRating: ws.show.tmdbRating,
+            ranking: ws.ranking || undefined,
+            note: ws.note || undefined,
+            spoiler: ws.spoiler || false,
+            muchWatchSeasons: ws.muchWatchSeasons.map(mws => mws.season.id)
+        }))
+    );
+    
+    // Track original state for change detection
+    const originalState = {
+        name: watchList.name,
+        description: watchList.description || "",
+        tags: watchList.tags.map(t => t.tag.name),
+        privacy: watchList.friendsOnly ? "friends" : watchList.isPublic ? "public" : "private",
+        isRanked: watchList.shows.some(s => s.ranking !== null),
+        shows: watchList.shows.map(ws => ({
+            id: ws.show.id,
+            name: ws.show.name,
+            posterPath: ws.show.posterPath,
+            firstAirDate: ws.show.firstAirDate,
+            tmdbRating: ws.show.tmdbRating,
+            ranking: ws.ranking || undefined,
+            note: ws.note || undefined,
+            spoiler: ws.spoiler || false,
+            muchWatchSeasons: ws.muchWatchSeasons.map(mws => mws.season.id)
+        }))
     };
     
     // Drag and drop state
@@ -87,6 +135,41 @@ export default function CreateWatchListForm() {
     
     // Form submission
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteNotification, setShowDeleteNotification] = useState(false);
+
+    // Check if form has changes
+    const hasChanges = () => {
+        const currentState = {
+            name,
+            description,
+            tags: [...tags].sort(),
+            privacy,
+            isRanked,
+            shows: selectedShows.map(s => ({
+                id: s.id,
+                name: s.name,
+                posterPath: s.posterPath,
+                firstAirDate: s.firstAirDate,
+                tmdbRating: s.tmdbRating,
+                ranking: s.ranking,
+                note: s.note,
+                spoiler: s.spoiler,
+                muchWatchSeasons: s.muchWatchSeasons ? [...s.muchWatchSeasons].sort() : []
+            }))
+        };
+
+        const originalStateNormalized = {
+            ...originalState,
+            tags: [...originalState.tags].sort(),
+            shows: originalState.shows.map(s => ({
+                ...s,
+                muchWatchSeasons: s.muchWatchSeasons ? [...s.muchWatchSeasons].sort() : []
+            }))
+        };
+
+        return JSON.stringify(currentState) !== JSON.stringify(originalStateNormalized);
+    };
 
     const formatDateShort = (date: Date | null) => {
         if (!date) return null;
@@ -278,13 +361,13 @@ export default function CreateWatchListForm() {
         });
     };
 
-    const handleSubmit = async () => {
+    const handleUpdate = async () => {
         if (!user || !name.trim() || selectedShows.length === 0) return;
 
         setIsSubmitting(true);
         try {
-            const response = await fetch("/api/watch-lists", {
-                method: "POST",
+            const response = await fetch(`/api/watch-lists/${watchList.id}`, {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -306,16 +389,40 @@ export default function CreateWatchListForm() {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                router.push(`/${user?.username}/watch-list/${data.watchListId}`);
+                router.push(`/${user?.username}/watch-list/${watchList.id}`);
             } else {
                 const error = await response.json();
-                console.error("Failed to create watch list:", error);
+                console.error("Failed to update watch list:", error);
             }
         } catch (error) {
-            console.error("Error creating watch list:", error);
+            console.error("Error updating watch list:", error);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!user) return;
+
+        setIsDeleting(true);
+        try {
+            const response = await fetch(`/api/watch-lists/${watchList.id}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                setShowDeleteNotification(true);
+                setTimeout(() => {
+                    router.push("/watch-lists");
+                }, 3000);
+            } else {
+                const error = await response.json();
+                console.error("Failed to delete watch list:", error);
+            }
+        } catch (error) {
+            console.error("Error deleting watch list:", error);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -376,7 +483,36 @@ export default function CreateWatchListForm() {
 
     return (
         <div className="min-h-screen bg-gray-900 text-white">
-            <div className="container mx-auto">
+            {/* Delete Notification */}
+            {showDeleteNotification && (
+                <div className="fixed top-4 right-4 left-4 md:left-auto md:max-w-sm bg-gradient-to-r from-red-600 to-red-700 text-white p-4 md:p-6 rounded-lg shadow-lg z-50">
+                    <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2 md:mb-3">
+                                <div className="w-6 h-6 md:w-8 md:h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-sm md:text-lg">🗑️</span>
+                                </div>
+                                <h3 className="font-bold text-base md:text-lg truncate">
+                                    Watch List Deleted
+                                </h3>
+                            </div>
+                            
+                            <p className="text-xs md:text-sm text-red-100">
+                                Your watch list has been successfully deleted. Redirecting to watch lists...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="container mx-auto px-4 py-4">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold mb-4">
+                        Edit &apos;{watchList.name}&apos; Watch List
+                    </h1>
+                    <div className="border-b border-gray-600"></div>
+                </div>
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Left Side */}
                     <div className="flex-grow space-y-6">
@@ -477,16 +613,16 @@ export default function CreateWatchListForm() {
 
                         {/* Ranked List Checkbox */}
                         <div>
-                                                            <label className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={isRanked}
-                                        onChange={(e) => setIsRanked(e.target.checked)}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
-                                        style={{ accentColor: '#16a34a' }}
-                                    />
-                                    <span className="ml-2 text-white">This is a ranked list</span>
-                                </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={isRanked}
+                                    onChange={(e) => setIsRanked(e.target.checked)}
+                                    className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                    style={{ accentColor: '#16a34a' }}
+                                />
+                                <span className="ml-2 text-white">This is a ranked list</span>
+                            </label>
                         </div>
                     </div>
 
@@ -548,15 +684,15 @@ export default function CreateWatchListForm() {
                                                     className="w-full h-full object-cover rounded"
                                                 />
                                             </div>
-                                                                                    <div className="flex-grow min-w-0">
-                                            <h4 className="text-white font-medium truncate text-sm md:text-base">{show.name}</h4>
-                                            {show.firstAirDate && (
-                                                <p className="text-gray-300 text-xs md:text-sm">
-                                                    <span className="hidden md:inline">First aired </span>
-                                                    {formatDateShort(show.firstAirDate)}
-                                                </p>
-                                            )}
-                                        </div>
+                                            <div className="flex-grow min-w-0">
+                                                <h4 className="text-white font-medium truncate text-sm md:text-base">{show.name}</h4>
+                                                {show.firstAirDate && (
+                                                    <p className="text-gray-300 text-xs md:text-sm">
+                                                        <span className="hidden md:inline">First aired </span>
+                                                        {formatDateShort(show.firstAirDate)}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -668,27 +804,47 @@ export default function CreateWatchListForm() {
                 </div>
 
                 {/* Submit and Cancel Buttons */}
-                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 pb-2 border-t border-gray-600 mt-8">
+                <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 pb-2 border-t border-gray-600 mt-8">
                     <button
-                        onClick={() => router.back()}
-                        className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !isFormValid}
-                        className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {isSubmitting ? (
+                        {isDeleting ? (
                             <>
                                 <FiLoader className="w-4 h-4 animate-spin" />
-                                Creating...
+                                Deleting...
                             </>
                         ) : (
-                            "Create Watch List"
+                            <>
+                                <FiTrash2 className="w-4 h-4" />
+                                Delete Watch List
+                            </>
                         )}
                     </button>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                            onClick={() => router.back()}
+                            className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleUpdate}
+                            disabled={isSubmitting || !isFormValid || !hasChanges()}
+                            className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <FiLoader className="w-4 h-4 animate-spin" />
+                                    Updating...
+                                </>
+                            ) : (
+                                "Update Watch List"
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 

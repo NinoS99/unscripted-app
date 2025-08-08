@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FiEdit } from "react-icons/fi";
 import EpisodeReview from "./EpisodeReview";
 
 interface EpisodeReviewButtonProps {
@@ -32,8 +33,9 @@ export default function EpisodeReviewButton({ episode }: EpisodeReviewButtonProp
             <div className="mt-4">
                 <button
                     onClick={() => setIsReviewOpen(true)}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
                 >
+                    <FiEdit className="w-4 h-4" />
                     Write a Review
                 </button>
             </div>

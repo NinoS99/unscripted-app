@@ -112,7 +112,7 @@ export default function UserWatchLists({ user, watchLists, isOwnProfile }: UserW
                         {watchLists.map((watchList) => (
                             <Link
                                 key={watchList.id}
-                                href={`/${user.username}/watch-lists/${watchList.id}`}
+                                href={`/${user.username}/watch-list/${watchList.id}`}
                                 className="block bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors"
                             >
                                 {/* Header */}

@@ -205,7 +205,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-600">
                     <h2 className="text-xl font-bold text-white">
-                        Write a Review
+                        Write a Show Review
                     </h2>
                     <button
                         onClick={onClose}

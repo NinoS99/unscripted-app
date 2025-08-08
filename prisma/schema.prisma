@@ -561,7 +561,7 @@ model WatchListShow {
   note        String?
   spoiler     Boolean   @default(false)
   addedAt     DateTime  @default(now())
-  watchList   WatchList @relation(fields: [watchListId], references: [id])
+  watchList   WatchList @relation(fields: [watchListId], references: [id], onDelete: Cascade)
   show        Show      @relation(fields: [showId], references: [id])
   muchWatchSeasons WatchListShowSeason[]
 
@@ -573,7 +573,7 @@ model WatchListTag {
   id          Int       @id @default(autoincrement())
   watchListId Int
   tagId       Int
-  watchList   WatchList @relation(fields: [watchListId], references: [id])
+  watchList   WatchList @relation(fields: [watchListId], references: [id], onDelete: Cascade)
   tag         Tag       @relation(fields: [tagId], references: [id])
 
   @@unique([watchListId, tagId])
@@ -586,7 +586,7 @@ model WatchListComment {
   watchListId Int
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id])
-  watchList   WatchList @relation(fields: [watchListId], references: [id])
+  watchList   WatchList @relation(fields: [watchListId], references: [id], onDelete: Cascade)
 
   @@index([watchListId])
 }
@@ -595,7 +595,7 @@ model WatchListShowSeason {
   id              Int           @id @default(autoincrement())
   watchListShowId Int
   seasonId        Int
-  watchListShow   WatchListShow @relation(fields: [watchListShowId], references: [id])
+  watchListShow   WatchListShow @relation(fields: [watchListShowId], references: [id], onDelete: Cascade)
   season          Season        @relation(fields: [seasonId], references: [id])
 
   @@unique([watchListShowId, seasonId])

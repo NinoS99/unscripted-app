@@ -9,6 +9,7 @@ import ShowReviewButton from "../../../components/ReviewButton";
 import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
 import EntityReviews from "../../../components/EntityReviews";
 import RatingDistributionChart from "../../../components/RatingDistributionChart";
+import AddToWatchListButton from "../../../components/AddToWatchListButton";
 import { format } from "date-fns";
 
 const prisma = new PrismaClient();
@@ -254,6 +255,14 @@ export default async function ShowPage({
                                 }}
                             />
                         )}
+
+                        {/* Add to Watch List Button */}
+                        <div className="mt-2">
+                            <AddToWatchListButton
+                                showId={show.id}
+                                showName={show.name}
+                            />
+                        </div>
 
                         {/* Watch On Section */}
                         {show.ShowsOnNetworks.length > 0 && (

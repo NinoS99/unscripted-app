@@ -4,10 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiEdit3 } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import LikeButton from "./LikeButton";
 import Comments from "./Comments";
+import { useUser } from "@clerk/nextjs";
 
 interface WatchListShow {
     id: number;
@@ -73,6 +74,7 @@ interface WatchListDetailProps {
 }
 
 export default function WatchListDetail({ watchList, userLiked }: WatchListDetailProps) {
+    const { user } = useUser();
     const [comments, setComments] = useState(watchList.comments);
     const [showSpoilers, setShowSpoilers] = useState<{ [key: number]: boolean }>({});
     const [likeCount, setLikeCount] = useState(watchList._count.likes);
@@ -164,6 +166,15 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                     <FiMessageCircle className="w-4 h-4" />
                                     <span>{comments.length}</span>
                                 </div>
+                                {user && user.id === watchList.user.id && (
+                                    <Link
+                                        href={`/${watchList.user.username}/watch-list/${watchList.id}/edit`}
+                                        className="flex items-center gap-1 text-green-400 hover:text-green-300 transition-colors"
+                                    >
+                                        <FiEdit3 className="w-4 h-4" />
+                                        <span>Edit</span>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>
