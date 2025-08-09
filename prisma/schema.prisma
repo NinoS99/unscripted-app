@@ -17,21 +17,23 @@ model User {
   instagram      String?
   twitter        String?
   updatedAt      DateTime        @updatedAt
-  comments       Comment[]
-  commentVotes   CommentVote[]
+
   episodeReviews EpisodeReview[]
   favorites      Favorite[]
   likes          Like[]
   predictions    Prediction[]
   Rating         Rating[]
-  reviews        Review[]
   reviewComments ReviewComment[]
   seasonReviews  SeasonReview[]
   showReviews    ShowReview[]
-  views          View[]
   watched        Watched[]
   watchLists     WatchList[]
   watchListComments WatchListComment[]
+  discussions    Discussion[]
+  discussionComments DiscussionComment[]
+  discussionCommentVotes DiscussionCommentVote[]
+  reactions      Reaction[]
+  pollVotes      PollVote[]
 
   @@index([username])
   @@index([email])
@@ -51,19 +53,18 @@ model Show {
   tagline          String?
   tmdbRating       Float?
   originalLanguage String[]
-  comments         Comment[]
+
   favorites        Favorite[]
   predictions      Prediction[]
   ratings          Rating[]
-  reviews          Review[]
   seasons          Season[]
   creator          ShowCreator[]
   showReviews      ShowReview[]
-  tags             ShowTag[]
+
   ShowsOnNetworks  ShowsOnNetworks[]
-  views            View[]
   watched          Watched[]
   watchListShows   WatchListShow[]
+  discussions      Discussion[]
 }
 
 model Season {
@@ -76,17 +77,16 @@ model Season {
   tmdbRating    Float?
   overview      String?
   characters    Character[]
-  comments      Comment[]
+
   episodes      Episode[]
   favorites     Favorite[]
   ratings       Rating[]
-  reviews       Review[]
   show          Show           @relation(fields: [showId], references: [id])
   seasonReviews SeasonReview[]
-  tags          SeasonTag[]
-  views         View[]
+
   watched       Watched[]
   watchListShows WatchListShowSeason[]
+  discussions   Discussion[]
 
   @@unique([showId, seasonNumber])
 }
@@ -100,16 +100,16 @@ model Episode {
   airDate        DateTime?
   stillPath      String?
   tmdbRating     Float?
-  comments       Comment[]
+
   season         Season          @relation(fields: [seasonId], references: [id])
   episodeReviews EpisodeReview[]
-  tags           EpisodeTag[]
+
   favorites      Favorite[]
   predictions    Prediction[]
   ratings        Rating[]
-  reviews        Review[]
-  views          View[]
   watched        Watched[]
+  discussions    Discussion[]
+  reactions      Reaction[]
 
   @@unique([seasonId, episodeNumber])
 }
@@ -129,13 +129,11 @@ model Character {
   person         Person                   @relation(fields: [personId], references: [id])
   season         Season                   @relation(fields: [seasonId], references: [id])
   tags           CharacterTag[]
-  comments       Comment[]
-  episodeReviews EpisodeReviewCharacter[]
+
   favorites      Favorite[]
   predictions    Prediction[]
   seasonReviews  SeasonReviewCharacter[]
   showReviews    ShowReviewCharacter[]
-  views          View[]
 }
 
 model Creator {
@@ -153,57 +151,6 @@ model ShowCreator {
   show      Show    @relation(fields: [showId], references: [id])
 
   @@id([showId, creatorId])
-}
-
-model Comment {
-  id          Int           @id @default(autoincrement())
-  content     String
-  spoiler     Boolean       @default(false)
-  userId      String
-  showId      Int?
-  seasonId    Int?
-  episodeId   Int?
-  characterId Int?
-  createdAt   DateTime      @default(now())
-  parentId    Int?
-  character   Character?    @relation(fields: [characterId], references: [id])
-  episode     Episode?      @relation(fields: [episodeId], references: [id])
-  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
-  replies     Comment[]     @relation("CommentReplies")
-  season      Season?       @relation(fields: [seasonId], references: [id])
-  show        Show?         @relation(fields: [showId], references: [id])
-  user        User          @relation(fields: [userId], references: [id])
-  votes       CommentVote[]
-  likes       Like[]
-}
-
-model CommentVote {
-  id        Int     @id @default(autoincrement())
-  commentId Int
-  userId    String
-  value     Int
-  comment   Comment @relation(fields: [commentId], references: [id])
-  user      User    @relation(fields: [userId], references: [id])
-
-  @@unique([commentId, userId])
-}
-
-model Review {
-  id        Int      @id @default(autoincrement())
-  rating    Float
-  content   String
-  userId    String
-  showId    Int?
-  seasonId  Int?
-  episodeId Int?
-  createdAt DateTime @default(now())
-  spoiler   Boolean  @default(false)
-  likes     Like[]
-  episode   Episode? @relation(fields: [episodeId], references: [id])
-  season    Season?  @relation(fields: [seasonId], references: [id])
-  show      Show?    @relation(fields: [showId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  views     View[]
 }
 
 model Rating {
@@ -262,43 +209,14 @@ model Tag {
   name           String             @unique
   characters     CharacterTag[]
   episodeReviews EpisodeReviewTag[]
-  episodes       EpisodeTag[]
+
   seasonReviews  SeasonReviewTag[]
-  seasons        SeasonTag[]
   showReviews    ShowReviewTag[]
-  shows          ShowTag[]
   watchLists     WatchListTag[]
+  discussions    DiscussionTag[]
 }
 
-model ShowTag {
-  id     Int  @id @default(autoincrement())
-  showId Int
-  tagId  Int
-  show   Show @relation(fields: [showId], references: [id])
-  tag    Tag  @relation(fields: [tagId], references: [id])
 
-  @@unique([showId, tagId])
-}
-
-model SeasonTag {
-  id       Int    @id @default(autoincrement())
-  seasonId Int
-  tagId    Int
-  season   Season @relation(fields: [seasonId], references: [id])
-  tag      Tag    @relation(fields: [tagId], references: [id])
-
-  @@unique([seasonId, tagId])
-}
-
-model EpisodeTag {
-  id        Int     @id @default(autoincrement())
-  episodeId Int
-  tagId     Int
-  episode   Episode @relation(fields: [episodeId], references: [id])
-  tag       Tag     @relation(fields: [tagId], references: [id])
-
-  @@unique([episodeId, tagId])
-}
 
 model CharacterTag {
   id          Int       @id @default(autoincrement())
@@ -310,36 +228,6 @@ model CharacterTag {
   @@unique([characterId, tagId])
 }
 
-model View {
-  id              Int            @id @default(autoincrement())
-  userId          String?
-  showId          Int?
-  seasonId        Int?
-  episodeId       Int?
-  reviewId        Int?
-  characterId     Int?
-  watchListId     Int?
-  createdAt       DateTime       @default(now())
-  episodeReviewId Int?
-  seasonReviewId  Int?
-  showReviewId    Int?
-  character       Character?     @relation(fields: [characterId], references: [id])
-  episode         Episode?       @relation(fields: [episodeId], references: [id])
-  episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
-  review          Review?        @relation(fields: [reviewId], references: [id])
-  season          Season?        @relation(fields: [seasonId], references: [id])
-  seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
-  show            Show?          @relation(fields: [showId], references: [id])
-  showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
-  watchList       WatchList?     @relation(fields: [watchListId], references: [id])
-  user            User?          @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([showId])
-  @@index([seasonId])
-  @@index([episodeId])
-  @@index([watchListId])
-}
 
 model Prediction {
   id             Int        @id @default(autoincrement())
@@ -391,7 +279,6 @@ model ShowReview {
   user                User                  @relation(fields: [userId], references: [id])
   favouriteCharacters ShowReviewCharacter[]
   tags                ShowReviewTag[]
-  views               View[]
 }
 
 model SeasonReview {
@@ -409,7 +296,6 @@ model SeasonReview {
   user                User                    @relation(fields: [userId], references: [id])
   favouriteCharacters SeasonReviewCharacter[]
   tags                SeasonReviewTag[]
-  views               View[]
 }
 
 model EpisodeReview {
@@ -422,11 +308,10 @@ model EpisodeReview {
   createdAt           DateTime                 @default(now())
   episode             Episode                  @relation(fields: [episodeId], references: [id])
   user                User                     @relation(fields: [userId], references: [id])
-  favouriteCharacters EpisodeReviewCharacter[]
+
   tags                EpisodeReviewTag[]
   likes               Like[]
   comments            ReviewComment[]
-  views               View[]
 }
 
 model ShowReviewCharacter {
@@ -449,15 +334,7 @@ model SeasonReviewCharacter {
   @@unique([seasonReviewId, characterId])
 }
 
-model EpisodeReviewCharacter {
-  id              Int           @id @default(autoincrement())
-  episodeReviewId Int
-  characterId     Int
-  character       Character     @relation(fields: [characterId], references: [id])
-  episodeReview   EpisodeReview @relation(fields: [episodeReviewId], references: [id])
 
-  @@unique([episodeReviewId, characterId])
-}
 
 model ShowReviewTag {
   id           Int        @id @default(autoincrement())
@@ -492,30 +369,27 @@ model EpisodeReviewTag {
 model Like {
   id              Int            @id @default(autoincrement())
   userId          String
-  commentId       Int?
-  reviewId        Int?
   predictionId    Int?
   showReviewId    Int?
   seasonReviewId  Int?
   episodeReviewId Int?
   watchListId     Int?
+  discussionId    Int?
   createdAt       DateTime       @default(now())
-  comment         Comment?       @relation(fields: [commentId], references: [id])
   episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
   prediction      Prediction?    @relation(fields: [predictionId], references: [id])
-  review          Review?        @relation(fields: [reviewId], references: [id])
   seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
   showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
   watchList       WatchList?     @relation(fields: [watchListId], references: [id])
+  discussion      Discussion?    @relation(fields: [discussionId], references: [id])
   user            User           @relation(fields: [userId], references: [id])
 
-  @@unique([userId, commentId])
-  @@unique([userId, reviewId])
   @@unique([userId, predictionId])
   @@unique([userId, showReviewId])
   @@unique([userId, seasonReviewId])
   @@unique([userId, episodeReviewId])
   @@unique([userId, watchListId])
+  @@unique([userId, discussionId])
 }
 
 model ReviewComment {
@@ -546,7 +420,6 @@ model WatchList {
   tags        WatchListTag[]
   comments    WatchListComment[]
   likes       Like[]
-  views       View[]
 
   @@index([userId])
   @@index([isPublic])
@@ -599,4 +472,136 @@ model WatchListShowSeason {
   season          Season        @relation(fields: [seasonId], references: [id])
 
   @@unique([watchListShowId, seasonId])
+}
+
+model Discussion {
+  id          Int               @id @default(autoincrement())
+  title       String
+  content     String
+  userId      String
+  showId      Int?
+  seasonId    Int?
+  episodeId   Int?
+  spoiler     Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  user        User              @relation(fields: [userId], references: [id])
+  show        Show?             @relation(fields: [showId], references: [id])
+  season      Season?           @relation(fields: [seasonId], references: [id])
+  episode     Episode?          @relation(fields: [episodeId], references: [id])
+  comments    DiscussionComment[]
+  tags        DiscussionTag[]
+  likes       Like[]
+  polls       Poll[]
+
+  @@index([userId])
+  @@index([showId])
+  @@index([seasonId])
+  @@index([episodeId])
+  @@index([createdAt])
+}
+
+model DiscussionComment {
+  id           Int                     @id @default(autoincrement())
+  content      String
+  userId       String
+  discussionId Int
+  parentId     Int?
+  depth        Int                     @default(0)
+  spoiler      Boolean                 @default(false)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  user         User                    @relation(fields: [userId], references: [id])
+  discussion   Discussion              @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  parent       DiscussionComment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      DiscussionComment[]     @relation("CommentReplies")
+  reactions    Reaction[]
+  votes        DiscussionCommentVote[]
+
+  @@index([discussionId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([depth])
+}
+
+model DiscussionCommentVote {
+  id                  Int               @id @default(autoincrement())
+  discussionCommentId Int
+  userId              String
+  value               VoteValue         // 1 = upvote, -1 = downvote
+  createdAt           DateTime          @default(now())
+  discussionComment   DiscussionComment @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id])
+
+  @@unique([discussionCommentId, userId])
+  @@index([discussionCommentId])
+  @@index([userId])
+}
+
+enum VoteValue {
+  DOWNVOTE @map("-1")
+  UPVOTE   @map("1")
+}
+
+model DiscussionTag {
+  id           Int        @id @default(autoincrement())
+  discussionId Int
+  tagId        Int
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  tag          Tag        @relation(fields: [tagId], references: [id])
+
+  @@unique([discussionId, tagId])
+}
+
+model Reaction {
+  id                  Int               @id @default(autoincrement())
+  userId              String
+  reactionType        String            // "happy", "sad", "angry", "surprised", "love", "laugh", "wow", "care"
+  discussionCommentId Int?
+  episodeId           Int?
+  createdAt           DateTime          @default(now())
+  user                User              @relation(fields: [userId], references: [id])
+  discussionComment   DiscussionComment? @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
+  episode             Episode?          @relation(fields: [episodeId], references: [id])
+
+  @@unique([userId, discussionCommentId])
+  @@unique([userId, episodeId])
+  @@index([userId])
+  @@index([discussionCommentId])
+  @@index([episodeId])
+}
+
+model Poll {
+  id           Int        @id @default(autoincrement())
+  question     String
+  discussionId Int
+  closesAt     DateTime?
+  createdAt    DateTime   @default(now())
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  options      PollOption[]
+
+  @@index([discussionId])
+}
+
+model PollOption {
+  id      Int       @id @default(autoincrement())
+  text    String
+  pollId  Int
+  poll    Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes   PollVote[]
+
+  @@index([pollId])
+}
+
+model PollVote {
+  id           Int        @id @default(autoincrement())
+  userId       String
+  pollOptionId Int
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id])
+  pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pollOptionId])
+  @@index([userId])
+  @@index([pollOptionId])
 }
