@@ -47,31 +47,32 @@ export default function CreateWatchListForm() {
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const showId = urlParams.get('showId');
+
+        const fetchShowAndAdd = async (showId: number) => {
+            try {
+                const response = await fetch(`/api/search?q=${showId}&type=id`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.shows && data.shows.length > 0) {
+                        const show = data.shows[0];
+                        const newShow: SelectedShow = {
+                            ...show,
+                            ranking: isRanked ? 1 : undefined,
+                        };
+                        setSelectedShows([newShow]);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching show:", error);
+            }
+        };
         
         if (showId) {
             // Fetch show details and add to selected shows
             fetchShowAndAdd(parseInt(showId));
         }
-    }, []);
+    }, [isRanked]);
 
-    const fetchShowAndAdd = async (showId: number) => {
-        try {
-            const response = await fetch(`/api/search?q=${showId}&type=id`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.shows && data.shows.length > 0) {
-                    const show = data.shows[0];
-                    const newShow: SelectedShow = {
-                        ...show,
-                        ranking: isRanked ? 1 : undefined,
-                    };
-                    setSelectedShows([newShow]);
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching show:", error);
-        }
-    };
     
     // Drag and drop state
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);

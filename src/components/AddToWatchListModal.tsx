@@ -34,50 +34,62 @@ export default function AddToWatchListModal({ isOpen, onClose, showId, showName 
     // Fetch user's watch lists
     useEffect(() => {
         if (isOpen && user) {
+            const fetchWatchLists = async () => {
+                try {
+                    const response = await fetch(`/api/users/${user?.username}/watch-lists`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setWatchLists(data.watchLists || []);
+                    }
+                } catch (error) {
+                    console.error("Error fetching watch lists:", error);
+                }
+            };
             fetchWatchLists();
             setErrorMessage(null);
         }
     }, [isOpen, user]);
 
-    const fetchWatchLists = async () => {
-        try {
-            const response = await fetch(`/api/users/${user?.username}/watch-lists`);
-            if (response.ok) {
-                const data = await response.json();
-                setWatchLists(data.watchLists || []);
-            }
-        } catch (error) {
-            console.error("Error fetching watch lists:", error);
-        }
-    };
-
-    const searchWatchLists = async (query: string) => {
-        if (!query.trim()) {
-            fetchWatchLists();
-            return;
-        }
-
-        setIsSearching(true);
-        try {
-            const response = await fetch(`/api/users/${user?.username}/watch-lists/search?q=${encodeURIComponent(query)}`);
-            if (response.ok) {
-                const data = await response.json();
-                setWatchLists(data.watchLists || []);
-            }
-        } catch (error) {
-            console.error("Error searching watch lists:", error);
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
+ 
     useEffect(() => {
+        const fetchWatchLists = async () => {
+            try {
+                const response = await fetch(`/api/users/${user?.username}/watch-lists`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setWatchLists(data.watchLists || []);
+                }
+            } catch (error) {
+                console.error("Error fetching watch lists:", error);
+            }
+        };
+    
+        const searchWatchLists = async (query: string) => {
+            if (!query.trim()) {
+                fetchWatchLists();
+                return;
+            }
+    
+            setIsSearching(true);
+            try {
+                const response = await fetch(`/api/users/${user?.username}/watch-lists/search?q=${encodeURIComponent(query)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setWatchLists(data.watchLists || []);
+                }
+            } catch (error) {
+                console.error("Error searching watch lists:", error);
+            } finally {
+                setIsSearching(false);
+            }
+        };
+
         const timeoutId = setTimeout(() => {
             searchWatchLists(searchQuery);
         }, 300);
 
         return () => clearTimeout(timeoutId);
-    }, [searchQuery]);
+    }, [searchQuery, user?.username]);
 
     const handleAddToWatchList = async (watchListId: number) => {
         setIsAdding(true);
