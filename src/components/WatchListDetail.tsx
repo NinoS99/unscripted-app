@@ -73,27 +73,30 @@ interface WatchListDetailProps {
     userLiked: boolean;
 }
 
-export default function WatchListDetail({ watchList, userLiked }: WatchListDetailProps) {
+export default function WatchListDetail({
+    watchList,
+    userLiked,
+}: WatchListDetailProps) {
     const { user } = useUser();
     const [comments, setComments] = useState(watchList.comments);
-    const [showSpoilers, setShowSpoilers] = useState<{ [key: number]: boolean }>({});
+    const [showSpoilers, setShowSpoilers] = useState<{
+        [key: number]: boolean;
+    }>({});
     const [likeCount, setLikeCount] = useState(watchList._count.likes);
 
-
-
     const toggleSpoiler = (showId: number) => {
-        setShowSpoilers(prev => ({
+        setShowSpoilers((prev) => ({
             ...prev,
-            [showId]: !prev[showId]
+            [showId]: !prev[showId],
         }));
     };
 
     const formatDateShort = (date: Date | null) => {
         if (!date) return null;
-        return new Date(date).toLocaleDateString('en-US', { 
-            year: '2-digit', 
-            month: '2-digit', 
-            day: '2-digit' 
+        return new Date(date).toLocaleDateString("en-US", {
+            year: "2-digit",
+            month: "2-digit",
+            day: "2-digit",
         });
     };
 
@@ -107,7 +110,10 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                         <div className="flex-shrink-0">
                             <Link href={`/${watchList.user.username}`}>
                                 <Image
-                                    src={watchList.user.profilePicture || "/noAvatar.png"}
+                                    src={
+                                        watchList.user.profilePicture ||
+                                        "/noAvatar.png"
+                                    }
                                     alt={watchList.user.username}
                                     width={80}
                                     height={80}
@@ -115,11 +121,13 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                 />
                             </Link>
                         </div>
-                        
+
                         <div className="flex-grow">
                             <div className="flex items-center gap-1 mb-2">
-                                <span className="text-gray-400 text-sm">Watch list by</span>
-                                <Link 
+                                <span className="text-gray-400 text-sm">
+                                    Watch list by
+                                </span>
+                                <Link
                                     href={`/${watchList.user.username}`}
                                     className="text-sm font-bold text-white hover:text-green-400 transition-colors"
                                 >
@@ -127,14 +135,17 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                 </Link>
                                 <span className="text-gray-400">•</span>
                                 <span className="text-gray-400">
-                                    {format(new Date(watchList.createdAt), "MMM d, yyyy")}
+                                    {format(
+                                        new Date(watchList.createdAt),
+                                        "MMM d, yyyy"
+                                    )}
                                 </span>
                             </div>
-                            
+
                             <h1 className="text-3xl md:text-4xl font-bold mb-2">
                                 {watchList.name}
                             </h1>
-                            
+
                             {watchList.description && (
                                 <p className="text-gray-300 text-lg mb-4 leading-relaxed">
                                     {watchList.description}
@@ -157,7 +168,10 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
 
                             {/* Stats */}
                             <div className="flex items-center gap-6 text-gray-300">
-                                <span>{watchList.shows.length} show{watchList.shows.length !== 1 ? 's' : ''}</span>
+                                <span>
+                                    {watchList.shows.length} show
+                                    {watchList.shows.length !== 1 ? "s" : ""}
+                                </span>
                                 <div className="flex items-center gap-1">
                                     <GiRose className="w-4 h-4 text-red-400 fill-current" />
                                     <span>{likeCount}</span>
@@ -185,10 +199,17 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                     <h2 className="text-2xl font-semibold text-green-500 mb-6">
                         Shows ({watchList.shows.length})
                     </h2>
-                    
+
                     <div className="space-y-0">
                         {watchList.shows.map((watchListShow, index) => (
-                            <div key={watchListShow.id} className={`p-4 ${index < watchList.shows.length - 1 ? 'border-b border-gray-700' : ''}`}>
+                            <div
+                                key={watchListShow.id}
+                                className={`p-4 ${
+                                    index < watchList.shows.length - 1
+                                        ? "border-b border-gray-700"
+                                        : ""
+                                }`}
+                            >
                                 <div className="flex items-start gap-4">
                                     {/* Ranking */}
                                     {watchListShow.ranking && (
@@ -198,12 +219,19 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {/* Show Poster */}
                                     <div className="flex-shrink-0">
-                                        <Link href={`/show/${watchListShow.show.id}`}>
+                                        <Link
+                                            href={`/show/${watchListShow.show.id}`}
+                                        >
                                             <Image
-                                                src={watchListShow.show.posterPath ? `https://image.tmdb.org/t/p/w154${watchListShow.show.posterPath}` : "/noPoster.jpg"}
+                                                src={
+                                                    watchListShow.show
+                                                        .posterPath
+                                                        ? `https://image.tmdb.org/t/p/w154${watchListShow.show.posterPath}`
+                                                        : "/noPoster.jpg"
+                                                }
                                                 alt={watchListShow.show.name}
                                                 width={154}
                                                 height={231}
@@ -211,19 +239,23 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                             />
                                         </Link>
                                     </div>
-                                    
+
                                     {/* Show Info */}
                                     <div className="flex-grow min-w-0">
-                                        <Link 
+                                        <Link
                                             href={`/show/${watchListShow.show.id}`}
                                             className="text-xl font-semibold text-white hover:text-green-400 transition-colors mb-1"
                                         >
                                             {watchListShow.show.name}
                                         </Link>
-                                        
+
                                         {watchListShow.show.firstAirDate && (
                                             <p className="text-gray-400 text-sm mb-2">
-                                                First aired {formatDateShort(watchListShow.show.firstAirDate)}
+                                                First aired{" "}
+                                                {formatDateShort(
+                                                    watchListShow.show
+                                                        .firstAirDate
+                                                )}
                                             </p>
                                         )}
 
@@ -233,19 +265,35 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                                 {watchListShow.spoiler ? (
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>
+                                                            <span className="text-red-400 text-sm font-medium">
+                                                                ⚠️ SPOILER
+                                                            </span>
                                                             <button
-                                                                onClick={() => toggleSpoiler(watchListShow.id)}
+                                                                onClick={() =>
+                                                                    toggleSpoiler(
+                                                                        watchListShow.id
+                                                                    )
+                                                                }
                                                                 className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
                                                             >
-                                                                {showSpoilers[watchListShow.id] ? "Hide Spoiler" : "Show Spoiler"}
+                                                                {showSpoilers[
+                                                                    watchListShow
+                                                                        .id
+                                                                ]
+                                                                    ? "Hide Spoiler"
+                                                                    : "Show Spoiler"}
                                                             </button>
                                                         </div>
-                                                        <p className={`text-gray-200 leading-relaxed transition-all duration-300 ${
-                                                            showSpoilers[watchListShow.id] 
-                                                                ? "blur-none" 
-                                                                : "blur-sm select-none"
-                                                        }`}>
+                                                        <p
+                                                            className={`text-gray-200 leading-relaxed transition-all duration-300 ${
+                                                                showSpoilers[
+                                                                    watchListShow
+                                                                        .id
+                                                                ]
+                                                                    ? "blur-none"
+                                                                    : "blur-sm select-none"
+                                                            }`}
+                                                        >
                                                             {watchListShow.note}
                                                         </p>
                                                     </div>
@@ -258,16 +306,58 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                                         )}
 
                                         {/* Must-Watch Seasons */}
-                                        {watchListShow.muchWatchSeasons.length > 0 && (
+                                        {watchListShow.muchWatchSeasons.length >
+                                            0 && (
                                             <div className="mb-2">
-                                                <span className="text-green-400 text-sm font-medium">Must-watch seasons: </span>
+                                                <span className="text-green-400 text-sm font-medium">
+                                                    Must-watch seasons:{" "}
+                                                </span>
                                                 <span className="text-gray-300 text-sm">
-                                                    {watchListShow.muchWatchSeasons.map(({ season }, idx) => (
-                                                        <span key={season.id}>
-                                                            {season.seasonNumber === 0 ? 'Specials' : `Season ${season.seasonNumber}`}
-                                                            {idx < watchListShow.muchWatchSeasons.length - 1 ? ', ' : ''}
-                                                        </span>
-                                                    ))}
+                                                    {watchListShow.muchWatchSeasons
+                                                        .sort((a, b) => {
+                                                            // Sort by season number, with 0 (Specials) coming first
+                                                            if (
+                                                                a.season
+                                                                    .seasonNumber ===
+                                                                0
+                                                            )
+                                                                return -1;
+                                                            if (
+                                                                b.season
+                                                                    .seasonNumber ===
+                                                                0
+                                                            )
+                                                                return 1;
+                                                            return (
+                                                                a.season
+                                                                    .seasonNumber -
+                                                                b.season
+                                                                    .seasonNumber
+                                                            );
+                                                        })
+                                                        .map(
+                                                            (
+                                                                { season },
+                                                                idx,
+                                                                sortedSeasons
+                                                            ) => (
+                                                                <span
+                                                                    key={
+                                                                        season.id
+                                                                    }
+                                                                >
+                                                                    {season.seasonNumber ===
+                                                                    0
+                                                                        ? "Specials"
+                                                                        : `Season ${season.seasonNumber}`}
+                                                                    {idx <
+                                                                    sortedSeasons.length -
+                                                                        1
+                                                                        ? ", "
+                                                                        : ""}
+                                                                </span>
+                                                            )
+                                                        )}
                                                 </span>
                                             </div>
                                         )}
@@ -286,7 +376,9 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                         initialIsLiked={userLiked}
                         size="lg"
                         onLikeChange={(isLiked) => {
-                            setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+                            setLikeCount((prev) =>
+                                isLiked ? prev + 1 : prev - 1
+                            );
                         }}
                     />
                 </div>
@@ -297,10 +389,10 @@ export default function WatchListDetail({ watchList, userLiked }: WatchListDetai
                     entityId={watchList.id}
                     comments={comments}
                     onCommentAdded={(comment) => {
-                        setComments(prev => [comment, ...prev]);
+                        setComments((prev) => [comment, ...prev]);
                     }}
                 />
             </div>
         </div>
     );
-} 
+}

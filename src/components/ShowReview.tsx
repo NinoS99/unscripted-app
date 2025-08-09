@@ -40,7 +40,9 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFavorited, setIsFavorited] = useState(false);
-    const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
+    const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(
+        new Set()
+    );
 
     // Date validation
     const today = new Date().toISOString().split("T")[0];
@@ -95,17 +97,19 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     };
 
     // Group characters by season
-    const charactersBySeason = show.characters?.reduce((acc, character) => {
-        if (!acc[character.seasonId]) {
-            acc[character.seasonId] = {
-                seasonId: character.seasonId,
-                seasonNumber: character.seasonNumber,
-                characters: []
-            };
-        }
-        acc[character.seasonId].characters.push(character);
-        return acc;
-    }, {} as Record<number, { seasonId: number; seasonNumber: number; characters: typeof show.characters }>) || {};
+    const charactersBySeason =
+        show.characters?.reduce((acc, character) => {
+            if (!acc[character.seasonId]) {
+                acc[character.seasonId] = {
+                    seasonId: character.seasonId,
+                    seasonNumber: character.seasonNumber,
+                    characters: [],
+                };
+            }
+            acc[character.seasonId].characters.push(character);
+            return acc;
+        }, {} as Record<number, { seasonId: number; seasonNumber: number; characters: typeof show.characters }>) ||
+        {};
 
     const handleSubmit = async () => {
         if (!user || !reviewContent.trim()) return;
@@ -164,7 +168,9 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
         const checkFavoriteStatus = async () => {
             if (isOpen && user) {
                 try {
-                    const response = await fetch(`/api/favourites?entityType=show&entityId=${show.id}`);
+                    const response = await fetch(
+                        `/api/favourites?entityType=show&entityId=${show.id}`
+                    );
                     if (response.ok) {
                         const data = await response.json();
                         setIsFavorited(data.isFavorite);
@@ -251,16 +257,21 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                     </p>
                                 )}
                             </div>
-                                                         {/* Favorite Status */}
-                             <div className="flex flex-col items-center gap-4 mt-4">
-                                 <p className="text-sm text-gray-300 text-center">
-                                     {isFavorited 
-                                         ? "You have given this show a rose" 
-                                         : "You have not given this show a rose"
-                                     }
-                                 </p>
-                                 <GiRose className={`w-5 h-5 ${isFavorited ? 'text-rose-500' : 'text-gray-400'}`} />
-                             </div>
+                            {/* Favorite Status */}
+                            <div className="flex flex-col items-center gap-4 mt-4">
+                                <p className="text-sm text-gray-300 text-center">
+                                    {isFavorited
+                                        ? "You have given this show a rose"
+                                        : "You have not given this show a rose"}
+                                </p>
+                                <GiRose
+                                    className={`w-5 h-5 ${
+                                        isFavorited
+                                            ? "text-rose-500"
+                                            : "text-gray-400"
+                                    }`}
+                                />
+                            </div>
                         </div>
 
                         {/* Right Side - Review Form */}
@@ -431,100 +442,136 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                     </div>
                                 </div>
 
-                                                                                                  {/* Favourite Characters */}
-                                 {show.characters &&
-                                     show.characters.length > 0 && (
-                                         <div>
-                                             <label className="block text-sm font-medium text-gray-300 mb-2">
-                                                 Favourite &apos;Characters&apos;
-                                             </label>
-                                             <div className="max-h-64 overflow-y-auto space-y-2">
-                                                 {Object.values(charactersBySeason)
-                                                     .sort((a, b) => a.seasonNumber - b.seasonNumber)
-                                                     .map((season) => (
-                                                         <div key={season.seasonId}>
-                                                             {/* Season Header */}
-                                                             <div
-                                                                 className="flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer bg-gray-800 hover:bg-gray-700"
-                                                                 onClick={() => toggleSeasonExpansion(season.seasonId)}
-                                                             >
-                                                                 <div className="flex items-center gap-2 flex-grow">
-                                                                     <span className="text-sm font-medium text-white">
-                                                                         Season {season.seasonNumber}
-                                                                     </span>
-                                                                     <span className="text-xs text-gray-400">
-                                                                         ({season.characters.length} characters)
-                                                                     </span>
-                                                                 </div>
-                                                                 <div className={`transform transition-transform ${expandedSeasons.has(season.seasonId) ? 'rotate-90' : ''}`}>
-                                                                     <FiChevronRight className="w-4 h-4 text-gray-400" />
-                                                                 </div>
-                                                             </div>
-                                                             
-                                                             {/* Characters in Season */}
-                                                             {expandedSeasons.has(season.seasonId) && (
-                                                                 <div className="ml-4 space-y-1 mt-1">
-                                                                     {season.characters.map((character) => (
-                                                                         <div
-                                                                             key={character.id}
-                                                                             className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
-                                                                                 favouriteCharacters.includes(
-                                                                                     character.id
-                                                                                 )
-                                                                                     ? "bg-green-600 hover:bg-green-500"
-                                                                                     : "bg-gray-600 hover:bg-gray-500"
-                                                                             }`}
-                                                                             onClick={() =>
-                                                                                 handleCharacterToggle(
-                                                                                     character.id
-                                                                                 )
-                                                                             }
-                                                                         >
-                                                                             <div className="flex items-center gap-2 flex-grow">
-                                                                                 {character.profilePath ? (
-                                                                                     <Image
-                                                                                         src={`https://image.tmdb.org/t/p/w45${character.profilePath}`}
-                                                                                         alt={
-                                                                                             character.name
-                                                                                         }
-                                                                                         width={
-                                                                                             24
-                                                                                         }
-                                                                                         height={
-                                                                                             24
-                                                                                         }
-                                                                                         className="rounded-full object-cover"
-                                                                                     />
-                                                                                 ) : (
-                                                                                     <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
-                                                                                         <FiUser className="w-3 h-3 text-gray-300" />
-                                                                                     </div>
-                                                                                 )}
-                                                                                 <div className="flex flex-col">
-                                                                                     <span className="text-sm text-white font-medium">
-                                                                                         {
-                                                                                             character.name
-                                                                                         }
-                                                                                     </span>
-                                                                                     {character.characterName && (
-                                                                                         <span className="text-xs text-gray-300">
-                                                                                             as{" "}
-                                                                                             {
-                                                                                                 character.characterName
-                                                                                             }
-                                                                                         </span>
-                                                                                     )}
-                                                                                 </div>
-                                                                             </div>
-                                                                         </div>
-                                                                     ))}
-                                                                 </div>
-                                                             )}
-                                                         </div>
-                                                     ))}
-                                             </div>
-                                         </div>
-                                     )}
+                                {/* Favourite Characters */}
+                                {show.characters &&
+                                    show.characters.length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                                Favourite &apos;Characters&apos;
+                                            </label>
+                                            <div className="max-h-64 overflow-y-auto space-y-2">
+                                                {Object.values(
+                                                    charactersBySeason
+                                                )
+                                                    .sort(
+                                                        (a, b) =>
+                                                            a.seasonNumber -
+                                                            b.seasonNumber
+                                                    )
+                                                    .map((season) => (
+                                                        <div
+                                                            key={
+                                                                season.seasonId
+                                                            }
+                                                        >
+                                                            {/* Season Header */}
+                                                            <div
+                                                                className="flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer bg-gray-800 hover:bg-gray-700"
+                                                                onClick={() =>
+                                                                    toggleSeasonExpansion(
+                                                                        season.seasonId
+                                                                    )
+                                                                }
+                                                            >
+                                                                <div className="flex items-center gap-2 flex-grow">
+                                                                    <span className="text-sm font-medium text-white">
+                                                                        {season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-400">
+                                                                        (
+                                                                        {
+                                                                            season
+                                                                                .characters
+                                                                                .length
+                                                                        }{" "}
+                                                                        characters)
+                                                                    </span>
+                                                                </div>
+                                                                <div
+                                                                    className={`transform transition-transform ${
+                                                                        expandedSeasons.has(
+                                                                            season.seasonId
+                                                                        )
+                                                                            ? "rotate-90"
+                                                                            : ""
+                                                                    }`}
+                                                                >
+                                                                    <FiChevronRight className="w-4 h-4 text-gray-400" />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Characters in Season */}
+                                                            {expandedSeasons.has(
+                                                                season.seasonId
+                                                            ) && (
+                                                                <div className="ml-4 space-y-1 mt-1">
+                                                                    {season.characters.map(
+                                                                        (
+                                                                            character
+                                                                        ) => (
+                                                                            <div
+                                                                                key={
+                                                                                    character.id
+                                                                                }
+                                                                                className={`flex items-center gap-2 p-2 rounded-md transition-colors cursor-pointer ${
+                                                                                    favouriteCharacters.includes(
+                                                                                        character.id
+                                                                                    )
+                                                                                        ? "bg-green-600 hover:bg-green-500"
+                                                                                        : "bg-gray-600 hover:bg-gray-500"
+                                                                                }`}
+                                                                                onClick={() =>
+                                                                                    handleCharacterToggle(
+                                                                                        character.id
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <div className="flex items-center gap-2 flex-grow">
+                                                                                    {character.profilePath ? (
+                                                                                        <Image
+                                                                                            src={`https://image.tmdb.org/t/p/w45${character.profilePath}`}
+                                                                                            alt={
+                                                                                                character.name
+                                                                                            }
+                                                                                            width={
+                                                                                                24
+                                                                                            }
+                                                                                            height={
+                                                                                                24
+                                                                                            }
+                                                                                            className="rounded-full object-cover"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center">
+                                                                                            <FiUser className="w-3 h-3 text-gray-300" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <div className="flex flex-col">
+                                                                                        <span className="text-sm text-white font-medium">
+                                                                                            {
+                                                                                                character.name
+                                                                                            }
+                                                                                        </span>
+                                                                                        {character.characterName && (
+                                                                                            <span className="text-xs text-gray-300">
+                                                                                                as{" "}
+                                                                                                {
+                                                                                                    character.characterName
+                                                                                                }
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
                             </div>
 
                             {/* Submit Button */}
