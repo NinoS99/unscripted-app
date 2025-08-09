@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/client";
 import UserWatchLists from "@/components/UserWatchLists";
@@ -17,13 +17,22 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
         select: {
             id: true,
             username: true,
-            profilePicture: true,
             bio: true
         }
     });
 
     if (!user) {
         notFound();
+    }
+
+    // Get Clerk user data for profile picture using the user ID
+    let profileImageUrl = "/noAvatar.png";
+    try {
+        const clerk = await clerkClient();
+        const clerkUser = await clerk.users.getUser(user.id);
+        profileImageUrl = clerkUser.imageUrl;
+    } catch (error) {
+        console.error("Error fetching Clerk user:", error);
     }
 
     // Check if current user is viewing their own profile
@@ -35,8 +44,14 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
             userId: user.id,
             OR: [
                 { isPublic: true },
-                { userId: userId || "" }, // User's own lists
-                { friendsOnly: false } // This will be refined when we add friends functionality
+                // Only show private/friends-only lists if the current user owns them
+                ...(userId === user.id ? [
+                    { isPublic: false },
+                    { friendsOnly: true }
+                ] : [])
+                // TODO: Implement friends-only logic when friend system is added
+                // - Check if current user is friends with the watch list owner
+                // - Show friends-only watch lists to friends
             ]
         },
         include: {
@@ -78,7 +93,10 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
 
     return (
         <UserWatchLists 
-            user={user}
+            user={{
+                ...user,
+                profilePicture: profileImageUrl
+            }}
             watchLists={watchLists}
             isOwnProfile={isOwnProfile}
         />
