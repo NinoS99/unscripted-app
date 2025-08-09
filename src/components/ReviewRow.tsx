@@ -31,6 +31,7 @@ interface ReviewRowProps {
     onToggleSpoiler: (reviewId: number) => void;
     truncateContent: (content: string, maxLength?: number) => string;
     className?: string;
+    isLast?: boolean;
 }
 
 export default function ReviewRow({
@@ -39,10 +40,11 @@ export default function ReviewRow({
     showSpoilers,
     onToggleSpoiler,
     truncateContent,
-    className = ""
+    className = "",
+    isLast = false
 }: ReviewRowProps) {
     return (
-        <div className={`py-4 border-b border-gray-700 ${className}`}>
+        <div className={`py-4 ${!isLast ? 'border-b border-gray-700' : ''} ${className}`}>
             <div className="flex items-start gap-3 mb-3">
                 {/* User Profile Pic */}
                 <div className="flex-shrink-0">

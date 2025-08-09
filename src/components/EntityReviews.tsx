@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import { FiClock, FiTrendingUp } from "react-icons/fi";
 import ReviewRow from "./ReviewRow";
 
 interface Review {
@@ -32,6 +35,8 @@ export default function EntityReviews({
     entityType,
     entityId,
 }: EntityReviewsProps) {
+    const { user } = useUser();
+    const pathname = usePathname();
     const [reviews, setReviews] = useState<Review[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showSpoilers, setShowSpoilers] = useState<{
@@ -88,7 +93,7 @@ export default function EntityReviews({
         }));
     };
 
-    const renderReviewRow = (review: Review) => (
+    const renderReviewRow = (review: Review, index: number, array: Review[]) => (
         <ReviewRow
             key={review.id}
             review={review}
@@ -97,6 +102,7 @@ export default function EntityReviews({
             onToggleSpoiler={toggleSpoiler}
             truncateContent={truncateContent}
             className="pt-4 pb-1"
+            isLast={index === array.length - 1}
         />
     );
 
@@ -120,7 +126,20 @@ export default function EntityReviews({
                     Reviews
                 </h2>
                 <div className="text-gray-400 text-center py-8">
-                    No reviews yet. Be the first to review this {entityType}!
+                    {user ? (
+                        `No reviews yet. Be the first to review this ${entityType}!`
+                    ) : (
+                        <>
+                            No reviews yet.{" "}
+                            <Link 
+                                href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`}
+                                className="text-green-400 hover:text-green-300 transition-colors font-medium"
+                            >
+                                Log in
+                            </Link>{" "}
+                            to be the first to review this {entityType}!
+                        </>
+                    )}
                 </div>
             </div>
         );
@@ -146,9 +165,12 @@ export default function EntityReviews({
             {/* Most Popular Reviews */}
             {mostPopular.length > 0 && (
                 <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                        Most Popular
-                    </h3>
+                    <div className="flex items-center gap-2 mb-4">
+                        <FiTrendingUp className="w-5 h-5 text-green-400" />
+                        <h3 className="text-lg font-semibold text-white">
+                            Most Popular
+                        </h3>
+                    </div>
                     <div className="border-b border-gray-600"></div>
                     <div className="space-y-0">
                         {mostPopular.map(renderReviewRow)}
@@ -159,9 +181,12 @@ export default function EntityReviews({
             {/* Most Recent Reviews */}
             {mostRecent.length > 0 && (
                 <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">
-                        Most Recent
-                    </h3>
+                    <div className="flex items-center gap-2 mb-4">
+                        <FiClock className="w-5 h-5 text-green-400" />
+                        <h3 className="text-lg font-semibold text-white">
+                            Most Recent
+                        </h3>
+                    </div>
                     <div className="border-b border-gray-600"></div>
                     <div className="space-y-0">
                         {mostRecent.map(renderReviewRow)}

@@ -4,7 +4,9 @@ import Image from "next/image";
 import ShowActionButtons from "@/components/ShowActionButtons";
 import WatchedStatusDisplay from "@/components/WatchedStatusDisplay";
 import EpisodeReviewButton from "@/components/EpisodeReviewButton";
+import StartDiscussionButton from "@/components/StartDiscussionButton";
 import EntityReviews from "@/components/EntityReviews";
+import EntityDiscussions from "@/components/EntityDiscussions";
 import RatingDistributionChart from "@/components/RatingDistributionChart";
 import CompletionReviewPrompt from "@/components/CompletionReviewPrompt";
 
@@ -103,10 +105,30 @@ export default async function EpisodePage({
         return { rating, count, percentage };
     });
 
+    // Get user's rating and favorite status for this episode
+    let userRating;
+    let userFavorite;
+    if (userId) {
+        userRating = await prisma.rating.findUnique({
+            where: {
+                userId_episodeId: {
+                    userId,
+                    episodeId: episode.id,
+                },
+            },
+        });
+        userFavorite = await prisma.favorite.findFirst({
+            where: {
+                userId,
+                episodeId: episode.id,
+            },
+        });
+    }
+
 
 
     return (
-        <div className="min-h-screen bg-gray-100 container mx-auto">
+        <div className="min-h-screen bg-gray-900 container mx-auto">
 
 
             {/* Desktop Cover Photo */}
@@ -226,7 +248,7 @@ export default async function EpisodePage({
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-900">
+            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8">
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                     {/* Left Column */}
                     <div className="flex-shrink-0 w-full md:w-64">
@@ -279,6 +301,22 @@ export default async function EpisodePage({
                                 }}
                             />
                         )}
+
+                        {/* Start Discussion Button */}
+                        <div className="mt-2">
+                            <StartDiscussionButton
+                                entityType="episode"
+                                entityId={episode.id}
+                                entityName={`${episode.season.show.name} - ${episode.season.seasonNumber === 0 ? "S" : `S${episode.season.seasonNumber}E`}${episode.episodeNumber} - ${episode.name}`}
+                                entityData={{
+                                    rating: userRating?.rating,
+                                    isFavorited: !!userFavorite
+                                }}
+                            />
+                        </div>
+
+                        {/* Discussions Section */}
+                        <EntityDiscussions entityType="episode" entityId={episode.id} />
                     </div>
 
                     {/* Right Column */}
