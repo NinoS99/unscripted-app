@@ -217,7 +217,7 @@ export default function AddToWatchListModal({ isOpen, onClose, showId, showName 
                                      className="w-full flex flex-col gap-1 p-3 hover:bg-gray-600 rounded-md transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                                  >
                                      <div className="flex items-center justify-between">
-                                         <span className="text-white font-medium truncate">
+                                         <span className="text-white font-medium truncate mr-2">
                                              {watchList.name}
                                          </span>
                                          <span className="text-gray-400 text-xs flex-shrink-0">

@@ -102,7 +102,7 @@ export default function ShowActionButtons({
                                 <Link href={`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
                                     Sign in
                                 </Link>{" "}
-                                to rate, give a rose, watch or review this {entityType}!
+                                to rate, give a rose, watch, review or discuss this {entityType}!
                             </p>
                         </div>
                     )}

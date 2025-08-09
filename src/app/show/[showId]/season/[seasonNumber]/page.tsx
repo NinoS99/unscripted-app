@@ -7,7 +7,9 @@ import CompletionReviewPrompt from "@/components/CompletionReviewPrompt";
 
 import EpisodesOfSeason from "@/components/EpisodesOfSeason";
 import SeasonReviewButton from "@/components/SeasonReviewButton";
+import StartDiscussionButton from "@/components/StartDiscussionButton";
 import EntityReviews from "@/components/EntityReviews";
+import EntityDiscussions from "@/components/EntityDiscussions";
 import RatingDistributionChart from "@/components/RatingDistributionChart";
 import SeasonNavigation from "@/components/SeasonNavigation";
 import { format } from "date-fns";
@@ -104,10 +106,30 @@ export default async function SeasonPage({
         return { rating, count, percentage };
     });
 
+    // Get user's rating and favorite status for this season
+    let userRating;
+    let userFavorite;
+    if (userId) {
+        userRating = await prisma.rating.findUnique({
+            where: {
+                userId_seasonId: {
+                    userId,
+                    seasonId: season.id,
+                },
+            },
+        });
+        userFavorite = await prisma.favorite.findFirst({
+            where: {
+                userId,
+                seasonId: season.id,
+            },
+        });
+    }
+
 
 
     return (
-        <div className="min-h-screen bg-gray-100 container mx-auto">
+        <div className="min-h-screen bg-gray-900 container mx-auto">
             {/* Desktop Cover Photo - Using show backdrop */}
             <div className="relative h-96 md:h-[32rem] w-full overflow-hidden hidden md:block">
                 {season.show.backdropPath ? (
@@ -269,6 +291,22 @@ export default async function SeasonPage({
                                 }}
                             />
                         )}
+
+                        {/* Start Discussion Button */}
+                        <div className="mt-2">
+                            <StartDiscussionButton
+                                entityType="season"
+                                entityId={season.id}
+                                entityName={`${season.show.name} - ${season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}`}
+                                entityData={{
+                                    rating: userRating?.rating,
+                                    isFavorited: !!userFavorite
+                                }}
+                            />
+                        </div>
+
+                        {/* Discussions Section */}
+                        <EntityDiscussions entityType="season" entityId={season.id} />
                     </div>
 
                     {/* Right Column */}

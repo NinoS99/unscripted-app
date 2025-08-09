@@ -11,6 +11,8 @@ import SeasonEpisodesOfShow from "../../../components/SeasonEpisodesOfShow";
 import EntityReviews from "../../../components/EntityReviews";
 import RatingDistributionChart from "../../../components/RatingDistributionChart";
 import AddToWatchListButton from "../../../components/AddToWatchListButton";
+import StartDiscussionButton from "../../../components/StartDiscussionButton";
+import EntityDiscussions from "../../../components/EntityDiscussions";
 import { FiMessageCircle } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import { format } from "date-fns";
@@ -24,6 +26,28 @@ export default async function ShowPage({
 }) {
     const { showId } = await params;
     const { userId } = await auth();
+
+    // Fetch user-specific data for the show
+    let userRating = null;
+    let userFavorite = null;
+    
+    if (userId) {
+        userRating = await prisma.rating.findUnique({
+            where: {
+                userId_showId: {
+                    userId,
+                    showId: Number(showId)
+                }
+            }
+        });
+        
+        userFavorite = await prisma.favorite.findFirst({
+            where: {
+                userId,
+                showId: Number(showId)
+            }
+        });
+    }
 
     const show = await prisma.show.findUnique({
         where: { id: Number(showId) },
@@ -331,10 +355,23 @@ export default async function ShowPage({
                             />
                         </div>
 
+                        {/* Start Discussion Button */}
+                        <div className="mt-4">
+                            <StartDiscussionButton
+                                entityType="show"
+                                entityId={show.id}
+                                entityName={show.name}
+                                entityData={{
+                                    rating: userRating?.rating,
+                                    isFavorited: !!userFavorite
+                                }}
+                            />
+                        </div>
+
                         {/* Watch On Section */}
                         {show.ShowsOnNetworks.length > 0 && (
                             <div className="rounded-lg shadow mt-4 mb-4">
-                                <h3 className="text-md font-semibold text-green-500 mb-2">
+                                <h3 className="text-lg font-semibold text-green-500 mb-2">
                                     On Network
                                     {show.ShowsOnNetworks.length > 1 ? "s" : ""}
                                 </h3>
@@ -387,7 +424,7 @@ export default async function ShowPage({
 
                         {/* Included in Watch Lists Section - Desktop Only */}
                         {sortedWatchLists.length > 0 && (
-                            <div className="hidden md:block mt-6">
+                            <div className="hidden md:block mt-3">
                                 <h3 className="text-lg font-semibold text-green-500">
                                     Included in Watch Lists
                                 </h3>
@@ -498,6 +535,11 @@ export default async function ShowPage({
                                 </div>
                             </div>
                         )}
+
+                                                 {/* Discussions Section - Desktop Only */}
+                         <div className="hidden md:block">
+                             <EntityDiscussions entityType="show" entityId={show.id} />
+                         </div>
                     </div>
 
                     {/* Right Column */}
@@ -559,7 +601,7 @@ export default async function ShowPage({
                                         <h2 className="text-xl font-semibold text-green-500 mb-4">
                                             Included in Watch Lists
                                         </h2>
-                                        <div className="border-b border-gray-600 mb-4"></div>
+                                        <div className="border-b border-gray-600 "></div>
                                         <div className="space-y-0">
                                             {sortedWatchLists.map(
                                                 (watchList, index) => (
@@ -664,7 +706,7 @@ export default async function ShowPage({
                                                         {index <
                                                             watchListsWithShow.length -
                                                                 1 && (
-                                                            <div className="border-t border-gray-700"></div>
+                                                            <div className="border-t border-gray-700 mt-2"></div>
                                                         )}
                                                     </div>
                                                 )
@@ -672,6 +714,11 @@ export default async function ShowPage({
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Discussions Section - Mobile */}
+                                <div className="md:hidden mb-8">
+                                    <EntityDiscussions entityType="show" entityId={show.id} />
+                                </div>
                             </div>
                         </div>
                     </div>

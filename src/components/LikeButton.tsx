@@ -7,7 +7,7 @@ import Link from "next/link";
 import { GiRose } from "react-icons/gi";
 
 interface LikeButtonProps {
-    entityType: "comment" | "review" | "prediction" | "showReview" | "seasonReview" | "episodeReview" | "watchList";
+    entityType: "comment" | "review" | "discussion" | "showReview" | "seasonReview" | "episodeReview" | "watchList";
     entityId: number;
     initialIsLiked?: boolean;
     size?: "sm" | "md" | "lg";
@@ -26,9 +26,9 @@ export default function LikeButton({
     const [isLiked, setIsLiked] = useState(initialIsLiked);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Fetch initial like data if not provided
+    // Fetch initial like data when user is logged in
     useEffect(() => {
-        if (user && !initialIsLiked) {
+        if (user) {
             const fetchLikeData = async () => {
                 try {
                     const response = await fetch(
@@ -44,7 +44,7 @@ export default function LikeButton({
             };
             fetchLikeData();
         }
-    }, [user, entityType, entityId, initialIsLiked]);
+    }, [user, entityType, entityId]);
 
     const handleLike = async () => {
         if (!user || isLoading) return;

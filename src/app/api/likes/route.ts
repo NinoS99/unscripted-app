@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
                 ...(entityType === "seasonReview" && { seasonReviewId: entityId }),
                 ...(entityType === "episodeReview" && { episodeReviewId: entityId }),
                 ...(entityType === "watchList" && { watchListId: entityId }),
+                ...(entityType === "discussion" && { discussionId: entityId }),
             },
         });
 
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
                     ...(entityType === "seasonReview" && { seasonReviewId: entityId }),
                     ...(entityType === "episodeReview" && { episodeReviewId: entityId }),
                     ...(entityType === "watchList" && { watchListId: entityId }),
+                    ...(entityType === "discussion" && { discussionId: entityId }),
                 },
             });
 
@@ -95,6 +97,7 @@ export async function GET(request: NextRequest) {
                     ...(entityType === "seasonReview" && { seasonReviewId: parseInt(entityId) }),
                     ...(entityType === "episodeReview" && { episodeReviewId: parseInt(entityId) }),
                     ...(entityType === "watchList" && { watchListId: parseInt(entityId) }),
+                    ...(entityType === "discussion" && { discussionId: parseInt(entityId) }),
                 },
             }),
             prisma.like.findFirst({
@@ -107,6 +110,7 @@ export async function GET(request: NextRequest) {
                     ...(entityType === "seasonReview" && { seasonReviewId: parseInt(entityId) }),
                     ...(entityType === "episodeReview" && { episodeReviewId: parseInt(entityId) }),
                     ...(entityType === "watchList" && { watchListId: parseInt(entityId) }),
+                    ...(entityType === "discussion" && { discussionId: parseInt(entityId) }),
                 },
             }),
         ]);
