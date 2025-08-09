@@ -9,7 +9,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { episodeId, content, watchedOn, tags, spoiler, favouriteCharacters } = await request.json();
+        const { episodeId, content, watchedOn, tags, spoiler } = await request.json();
 
         // Validate required fields
         if (!episodeId || !content) {
@@ -71,27 +71,7 @@ export async function POST(request: Request) {
             }
         }
 
-        // Handle favourite characters
-        if (favouriteCharacters && favouriteCharacters.length > 0) {
-            for (const characterId of favouriteCharacters) {
-                // Verify the character exists and belongs to this season
-                const character = await prisma.character.findFirst({
-                    where: {
-                        id: characterId,
-                        seasonId: episode.seasonId
-                    },
-                });
 
-                if (character) {
-                    await prisma.episodeReviewCharacter.create({
-                        data: {
-                            episodeReviewId: review.id,
-                            characterId: characterId,
-                        },
-                    });
-                }
-            }
-        }
 
         return NextResponse.json({ 
             message: "Episode review submitted successfully",

@@ -53,11 +53,6 @@ export default async function SearchPage(props: {
         },
         take: 50,
         include: {
-            tags: {
-                include: {
-                    tag: true,
-                },
-            },
             ShowsOnNetworks: {
                 include: {
                     network: true,
@@ -195,20 +190,7 @@ export default async function SearchPage(props: {
                                             </div>
                                         )}
 
-                                        {show.tags.length > 0 && (
-                                            <div className="flex flex-wrap gap-1 mt-5">
-                                                {show.tags
-                                                    .slice(0, 3)
-                                                    .map(({ tag }) => (
-                                                        <span
-                                                            key={tag.id}
-                                                            className="px-2 py-1 bg-gray-700 rounded-full text-xs"
-                                                        >
-                                                            {tag.name}
-                                                        </span>
-                                                    ))}
-                                            </div>
-                                        )}
+
                                     </div>
                                 </div>
                             </Link>
@@ -224,10 +206,7 @@ export default async function SearchPage(props: {
                                         overview: show.overview,
                                         isRunning: show.isRunning,
                                         tmdbRating: show.tmdbRating,
-                                        tags: show.tags.map(({ tag }) => ({
-                                            id: String(tag.id),
-                                            name: tag.name,
-                                        })),
+                                        tags: [],
                                         networks: getUniqueNetworks(
                                             show.ShowsOnNetworks
                                         ).map((network) => ({

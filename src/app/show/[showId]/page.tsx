@@ -30,7 +30,7 @@ export default async function ShowPage({
         include: {
             creator: { include: { creator: true } },
             ShowsOnNetworks: { include: { network: true } },
-            tags: { include: { tag: true } },
+
             seasons: {
                 orderBy: { seasonNumber: "asc" },
                 include: {
