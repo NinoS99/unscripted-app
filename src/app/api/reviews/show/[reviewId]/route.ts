@@ -45,12 +45,7 @@ export async function DELETE(
                 },
             });
 
-            // Delete views associated with this review
-            await tx.view.deleteMany({
-                where: {
-                    showReviewId: reviewId,
-                },
-            });
+
 
             // Delete favourite characters associations
             await tx.showReviewCharacter.deleteMany({
