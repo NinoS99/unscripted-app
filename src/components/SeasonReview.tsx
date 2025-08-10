@@ -294,11 +294,11 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                                 </div>
                             </div>
 
-                            {/* Review Content */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Review
-                                </label>
+                                                         {/* Review Content */}
+                             <div>
+                                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                                     Review *
+                                 </label>
                                 <textarea
                                     value={reviewContent}
                                     onChange={(e) => setReviewContent(e.target.value)}
@@ -412,8 +412,15 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                                 )}
                             </div>
 
-                            {/* Submit Button */}
-                            <div className="flex justify-end pt-4 border-t border-gray-600">
+                            {/* Submit and Cancel Buttons */}
+                            <div className="flex justify-between pt-4 border-t border-gray-600">
+                                <button
+                                    onClick={onClose}
+                                    disabled={isSubmitting}
+                                    className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Cancel
+                                </button>
                                 <button
                                     onClick={handleSubmit}
                                     disabled={isSubmitting || !isFormValid}

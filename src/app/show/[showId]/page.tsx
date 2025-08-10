@@ -275,7 +275,7 @@ export default async function ShowPage({
                         <div className="flex flex-col gap-1 text-sm text-gray-200">
                             {show.firstAirDate && (
                                 <p>
-                                    First aired on{" "}
+                                    {new Date(show.firstAirDate) > new Date() ? "First airing on" : "First aired on"}{" "}
                                     {formatDate(show.firstAirDate)}
                                 </p>
                             )}
@@ -560,6 +560,7 @@ export default async function ShowPage({
                                     averageRating={averageRating}
                                     totalRatings={totalRatings}
                                     ratingDistribution={ratingDistribution}
+                                    entityType="show"
                                 />
 
                                 {show.overview && (

@@ -43,8 +43,12 @@ export default function EpisodesOfSeason({
         Record<number, boolean>
     >({});
     const [isMobile, setIsMobile] = useState(false);
-    const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
-    const [episodeStatuses, setEpisodeStatuses] = useState<Record<number, { isFavorited: boolean; isWatched: boolean }>>({});
+    const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>(
+        {}
+    );
+    const [episodeStatuses, setEpisodeStatuses] = useState<
+        Record<number, { isFavorited: boolean; isWatched: boolean }>
+    >({});
 
     useEffect(() => {
         const checkMobile = () => {
@@ -59,29 +63,44 @@ export default function EpisodesOfSeason({
     useEffect(() => {
         if (user && episodes.length > 0) {
             const fetchEpisodeStatuses = async () => {
-                const statuses: Record<number, { isFavorited: boolean; isWatched: boolean }> = {};
-                
+                const statuses: Record<
+                    number,
+                    { isFavorited: boolean; isWatched: boolean }
+                > = {};
+
                 await Promise.all(
                     episodes.map(async (episode) => {
-                        const [favoriteResponse, watchedResponse] = await Promise.all([
-                            fetch(`/api/favourites?entityType=episode&entityId=${episode.id}`),
-                            fetch(`/api/watched/check`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ entityType: "episode", entityId: episode.id })
-                            })
-                        ]);
-                        
-                        const isFavorited = favoriteResponse.ok ? (await favoriteResponse.json()).isFavorite : false;
-                        const isWatched = watchedResponse.ok ? (await watchedResponse.json()).isWatched : false;
-                        
+                        const [favoriteResponse, watchedResponse] =
+                            await Promise.all([
+                                fetch(
+                                    `/api/favourites?entityType=episode&entityId=${episode.id}`
+                                ),
+                                fetch(`/api/watched/check`, {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        entityType: "episode",
+                                        entityId: episode.id,
+                                    }),
+                                }),
+                            ]);
+
+                        const isFavorited = favoriteResponse.ok
+                            ? (await favoriteResponse.json()).isFavorite
+                            : false;
+                        const isWatched = watchedResponse.ok
+                            ? (await watchedResponse.json()).isWatched
+                            : false;
+
                         statuses[episode.id] = { isFavorited, isWatched };
                     })
                 );
-                
+
                 setEpisodeStatuses(statuses);
             };
-            
+
             fetchEpisodeStatuses();
         }
     }, [user, episodes]);
@@ -145,7 +164,9 @@ export default function EpisodesOfSeason({
                                     {character.person.profilePath && (
                                         <div
                                             className={`absolute inset-0 transition-opacity duration-300 ${
-                                                loadedImages[character.person.id]
+                                                loadedImages[
+                                                    character.person.id
+                                                ]
                                                     ? "opacity-100"
                                                     : "opacity-0"
                                             }`}
@@ -156,7 +177,9 @@ export default function EpisodesOfSeason({
                                                 fill
                                                 className="object-cover group-hover:opacity-80 transition-opacity"
                                                 onLoad={() =>
-                                                    handleImageLoad(character.person.id)
+                                                    handleImageLoad(
+                                                        character.person.id
+                                                    )
                                                 }
                                             />
                                         </div>
@@ -204,29 +227,38 @@ export default function EpisodesOfSeason({
                             key={episode.id}
                             className="flex flex-col p-3 bg-gray-800 rounded"
                         >
-                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-2">
                                 <div className="mb-2 sm:mb-0">
                                     <div className="flex items-center gap-2">
-                                        <Link 
-                                        href={`/show/${showId}/season/${seasonNumber}/episode/${episode.episodeNumber}`}
-                                        className="group flex items-center gap-2"
+                                        <Link
+                                            href={`/show/${showId}/season/${seasonNumber}/episode/${episode.episodeNumber}`}
+                                            className="group flex items-center gap-2"
                                         >
-                                        <h4 className="font-medium text-green-500 hover:text-green-400 transition-colors">
-                                            {seasonNumber === 0
-                                                ? episode.name
-                                                : `${episode.episodeNumber}: ${episode.name}`}
-                                        </h4>
+                                            <h4 className="font-medium text-green-500 hover:text-green-400 transition-colors">
+                                                {seasonNumber === 0
+                                                    ? episode.name
+                                                    : `${episode.episodeNumber}: ${episode.name}`}
+                                            </h4>
                                         </Link>
-                                        {user && episodeStatuses[episode.id] && (
-                                            <div className="flex items-center gap-1">
-                                                {episodeStatuses[episode.id].isFavorited && (
-                                                    <GiRose className="w-4 h-4 text-red-400 fill-current" title="Favorited" />
-                                                )}
-                                                {episodeStatuses[episode.id].isWatched && (
-                                                    <FiEye className="w-4 h-4 text-green-400" title="Watched" />
-                                                )}
-                                            </div>
-                                        )}
+                                        {user &&
+                                            episodeStatuses[episode.id] && (
+                                                <div className="flex items-center gap-1">
+                                                    {episodeStatuses[episode.id]
+                                                        .isFavorited && (
+                                                        <GiRose
+                                                            className="w-4 h-4 text-red-400 fill-current"
+                                                            title="Favorited"
+                                                        />
+                                                    )}
+                                                    {episodeStatuses[episode.id]
+                                                        .isWatched && (
+                                                        <FiEye
+                                                            className="w-4 h-4 text-green-400"
+                                                            title="Watched"
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                                 {user ? (
@@ -236,14 +268,19 @@ export default function EpisodesOfSeason({
                                     />
                                 ) : (
                                     <p className="text-gray-400 text-sm">
-                                        <Link href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                                        <Link
+                                            href={`/sign-in?redirect_url=${encodeURIComponent(
+                                                pathname
+                                            )}`}
+                                            className="text-green-400 hover:text-green-300 transition-colors font-medium"
+                                        >
                                             Sign in
                                         </Link>{" "}
                                         to rate this episode!
                                     </p>
                                 )}
                             </div>
-                            {episode.formattedAirDate && (
+                            {episode.formattedAirDate && episode.formattedAirDate !== "Unknown" && (
                                 <p className="text-xs text-white mb-3 sm:mb-2 mt-0">
                                     {isFutureDate ? "Airs on " : "Aired on "}
                                     {episode.formattedAirDate}

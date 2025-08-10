@@ -356,27 +356,34 @@ export default function DiscussionDisplay({
                                 </div>
 
                                 {/* User's Rating and Favorite Status */}
-                                <div className="flex items-center gap-4">
-                                    {discussion.userRating && (
-                                        <div className="flex items-center gap-1">
-                                            <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
-                                            <span className="text-lg font-semibold text-yellow-400">
-                                                {discussion.userRating}
-                                            </span>
-                                            <span className="text-sm text-gray-400">
-                                                / 5
-                                            </span>
+                                <div className="space-y-2">
+                                    {/* First row: Rating and Rose (if both exist) */}
+                                    {(discussion.userRating || discussion.userFavorite) && (
+                                        <div className="flex items-center gap-4">
+                                            {discussion.userRating && (
+                                                <div className="flex items-center gap-1">
+                                                    <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
+                                                    <span className="text-lg font-semibold text-yellow-400">
+                                                        {discussion.userRating}
+                                                    </span>
+                                                    <span className="text-sm text-gray-400">
+                                                        / 5
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {discussion.userFavorite && (
+                                                <div className="flex items-center gap-1">
+                                                    <GiRose className="w-5 h-5 text-red-400 fill-current" />
+                                                    <span className="text-sm text-red-400 font-medium pl-1">
+                                                        Discussion creator gave this{" "}
+                                                        {discussionType} a rose
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                    {discussion.userFavorite && (
-                                        <div className="flex items-center gap-1">
-                                            <GiRose className="w-5 h-5 text-red-400 fill-current" />
-                                            <span className="text-sm text-red-400 font-medium pl-1">
-                                                Discussion creator gave this{" "}
-                                                {discussionType} a rose
-                                            </span>
-                                        </div>
-                                    )}
+                                    
+                                    {/* Second row: Spoiler (if exists) */}
                                     {discussion.spoiler && (
                                         <div className="flex items-center gap-1">
                                             <span className="text-red-400 text-sm font-medium">

@@ -164,7 +164,10 @@ export default async function EpisodePage({
                     </h3>
                     <div className="flex flex-col gap-1 text-sm text-gray-200">
                         {episode.airDate && (
-                            <p>Aired on {formatDate(episode.airDate)}</p>
+                            <p>
+                                {new Date(episode.airDate) > new Date() ? "Airing on" : "Aired on"}{" "}
+                                {formatDate(episode.airDate)}
+                            </p>
                         )}
                         {episode.season.show.creator.length > 0 && (
                             <p>
@@ -236,6 +239,14 @@ export default async function EpisodePage({
                         <h3 className="text-md font-bold text-white">
                             Episode {episode.episodeNumber}: {episode.name}
                         </h3>
+                        <div className="flex flex-col gap-1 text-sm text-gray-200">
+                            {episode.airDate && (
+                                <p>
+                                    {new Date(episode.airDate) > new Date() ? "Airing on" : "Aired on"}{" "}
+                                    {formatDate(episode.airDate)}
+                                </p>
+                            )}
+                        </div>
                         <WatchedStatusDisplay entityType="episode" entityId={episode.id} />
                     </div>
 
@@ -315,8 +326,10 @@ export default async function EpisodePage({
                             />
                         </div>
 
-                        {/* Discussions Section */}
-                        <EntityDiscussions entityType="episode" entityId={episode.id} />
+                        {/* Discussions Section - Desktop Only */}
+                        <div className="hidden md:block">
+                            <EntityDiscussions entityType="episode" entityId={episode.id} />
+                        </div>
                     </div>
 
                     {/* Right Column */}
@@ -328,6 +341,7 @@ export default async function EpisodePage({
                                     averageRating={averageRating}
                                     totalRatings={totalRatings}
                                     ratingDistribution={ratingDistribution}
+                                    entityType="episode"
                                 />
 
                                 {episode.overview && (
@@ -349,6 +363,11 @@ export default async function EpisodePage({
                                     entityId={episode.id}
                                     entityName={`${episode.season.show.name} - ${episode.season.seasonNumber === 0 ? "S" : `S${episode.season.seasonNumber}E`}${episode.episodeNumber} - ${episode.name}`}
                                 />
+
+                                {/* Discussions Section - Mobile */}
+                                <div className="md:hidden mb-8">
+                                    <EntityDiscussions entityType="episode" entityId={episode.id} />
+                                </div>
                             </div>
                         </div>
                     </div>
