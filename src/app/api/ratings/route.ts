@@ -5,9 +5,9 @@ import { auth } from '@clerk/nextjs/server'
 const prisma = new PrismaClient()
 
 type RatingResponse = {
-  showRating?: number
-  seasonRating?: number
-  episodeRating?: number
+  showRating?: number | null
+  seasonRating?: number | null
+  episodeRating?: number | null
   error?: string
 }
 
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
         },
         select: { rating: true }
       })
-      responseData.showRating = rating?.rating || 0
+      responseData.showRating = rating?.rating || null
     }
     // Fetch season rating if seasonId provided
     else if (seasonId && !showId && !episodeId) {
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
         },
         select: { rating: true }
       })
-      responseData.seasonRating = rating?.rating || 0
+      responseData.seasonRating = rating?.rating || null
     }
     // Fetch episode rating if episodeId provided
     else if (episodeId && !showId && !seasonId) {
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
         },
         select: { rating: true }
       })
-      responseData.episodeRating = rating?.rating || 0
+      responseData.episodeRating = rating?.rating || null
     }
     else {
       return NextResponse.json(

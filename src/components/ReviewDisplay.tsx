@@ -233,22 +233,29 @@ export default function ReviewDisplay({
                                 </div>
 
                                 {/* User's Rating and Favorite Status */}
-                                <div className="flex items-center gap-4">
-                                    {review.userRating && (
-                                        <div className="flex items-center gap-1">
-                                            <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
-                                            <span className="text-lg font-semibold text-yellow-400">
-                                                {review.userRating}
-                                            </span>
-                                            <span className="text-sm text-gray-400">/ 5</span>
+                                <div className="space-y-2">
+                                    {/* First row: Rating and Rose (if both exist) */}
+                                    {(review.userRating || review.userFavorite) && (
+                                        <div className="flex items-center gap-4">
+                                            {review.userRating && (
+                                                <div className="flex items-center gap-1">
+                                                    <FiStar className="w-5 h-5 text-yellow-400 fill-current" />
+                                                    <span className="text-lg font-semibold text-yellow-400">
+                                                        {review.userRating}
+                                                    </span>
+                                                    <span className="text-sm text-gray-400">/ 5</span>
+                                                </div>
+                                            )}
+                                            {review.userFavorite && (
+                                                <div className="flex items-center gap-1">
+                                                    <GiRose className="w-5 h-5 text-red-400 fill-current" />
+                                                    <span className="text-sm text-red-400 font-medium pl-1">Reviewer gave this a rose</span>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                    {review.userFavorite && (
-                                        <div className="flex items-center gap-1">
-                                            <GiRose className="w-5 h-5 text-red-400 fill-current" />
-                                            <span className="text-sm text-red-400 font-medium pl-1">Reviewer gave this a rose</span>
-                                        </div>
-                                    )}
+                                    
+                                    {/* Second row: Spoiler (if exists) */}
                                     {review.spoiler && (
                                         <div className="flex items-center gap-1">
                                             <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>

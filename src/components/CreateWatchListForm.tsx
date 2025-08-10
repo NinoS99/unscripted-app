@@ -55,9 +55,23 @@ export default function CreateWatchListForm() {
                     const data = await response.json();
                     if (data.shows && data.shows.length > 0) {
                         const show = data.shows[0];
+                        
+                        // Fetch user's rating for this show
+                        let userRating = null;
+                        try {
+                            const ratingResponse = await fetch(`/api/ratings?showId=${show.id}`);
+                            if (ratingResponse.ok) {
+                                const ratingData = await ratingResponse.json();
+                                userRating = ratingData.showRating;
+                            }
+                        } catch (error) {
+                            console.error("Error fetching rating:", error);
+                        }
+                        
                         const newShow: SelectedShow = {
                             ...show,
                             ranking: isRanked ? 1 : undefined,
+                            userRating
                         };
                         setSelectedShows([newShow]);
                     }
@@ -308,15 +322,16 @@ export default function CreateWatchListForm() {
 
             if (response.ok) {
                 const data = await response.json();
+                // Don't set isSubmitting to false here - let the navigation happen while form is still disabled
                 router.push(`/${user?.username}/watch-list/${data.watchListId}`);
             } else {
                 const error = await response.json();
                 console.error("Failed to create watch list:", error);
+                setIsSubmitting(false); // Only reset if there was an error
             }
         } catch (error) {
             console.error("Error creating watch list:", error);
-        } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // Only reset if there was an error
         }
     };
 
@@ -391,7 +406,8 @@ export default function CreateWatchListForm() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Enter a name for your watch list..."
-                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                disabled={isSubmitting}
+                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
 
@@ -409,7 +425,8 @@ export default function CreateWatchListForm() {
                                         {tag}
                                         <button
                                             onClick={() => handleRemoveTag(tag)}
-                                            className="hover:text-red-200"
+                                            disabled={isSubmitting}
+                                            className="hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <FiX className="w-3 h-3" />
                                         </button>
@@ -423,11 +440,13 @@ export default function CreateWatchListForm() {
                                     onChange={(e) => setNewTag(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     placeholder="Add a tag..."
-                                    className="flex-grow px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                    disabled={isSubmitting}
+                                    className="flex-grow px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <button
                                     onClick={handleAddTag}
-                                    className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                    disabled={isSubmitting}
+                                    className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FiTag className="w-4 h-4" />
                                 </button>
@@ -446,7 +465,8 @@ export default function CreateWatchListForm() {
                                         value="public"
                                         checked={privacy === "public"}
                                         onChange={(e) => setPrivacy(e.target.value as "public")}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500"
+                                        disabled={isSubmitting}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Public - Anyone can view</span>
@@ -457,7 +477,8 @@ export default function CreateWatchListForm() {
                                         value="friends"
                                         checked={privacy === "friends"}
                                         onChange={(e) => setPrivacy(e.target.value as "friends")}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500"
+                                        disabled={isSubmitting}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Friends Only - Only your friends can view</span>
@@ -468,7 +489,8 @@ export default function CreateWatchListForm() {
                                         value="private"
                                         checked={privacy === "private"}
                                         onChange={(e) => setPrivacy(e.target.value as "private")}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500"
+                                        disabled={isSubmitting}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Private - Only you can view</span>
@@ -483,7 +505,8 @@ export default function CreateWatchListForm() {
                                         type="checkbox"
                                         checked={isRanked}
                                         onChange={(e) => setIsRanked(e.target.checked)}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                        disabled={isSubmitting}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">This is a ranked list</span>
@@ -502,7 +525,8 @@ export default function CreateWatchListForm() {
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Describe your watch list..."
                                 rows={12}
-                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                disabled={isSubmitting}
+                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
                     </div>
@@ -513,7 +537,8 @@ export default function CreateWatchListForm() {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => document.getElementById('show-search')?.focus()}
-                            className="px-2 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
+                            disabled={isSubmitting}
+                            className="px-2 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Add Show
                         </button>
@@ -524,7 +549,8 @@ export default function CreateWatchListForm() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search for shows..."
-                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400"
+                                disabled={isSubmitting}
+                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onFocus={() => setShowDropdown(true)}
                             />
                             {isSearching && (
@@ -575,14 +601,14 @@ export default function CreateWatchListForm() {
                                 {selectedShows.map((show, index) => (
                                     <div
                                         key={show.id}
-                                        draggable={isRanked}
+                                        draggable={isRanked && !isSubmitting}
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={(e) => handleDragOver(e, index)}
                                         onDragLeave={handleDragLeave}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                         className={`flex items-center gap-3 p-3 rounded-md transition-all duration-200 ${
-                                            isRanked ? 'cursor-move' : ''
+                                            isRanked && !isSubmitting ? 'cursor-move' : ''
                                         } ${
                                             draggedIndex === index 
                                                 ? 'opacity-50 bg-gray-400' 
@@ -618,7 +644,8 @@ export default function CreateWatchListForm() {
                                             )}
                                             <button
                                                 onClick={() => openNoteModal(index)}
-                                                className="text-green-400 hover:text-green-300 text-xs mt-1 transition-colors"
+                                                disabled={isSubmitting}
+                                                className="text-green-400 hover:text-green-300 text-xs mt-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {show.note ? "Edit note" : "Add note"}
                                             </button>
@@ -640,14 +667,14 @@ export default function CreateWatchListForm() {
                                                 <div className="flex flex-col">
                                                     <button
                                                         onClick={() => moveShowUp(index)}
-                                                        disabled={index === 0}
+                                                        disabled={index === 0 || isSubmitting}
                                                         className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <FiChevronUp className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => moveShowDown(index)}
-                                                        disabled={index === selectedShows.length - 1}
+                                                        disabled={index === selectedShows.length - 1 || isSubmitting}
                                                         className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <FiChevronDown className="w-4 h-4" />
@@ -656,7 +683,8 @@ export default function CreateWatchListForm() {
                                             )}
                                             <button
                                                 onClick={() => handleRemoveShow(show.id)}
-                                                className="text-red-400 hover:text-red-300 transition-colors"
+                                                disabled={isSubmitting}
+                                                className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <FiTrash2 className="w-4 h-4" />
                                             </button>
@@ -672,7 +700,8 @@ export default function CreateWatchListForm() {
                 <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 pb-2 border-t border-gray-600 mt-8">
                     <button
                         onClick={() => router.back()}
-                        className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                        disabled={isSubmitting}
+                        className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Cancel
                     </button>
@@ -702,7 +731,8 @@ export default function CreateWatchListForm() {
                             <h2 className="text-xl font-bold text-white">Add Note</h2>
                             <button
                                 onClick={closeNoteModal}
-                                className="text-gray-400 hover:text-white transition-colors"
+                                disabled={isSubmitting}
+                                className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <FiX className="w-6 h-6" />
                             </button>
@@ -719,7 +749,8 @@ export default function CreateWatchListForm() {
                                     onChange={(e) => setNoteText(e.target.value)}
                                     placeholder="Add any notes about this show..."
                                     rows={4}
-                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                    disabled={isSubmitting}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
 
@@ -730,7 +761,8 @@ export default function CreateWatchListForm() {
                                         type="checkbox"
                                         checked={noteSpoiler}
                                         onChange={(e) => setNoteSpoiler(e.target.checked)}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                        disabled={isSubmitting}
+                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
                                     <span className="ml-2 text-white">Contains spoilers</span>
@@ -758,7 +790,7 @@ export default function CreateWatchListForm() {
                                                     checked={selectedSeasons.includes(season.id)}
                                                     onChange={() => toggleSeasonSelection(season.id)}
                                                     className="w-4 h-4 mr-2"
-                                                    disabled={!selectedSeasons.includes(season.id) && selectedSeasons.length >= 5}
+                                                    disabled={(!selectedSeasons.includes(season.id) && selectedSeasons.length >= 5) || isSubmitting}
                                                 />
                                                 <span className="text-sm">
                                                     {season.seasonNumber === 0 ? 'Specials' : `Season ${season.seasonNumber}`}
@@ -778,13 +810,15 @@ export default function CreateWatchListForm() {
                             <div className="flex justify-end gap-3 pt-4 border-t border-gray-600">
                                 <button
                                     onClick={closeNoteModal}
-                                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                                    disabled={isSubmitting}
+                                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={saveNote}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                    disabled={isSubmitting}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Save Note
                                 </button>

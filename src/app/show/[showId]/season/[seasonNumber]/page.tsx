@@ -227,6 +227,14 @@ export default async function SeasonPage({
                                 ? "Specials"
                                 : `Season ${season.seasonNumber}`}
                         </h2>
+                        <div className="flex flex-col gap-1 text-sm text-gray-200">
+                            {season.airDate && (
+                                <p>
+                                    {new Date(season.airDate) > new Date() ? "Airing on" : "Season aired on"}{" "}
+                                    {formatDate(season.airDate)}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Season Navigation - Mobile */}
@@ -305,8 +313,10 @@ export default async function SeasonPage({
                             />
                         </div>
 
-                        {/* Discussions Section */}
-                        <EntityDiscussions entityType="season" entityId={season.id} />
+                        {/* Discussions Section - Desktop Only */}
+                        <div className="hidden md:block">
+                            <EntityDiscussions entityType="season" entityId={season.id} />
+                        </div>
                     </div>
 
                     {/* Right Column */}
@@ -318,6 +328,7 @@ export default async function SeasonPage({
                                     averageRating={averageRating}
                                     totalRatings={totalRatings}
                                     ratingDistribution={ratingDistribution}
+                                    entityType="season"
                                 />
 
                                 {season.overview && (
@@ -352,6 +363,11 @@ export default async function SeasonPage({
                                     entityId={season.id}
                                     entityName={`${season.show.name} - ${season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}`}
                                 />
+
+                                {/* Discussions Section - Mobile */}
+                                <div className="md:hidden mb-8">
+                                    <EntityDiscussions entityType="season" entityId={season.id} />
+                                </div>
                             </div>
                         </div>
                     </div>

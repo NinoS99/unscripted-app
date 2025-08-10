@@ -10,12 +10,14 @@ interface RatingDistributionChartProps {
         count: number;
         percentage: number;
     }>;
+    entityType?: "show" | "season" | "episode";
 }
 
 export default function RatingDistributionChart({ 
     averageRating, 
     totalRatings, 
-    ratingDistribution 
+    ratingDistribution,
+    entityType
 }: RatingDistributionChartProps) {
     const getRealityTVText = (count: number) => {
         if (count === 0) return "No islanders rated";
@@ -31,15 +33,21 @@ export default function RatingDistributionChart({
             <h2 className="text-xl font-semibold text-green-500 mb-4">Ratings</h2>
             <div className="border-b border-gray-600 mb-4"></div>
             <div className="space-y-3">
-                <div className="flex items-center gap-4 text-gray-300">
-                    <div className="flex items-center gap-1">
-                        <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="font-semibold">{averageRating}</span>
-                        <span className="text-sm">/ 5</span>
+                {totalRatings > 0 ? (
+                    <div className="flex items-center gap-4 text-gray-300">
+                        <div className="flex items-center gap-1">
+                            <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
+                            <span className="font-semibold">{averageRating}</span>
+                            <span className="text-sm">/ 5</span>
+                        </div>
+                        <span className="text-sm">•</span>
+                        <span className="text-sm">{getRealityTVText(totalRatings)}</span>
                     </div>
-                    <span className="text-sm">•</span>
-                    <span className="text-sm">{getRealityTVText(totalRatings)}</span>
-                </div>
+                ) : (
+                    <div className="text-gray-300 text-center">
+                        <span className="text-sm">Be the first to rate this {entityType}</span>
+                    </div>
+                )}
                 
                 <div className="flex items-end gap-1 h-20">
                     {ratingDistribution.map(({ rating, count, percentage }) => {
