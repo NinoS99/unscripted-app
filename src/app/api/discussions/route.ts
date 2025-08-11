@@ -160,6 +160,12 @@ export async function GET(request: NextRequest) {
                         comments: true,
                         likes: true
                     }
+                },
+                polls: {
+                    select: {
+                        id: true,
+                        question: true,
+                    }
                 }
             };
 

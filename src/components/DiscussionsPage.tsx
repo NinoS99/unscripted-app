@@ -5,16 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { GiRose } from "react-icons/gi";
-import { FiFilter, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
-import ReviewRow from "./ReviewRow";
+import { FiFilter, FiChevronLeft, FiChevronRight, FiEye} from "react-icons/fi";
+import DiscussionRow from "./DiscussionRow";
 import RatingDistributionChart from "./RatingDistributionChart";
 
-interface Review {
+interface Discussion {
     id: number;
+    title: string;
     content: string;
     createdAt: string;
-    userRating?: number;
-    userFavorite?: boolean;
     spoiler: boolean;
     user: {
         id: string;
@@ -25,13 +24,16 @@ interface Review {
         likes: number;
         comments: number;
     };
+    polls: {
+        id: number;
+        question: string;
+    }[];
 }
 
-interface ReviewsPageProps {
+interface DiscussionsPageProps {
     entityType: "show" | "season" | "episode";
     entityId: number;
     entityName: string;
-    userId?: string | null;
     entity: {
         id: number;
         name?: string;
@@ -61,7 +63,7 @@ interface ReviewsPageProps {
         seasonPosterPath?: string | null;
         showPosterPath?: string | null;
     };
-    // Additional data for charts and stats
+    // Additional data for stats
     totalLikes?: number;
     totalWatched?: number;
     ratingDistribution?: {
@@ -69,10 +71,10 @@ interface ReviewsPageProps {
     };
 }
 
-type SortOption = "recent" | "popular" | "highest_rating" | "lowest_rating";
+type SortOption = "recent" | "popular" | "most_comments";
 type SpoilerFilter = "all" | "spoiler_free" | "spoiler_only";
 
-export default function ReviewsPage({
+export default function DiscussionsPage({
     entityType,
     entityId,
     entityName,
@@ -81,12 +83,11 @@ export default function ReviewsPage({
     totalLikes = 0,
     totalWatched = 0,
     ratingDistribution = {},
-}: ReviewsPageProps) {
-    const [reviews, setReviews] = useState<Review[]>([]);
-    const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
+}: DiscussionsPageProps) {
+    const [discussions, setDiscussions] = useState<Discussion[]>([]);
+    const [filteredDiscussions, setFilteredDiscussions] = useState<Discussion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [sortBy, setSortBy] = useState<SortOption>("recent");
-    const [exactRating, setExactRating] = useState<number | "">("");
     const [spoilerFilter, setSpoilerFilter] = useState<SpoilerFilter>("all");
     const [showFilters, setShowFilters] = useState(false);
     const [isClient, setIsClient] = useState(false);
@@ -96,19 +97,19 @@ export default function ReviewsPage({
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
-    const [reviewsPerPage, setReviewsPerPage] = useState(10);
+    const [discussionsPerPage, setDiscussionsPerPage] = useState(10);
 
-    const fetchReviews = useCallback(async () => {
+    const fetchDiscussions = useCallback(async () => {
         try {
             const response = await fetch(
-                `/api/reviews/${entityType}?${entityType}Id=${entityId}`
+                `/api/discussions/${entityType}?${entityType}Id=${entityId}`
             );
             if (response.ok) {
                 const data = await response.json();
-                setReviews(data.reviews || []);
+                setDiscussions(data.discussions || []);
             }
         } catch (error) {
-            console.error("Error fetching reviews:", error);
+            console.error("Error fetching discussions:", error);
         } finally {
             setIsLoading(false);
         }
@@ -120,27 +121,20 @@ export default function ReviewsPage({
 
     useEffect(() => {
         if (isClient) {
-            fetchReviews();
+            fetchDiscussions();
         }
-    }, [fetchReviews, isClient]);
+    }, [fetchDiscussions, isClient]);
 
     useEffect(() => {
-        let filtered = [...reviews];
-
-        // Apply exact rating filter
-        if (exactRating !== "") {
-            filtered = filtered.filter(
-                (review) => review.userRating === exactRating
-            );
-        }
+        let filtered = [...discussions];
 
         // Apply spoiler filter
         switch (spoilerFilter) {
             case "spoiler_free":
-                filtered = filtered.filter((review) => !review.spoiler);
+                filtered = filtered.filter((discussion) => !discussion.spoiler);
                 break;
             case "spoiler_only":
-                filtered = filtered.filter((review) => review.spoiler);
+                filtered = filtered.filter((discussion) => discussion.spoiler);
                 break;
             case "all":
             default:
@@ -160,27 +154,20 @@ export default function ReviewsPage({
             case "popular":
                 filtered.sort((a, b) => b._count.likes - a._count.likes);
                 break;
-            case "highest_rating":
-                filtered.sort(
-                    (a, b) => (b.userRating || 0) - (a.userRating || 0)
-                );
-                break;
-            case "lowest_rating":
-                filtered.sort(
-                    (a, b) => (a.userRating || 0) - (b.userRating || 0)
-                );
+            case "most_comments":
+                filtered.sort((a, b) => b._count.comments - a._count.comments);
                 break;
         }
 
-        setFilteredReviews(filtered);
+        setFilteredDiscussions(filtered);
         setCurrentPage(1); // Reset to first page when filters change
-    }, [reviews, sortBy, exactRating, spoilerFilter]);
+    }, [discussions, sortBy, spoilerFilter]);
 
     // Pagination calculations
-    const totalPages = Math.ceil(filteredReviews.length / reviewsPerPage);
-    const startIndex = (currentPage - 1) * reviewsPerPage;
-    const endIndex = startIndex + reviewsPerPage;
-    const currentReviews = filteredReviews.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(filteredDiscussions.length / discussionsPerPage);
+    const startIndex = (currentPage - 1) * discussionsPerPage;
+    const endIndex = startIndex + discussionsPerPage;
+    const currentDiscussions = filteredDiscussions.slice(startIndex, endIndex);
 
     const goToPage = (page: number) => {
         setCurrentPage(Math.max(1, Math.min(page, totalPages)));
@@ -245,17 +232,17 @@ export default function ReviewsPage({
         return content.substring(0, maxLength) + "...";
     };
 
-    const toggleSpoiler = (reviewId: number) => {
+    const toggleSpoiler = (discussionId: number) => {
         setShowSpoilers((prev) => ({
             ...prev,
-            [reviewId]: !prev[reviewId],
+            [discussionId]: !prev[discussionId],
         }));
     };
 
-    const renderReviewRow = (review: Review) => (
-        <ReviewRow
-            key={review.id}
-            review={review}
+    const renderDiscussionRow = (discussion: Discussion) => (
+        <DiscussionRow
+            key={discussion.id}
+            discussion={discussion}
             entityType={entityType}
             showSpoilers={showSpoilers}
             onToggleSpoiler={toggleSpoiler}
@@ -268,7 +255,7 @@ export default function ReviewsPage({
             <div className="min-h-screen bg-gray-900 text-white">
                 <div className="container mx-auto px-4 py-8">
                     <div className="text-gray-400 text-center py-8">
-                        Loading reviews...
+                        Loading discussions...
                     </div>
                 </div>
             </div>
@@ -334,17 +321,17 @@ export default function ReviewsPage({
                         </div>
                     </div>
 
-                                         {/* Mobile info below poster */}
-                     <div className="mt-4 space-y-4 px-4">
-                         {/* Review count on first line */}
-                         <div className="text-gray-300 text-sm">
-                             <span>
-                                 {reviews.length} review
-                                 {reviews.length !== 1 ? "s" : ""}
-                             </span>
-                         </div>
-                         
-                         {/* Like and watched counts on separate lines */}
+                    {/* Mobile info below poster */}
+                    <div className="mt-4 space-y-4 px-4">
+                        {/* Discussion count on first line */}
+                        <div className="text-gray-300 text-sm">
+                            <span>
+                                {discussions.length} discussion
+                                {discussions.length !== 1 ? "s" : ""}
+                            </span>
+                        </div>
+                        
+                                                 {/* Like and watched counts on separate lines */}
                          <div className="flex flex-col gap-2 text-gray-300 text-sm">
                              <div className="flex items-center gap-1">
                                  <GiRose className="w-4 h-4 text-red-400 fill-current" />
@@ -363,50 +350,50 @@ export default function ReviewsPage({
                              </div>
                          </div>
 
-                        {/* Rating Distribution Chart */}
-                        <div className="mt-6">
-                            {(() => {
-                                // Calculate total ratings and average
-                                const totalRatings = Object.values(
-                                    ratingDistribution
-                                ).reduce((sum, count) => sum + count, 0);
-                                const totalRatingSum = Object.entries(
-                                    ratingDistribution
-                                ).reduce(
-                                    (sum, [rating, count]) =>
-                                        sum + parseFloat(rating) * count,
-                                    0
-                                );
-                                const averageRating =
-                                    totalRatings > 0
-                                        ? (
-                                              totalRatingSum / totalRatings
-                                          ).toFixed(1)
-                                        : "0.0";
+                         {/* Rating Distribution Chart */}
+                         <div className="mt-6">
+                             {(() => {
+                                 // Calculate total ratings and average
+                                 const totalRatings = Object.values(
+                                     ratingDistribution
+                                 ).reduce((sum, count) => sum + count, 0);
+                                 const totalRatingSum = Object.entries(
+                                     ratingDistribution
+                                 ).reduce(
+                                     (sum, [rating, count]) =>
+                                         sum + parseFloat(rating) * count,
+                                     0
+                                 );
+                                 const averageRating =
+                                     totalRatings > 0
+                                         ? (
+                                               totalRatingSum / totalRatings
+                                           ).toFixed(1)
+                                         : "0.0";
 
-                                // Format rating distribution for the chart
-                                const chartData = [
-                                    0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
-                                ].map((rating) => {
-                                    const count =
-                                        ratingDistribution[rating] || 0;
-                                    const percentage =
-                                        totalRatings > 0
-                                            ? (count / totalRatings) * 100
-                                            : 0;
-                                    return { rating, count, percentage };
-                                });
+                                 // Format rating distribution for the chart
+                                 const chartData = [
+                                     0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
+                                 ].map((rating) => {
+                                     const count =
+                                         ratingDistribution[rating] || 0;
+                                     const percentage =
+                                         totalRatings > 0
+                                             ? (count / totalRatings) * 100
+                                             : 0;
+                                     return { rating, count, percentage };
+                                 });
 
-                                return (
-                                    <RatingDistributionChart
-                                        averageRating={averageRating}
-                                        totalRatings={totalRatings}
-                                        ratingDistribution={chartData}
-                                        entityType={entityType}
-                                    />
-                                );
-                            })()}
-                        </div>
+                                 return (
+                                     <RatingDistributionChart
+                                         averageRating={averageRating}
+                                         totalRatings={totalRatings}
+                                         ratingDistribution={chartData}
+                                         entityType={entityType}
+                                     />
+                                 );
+                             })()}
+                         </div>
                     </div>
                 </div>
 
@@ -448,8 +435,8 @@ export default function ReviewsPage({
                             {/* Stats on same line */}
                             <div className="flex items-center gap-4 text-gray-300 text-sm">
                                 <span>
-                                    {reviews.length} review
-                                    {reviews.length !== 1 ? "s" : ""}
+                                    {discussions.length} discussion
+                                    {discussions.length !== 1 ? "s" : ""}
                                 </span>
                                 <div className="flex items-center gap-1">
                                     <GiRose className="w-4 h-4 text-red-400 fill-current" />
@@ -521,18 +508,18 @@ export default function ReviewsPage({
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-xl font-semibold text-green-500">
-                            All Reviews
+                            All Discussions
                         </h2>
                         <div className="flex items-center gap-4">
-                            {/* Reviews per page selector */}
+                            {/* Discussions per page selector */}
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-400">
                                     Show:
                                 </span>
                                 <select
-                                    value={reviewsPerPage}
+                                    value={discussionsPerPage}
                                     onChange={(e) => {
-                                        setReviewsPerPage(
+                                        setDiscussionsPerPage(
                                             Number(e.target.value)
                                         );
                                         setCurrentPage(1);
@@ -578,39 +565,9 @@ export default function ReviewsPage({
                                         <option value="popular">
                                             Most Popular
                                         </option>
-                                        <option value="highest_rating">
-                                            Highest Rating
+                                        <option value="most_comments">
+                                            Most Comments
                                         </option>
-                                        <option value="lowest_rating">
-                                            Lowest Rating
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        Rating Filter
-                                    </label>
-                                    <select
-                                        value={exactRating}
-                                        onChange={(e) =>
-                                            setExactRating(
-                                                e.target.value === ""
-                                                    ? ""
-                                                    : Number(e.target.value)
-                                            )
-                                        }
-                                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-400"
-                                    >
-                                        <option value="">All Ratings</option>
-                                        {[
-                                            0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5,
-                                            5,
-                                        ].map((rating) => (
-                                            <option key={rating} value={rating}>
-                                                {rating} stars
-                                            </option>
-                                        ))}
                                     </select>
                                 </div>
 
@@ -627,12 +584,12 @@ export default function ReviewsPage({
                                         }
                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-400"
                                     >
-                                        <option value="all">All Reviews</option>
+                                        <option value="all">All Discussions</option>
                                         <option value="spoiler_free">
                                             Spoiler Free
                                         </option>
                                         <option value="spoiler_only">
-                                            Spoiler Reviews Only
+                                            Spoiler Discussions Only
                                         </option>
                                     </select>
                                 </div>
@@ -641,16 +598,14 @@ export default function ReviewsPage({
                     )}
                 </div>
 
-                {/* Reviews List */}
+                {/* Discussions List */}
                 <div className="space-y-0">
-                    {currentReviews.length === 0 ? (
+                    {currentDiscussions.length === 0 ? (
                         <div className="text-gray-400 text-center py-12">
-                            {exactRating !== ""
-                                ? `No reviews with ${exactRating} star rating.`
-                                : "No reviews found."}
+                            No discussions found.
                         </div>
                     ) : (
-                        currentReviews.map(renderReviewRow)
+                        currentDiscussions.map(renderDiscussionRow)
                     )}
                 </div>
 
@@ -729,11 +684,11 @@ export default function ReviewsPage({
                 )}
 
                 {/* Results Info */}
-                {filteredReviews.length > 0 && (
+                {filteredDiscussions.length > 0 && (
                     <div className="mt-4 text-center text-sm text-gray-400 mb-8">
                         Showing {startIndex + 1}-
-                        {Math.min(endIndex, filteredReviews.length)} of{" "}
-                        {filteredReviews.length} reviews
+                        {Math.min(endIndex, filteredDiscussions.length)} of{" "}
+                        {filteredDiscussions.length} discussions
                     </div>
                 )}
             </div>

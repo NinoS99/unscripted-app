@@ -16,20 +16,19 @@ export default async function Home() {
     username = dbUser?.username ?? null;
   }
 
-  // Fetch shows with highest TMDB ratings for banner
+  // Fetch specific shows for banner
   const topRatedShows = await prisma.show.findMany({
     where: { 
-      tmdbRating: { not: null },
+      id: { in: [29, 179, 160, 435, 133, 433, 303, 479, 45, 451] }, // Replace with your desired show IDs
     },
-    take: 20,
-    orderBy: { tmdbRating: 'desc' },
+    orderBy: { id: 'asc' },
   });
 
 
   // Fetch shows currently on air
   const showsOnAir = await prisma.show.findMany({
     where: { isRunning: true },
-    take: 8,
+    take: 12,
     include: {
       _count: {
         select: {
