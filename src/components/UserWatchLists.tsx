@@ -107,7 +107,7 @@ export default function UserWatchLists({
                             >
                                 {/* Header */}
                                 <div className="p-4 border-b border-gray-700">
-                                    <h3 className="text-xl font-semibold mb-2 line-clamp-2">
+                                    <h3 className="text-xl font-semibold mb-2">
                                         {watchList.name}
                                     </h3>
                                     {watchList.description && (
