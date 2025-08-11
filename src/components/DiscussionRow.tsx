@@ -44,10 +44,14 @@ export default function DiscussionRow({
     onToggleSpoiler,
     truncateContent,
     className = "",
-    isLast = false
+    isLast = false,
 }: DiscussionRowProps) {
     return (
-        <div className={`py-4 ${!isLast ? 'border-b border-gray-700' : ''} ${className}`}>
+        <div
+            className={`py-4 ${
+                !isLast ? "border-b border-gray-700" : ""
+            } ${className}`}
+        >
             <div className="flex items-start gap-3 mb-3">
                 {/* User Profile Pic */}
                 <div className="flex-shrink-0">
@@ -80,7 +84,10 @@ export default function DiscussionRow({
                                 </Link>
                             </span>
                             <span className="text-gray-400 text-sm">
-                                {format(new Date(discussion.createdAt), "MMM d, yyyy")}
+                                {format(
+                                    new Date(discussion.createdAt),
+                                    "MMM d, yyyy"
+                                )}
                             </span>
                         </div>
                     </div>
@@ -88,7 +95,7 @@ export default function DiscussionRow({
                     {/* Discussion Title */}
                     <h3 className="text-lg font-semibold text-white mb-2">
                         <Link
-                            href={`/discussions/${entityType}/${discussion.id}`}
+                            href={`/${discussion.user.username}/discussion/${entityType}/${discussion.id}`}
                             className="hover:text-green-400 transition-colors"
                         >
                             {discussion.title}
@@ -104,7 +111,9 @@ export default function DiscussionRow({
                                         ⚠️ SPOILER
                                     </span>
                                     <button
-                                        onClick={() => onToggleSpoiler(discussion.id)}
+                                        onClick={() =>
+                                            onToggleSpoiler(discussion.id)
+                                        }
                                         className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
                                     >
                                         {showSpoilers[discussion.id]
@@ -134,8 +143,12 @@ export default function DiscussionRow({
                         <div className="mb-3">
                             <div className="flex items-center gap-2">
                                 <FiBarChart2 className="w-4 h-4 text-blue-400" />
-                                <span className="text-blue-400 font-medium">Poll:</span>
-                                <span className="text-gray-200">{discussion.polls[0].question}</span>
+                                <span className="text-blue-400 font-medium">
+                                    Poll:
+                                </span>
+                                <span className="text-gray-200">
+                                    {discussion.polls[0].question}
+                                </span>
                             </div>
                         </div>
                     )}

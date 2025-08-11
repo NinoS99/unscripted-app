@@ -123,26 +123,38 @@ export default function WatchListDetail({
                         </div>
 
                         <div className="flex-grow">
-                            <div className="flex items-center gap-1 mb-2">
-                                <span className="text-gray-400 text-sm">
-                                    Watch list by
-                                </span>
-                                <Link
-                                    href={`/${watchList.user.username}`}
-                                    className="text-sm font-bold text-white hover:text-green-400 transition-colors"
-                                >
-                                    {watchList.user.username}
-                                </Link>
-                                <span className="text-gray-400">•</span>
-                                <span className="text-gray-400">
-                                    {format(
-                                        new Date(watchList.createdAt),
-                                        "MMM d, yyyy"
-                                    )}
-                                </span>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 mb-2">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-gray-400 text-sm">
+                                        Watch list by
+                                    </span>
+                                    <Link
+                                        href={`/${watchList.user.username}`}
+                                        className="text-sm font-bold text-white hover:text-green-400 transition-colors"
+                                    >
+                                        {watchList.user.username}
+                                    </Link>
+                                </div>
+                                <div className="hidden sm:flex items-center gap-1">
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-gray-400">
+                                        {format(
+                                            new Date(watchList.createdAt),
+                                            "MMM d, yyyy"
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="sm:hidden">
+                                    <span className="text-gray-400 text-sm">
+                                        {format(
+                                            new Date(watchList.createdAt),
+                                            "MMM d, yyyy"
+                                        )}
+                                    </span>
+                                </div>
                             </div>
 
-                            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
                                 {watchList.name}
                             </h1>
 
