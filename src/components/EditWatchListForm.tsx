@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -138,33 +138,54 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteNotification, setShowDeleteNotification] = useState(false);
 
+    // Create a stable reference for the shows data
+    const showsData = useMemo(() => watchList.shows, [watchList.shows]);
+
     // Fetch user ratings for initially populated shows
     useEffect(() => {
         const fetchUserRatings = async () => {
             const showsWithRatings = await Promise.all(
-                selectedShows.map(async (show) => {
+                showsData.map(async (ws) => {
                     try {
-                        const response = await fetch(`/api/ratings?showId=${show.id}`);
+                        const response = await fetch(`/api/ratings?showId=${ws.show.id}`);
                         if (response.ok) {
                             const data = await response.json();
                             return {
-                                ...show,
+                                id: ws.show.id,
+                                name: ws.show.name,
+                                posterPath: ws.show.posterPath,
+                                firstAirDate: ws.show.firstAirDate,
+                                tmdbRating: ws.show.tmdbRating,
+                                ranking: ws.ranking || undefined,
+                                note: ws.note || undefined,
+                                spoiler: ws.spoiler || false,
+                                muchWatchSeasons: ws.muchWatchSeasons.map(mws => mws.season.id),
                                 userRating: data.showRating
                             };
                         }
                     } catch (error) {
-                        console.error("Error fetching rating for show", show.id, ":", error);
+                        console.error("Error fetching rating for show", ws.show.id, ":", error);
                     }
-                    return show;
+                    return {
+                        id: ws.show.id,
+                        name: ws.show.name,
+                        posterPath: ws.show.posterPath,
+                        firstAirDate: ws.show.firstAirDate,
+                        tmdbRating: ws.show.tmdbRating,
+                        ranking: ws.ranking || undefined,
+                        note: ws.note || undefined,
+                        spoiler: ws.spoiler || false,
+                        muchWatchSeasons: ws.muchWatchSeasons.map(mws => mws.season.id)
+                    };
                 })
             );
             setSelectedShows(showsWithRatings);
         };
 
-        if (selectedShows.length > 0) {
+        if (showsData.length > 0) {
             fetchUserRatings();
         }
-    }, [selectedShows]); // Only run once on component mount
+    }, [showsData]);
 
     // Check if form has changes
     const hasChanges = () => {
@@ -283,19 +304,29 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     };
 
     const handleRemoveShow = (showId: number) => {
-        setSelectedShows(selectedShows.filter(s => s.id !== showId));
-        // Reorder rankings if needed
-        if (isRanked) {
-            setSelectedShows(prev => 
-                prev.filter(s => s.id !== showId).map((s, index) => ({
+        // Prevent removal during submission
+        if (isSubmitting) return;
+        
+        setSelectedShows(prev => {
+            const filteredShows = prev.filter(s => s.id !== showId);
+            // Reorder rankings if needed
+            if (isRanked) {
+                return filteredShows.map((s, index) => ({
                     ...s,
                     ranking: index + 1
-                }))
-            );
-        }
+                }));
+            }
+            return filteredShows;
+        });
     };
 
     const handleDragStart = (e: React.DragEvent, index: number) => {
+        // Prevent drag start during submission
+        if (isSubmitting) {
+            e.preventDefault();
+            return;
+        }
+        
         e.dataTransfer.setData("text/plain", index.toString());
         setDraggedIndex(index);
         e.dataTransfer.effectAllowed = "move";
@@ -314,6 +345,14 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
 
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
+        
+        // Prevent reordering during submission
+        if (isSubmitting) {
+            setDraggedIndex(null);
+            setDragOverIndex(null);
+            return;
+        }
+        
         const dragIndex = parseInt(e.dataTransfer.getData("text/plain"));
         
         if (dragIndex === dropIndex) {
@@ -350,7 +389,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
 
     // Arrow button handlers for mobile reordering
     const moveShowUp = (index: number) => {
-        if (index === 0) return; // Can't move first item up
+        if (index === 0 || isSubmitting) return; // Can't move first item up or during submission
         
         setSelectedShows(prev => {
             const newShows = [...prev];
@@ -370,7 +409,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     };
 
     const moveShowDown = (index: number) => {
-        if (index === selectedShows.length - 1) return; // Can't move last item down
+        if (index === selectedShows.length - 1 || isSubmitting) return; // Can't move last item down or during submission
         
         setSelectedShows(prev => {
             const newShows = [...prev];
@@ -757,9 +796,11 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                         className={`flex items-center gap-3 p-3 rounded-md transition-all duration-200 ${
-                                            isRanked && !isSubmitting ? 'cursor-move' : ''
+                                            isRanked && !isSubmitting ? 'cursor-move' : 'cursor-default'
                                         } ${
-                                            draggedIndex === index 
+                                            isSubmitting 
+                                                ? 'opacity-60 bg-gray-600' 
+                                                : draggedIndex === index 
                                                 ? 'opacity-50 bg-gray-400' 
                                                 : dragOverIndex === index 
                                                 ? 'bg-green-600 border-2 border-green-400' 
@@ -767,7 +808,11 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         }`}
                                     >
                                         {isRanked && (
-                                            <FiMove className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                            isSubmitting ? (
+                                                <FiLoader className="w-4 h-4 text-gray-400 flex-shrink-0 animate-spin" />
+                                            ) : (
+                                                <FiMove className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                            )
                                         )}
                                         {isRanked && (
                                             <span className="text-green-400 font-bold text-sm w-6 text-center">

@@ -165,7 +165,7 @@ model Rating {
   episode   Episode? @relation(fields: [episodeId], references: [id])
   season    Season?  @relation(fields: [seasonId], references: [id])
   show      Show?    @relation(fields: [showId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, showId])
   @@unique([userId, seasonId])
@@ -184,7 +184,7 @@ model Favorite {
   episode     Episode?   @relation(fields: [episodeId], references: [id])
   season      Season?    @relation(fields: [seasonId], references: [id])
   show        Show?      @relation(fields: [showId], references: [id])
-  user        User       @relation(fields: [userId], references: [id])
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Watched {
@@ -197,7 +197,7 @@ model Watched {
   episode   Episode? @relation(fields: [episodeId], references: [id])
   season    Season?  @relation(fields: [seasonId], references: [id])
   show      Show?    @relation(fields: [showId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, showId])
   @@unique([userId, seasonId])
@@ -241,7 +241,7 @@ model Prediction {
   character      Character? @relation(fields: [characterId], references: [id])
   episode        Episode    @relation(fields: [episodeId], references: [id])
   show           Show       @relation(fields: [showId], references: [id])
-  user           User       @relation(fields: [userId], references: [id])
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, episodeId, predictionType])
 }
@@ -276,7 +276,7 @@ model ShowReview {
   likes               Like[]
   comments            ReviewComment[]
   show                Show                  @relation(fields: [showId], references: [id])
-  user                User                  @relation(fields: [userId], references: [id])
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   favouriteCharacters ShowReviewCharacter[]
   tags                ShowReviewTag[]
 }
@@ -293,7 +293,7 @@ model SeasonReview {
   likes               Like[]
   comments            ReviewComment[]
   season              Season                  @relation(fields: [seasonId], references: [id])
-  user                User                    @relation(fields: [userId], references: [id])
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   favouriteCharacters SeasonReviewCharacter[]
   tags                SeasonReviewTag[]
 }
@@ -307,7 +307,7 @@ model EpisodeReview {
   spoiler             Boolean                  @default(false)
   createdAt           DateTime                 @default(now())
   episode             Episode                  @relation(fields: [episodeId], references: [id])
-  user                User                     @relation(fields: [userId], references: [id])
+  user                User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   tags                EpisodeReviewTag[]
   likes               Like[]
@@ -382,7 +382,7 @@ model Like {
   showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
   watchList       WatchList?     @relation(fields: [watchListId], references: [id])
   discussion      Discussion?    @relation(fields: [discussionId], references: [id])
-  user            User           @relation(fields: [userId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, predictionId])
   @@unique([userId, showReviewId])
@@ -403,7 +403,7 @@ model ReviewComment {
   episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
   seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
   showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
-  user            User           @relation(fields: [userId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WatchList {
@@ -415,7 +415,7 @@ model WatchList {
   friendsOnly Boolean           @default(false)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
-  user        User              @relation(fields: [userId], references: [id])
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   shows       WatchListShow[]
   tags        WatchListTag[]
   comments    WatchListComment[]
@@ -458,7 +458,7 @@ model WatchListComment {
   userId      String
   watchListId Int
   createdAt   DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   watchList   WatchList @relation(fields: [watchListId], references: [id], onDelete: Cascade)
 
   @@index([watchListId])
@@ -485,7 +485,7 @@ model Discussion {
   spoiler     Boolean           @default(false)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
-  user        User              @relation(fields: [userId], references: [id])
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   show        Show?             @relation(fields: [showId], references: [id])
   season      Season?           @relation(fields: [seasonId], references: [id])
   episode     Episode?          @relation(fields: [episodeId], references: [id])
@@ -511,7 +511,7 @@ model DiscussionComment {
   spoiler      Boolean                 @default(false)
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
-  user         User                    @relation(fields: [userId], references: [id])
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   discussion   Discussion              @relation(fields: [discussionId], references: [id], onDelete: Cascade)
   parent       DiscussionComment?      @relation("CommentReplies", fields: [parentId], references: [id])
   replies      DiscussionComment[]     @relation("CommentReplies")
@@ -531,7 +531,7 @@ model DiscussionCommentVote {
   value               VoteValue         // 1 = upvote, -1 = downvote
   createdAt           DateTime          @default(now())
   discussionComment   DiscussionComment @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
-  user                User              @relation(fields: [userId], references: [id])
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([discussionCommentId, userId])
   @@index([discussionCommentId])
@@ -560,7 +560,7 @@ model Reaction {
   discussionCommentId Int?
   episodeId           Int?
   createdAt           DateTime          @default(now())
-  user                User              @relation(fields: [userId], references: [id])
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   discussionComment   DiscussionComment? @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
   episode             Episode?          @relation(fields: [episodeId], references: [id])
 
@@ -598,7 +598,7 @@ model PollVote {
   userId       String
   pollOptionId Int
   createdAt    DateTime   @default(now())
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, pollOptionId])

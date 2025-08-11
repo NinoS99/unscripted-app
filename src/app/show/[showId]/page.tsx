@@ -13,7 +13,7 @@ import RatingDistributionChart from "../../../components/RatingDistributionChart
 import AddToWatchListButton from "../../../components/AddToWatchListButton";
 import StartDiscussionButton from "../../../components/StartDiscussionButton";
 import EntityDiscussions from "../../../components/EntityDiscussions";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiTrendingUp } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import { format } from "date-fns";
 
@@ -30,22 +30,22 @@ export default async function ShowPage({
     // Fetch user-specific data for the show
     let userRating = null;
     let userFavorite = null;
-    
+
     if (userId) {
         userRating = await prisma.rating.findUnique({
             where: {
                 userId_showId: {
                     userId,
-                    showId: Number(showId)
-                }
-            }
+                    showId: Number(showId),
+                },
+            },
         });
-        
+
         userFavorite = await prisma.favorite.findFirst({
             where: {
                 userId,
-                showId: Number(showId)
-            }
+                showId: Number(showId),
+            },
         });
     }
 
@@ -106,18 +106,18 @@ export default async function ShowPage({
                     username: true,
                 },
             },
-                         shows: {
-                 include: {
-                     show: {
-                         select: {
-                             posterPath: true,
-                         },
-                     },
-                 },
-                 orderBy: {
-                     ranking: "asc",
-                 },
-             },
+            shows: {
+                include: {
+                    show: {
+                        select: {
+                            posterPath: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    ranking: "asc",
+                },
+            },
             _count: {
                 select: {
                     likes: true,
@@ -138,7 +138,7 @@ export default async function ShowPage({
             const bPopularity = b._count.likes + b._count.comments;
             return bPopularity - aPopularity; // Most popular first
         })
-        .slice(0, 4);
+        .slice(0, 5);
 
     if (!show) {
         return (
@@ -275,7 +275,9 @@ export default async function ShowPage({
                         <div className="flex flex-col gap-1 text-sm text-gray-200">
                             {show.firstAirDate && (
                                 <p>
-                                    {new Date(show.firstAirDate) > new Date() ? "First airing on" : "First aired on"}{" "}
+                                    {new Date(show.firstAirDate) > new Date()
+                                        ? "First airing on"
+                                        : "First aired on"}{" "}
                                     {formatDate(show.firstAirDate)}
                                 </p>
                             )}
@@ -363,7 +365,7 @@ export default async function ShowPage({
                                 entityName={show.name}
                                 entityData={{
                                     rating: userRating?.rating,
-                                    isFavorited: !!userFavorite
+                                    isFavorited: !!userFavorite,
                                 }}
                             />
                         </div>
@@ -467,6 +469,19 @@ export default async function ShowPage({
                                                                         : ""}{" "}
                                                                     in this list
                                                                 </p>
+                                                                {watchList.shows.some(
+                                                                    (show) =>
+                                                                        show.ranking !==
+                                                                        null
+                                                                ) && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <FiTrendingUp className="w-3 h-3 text-blue-400" />
+                                                                        <span className="text-sm text-blue-400 font-medium">
+                                                                            Ranked
+                                                                            list
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             <div className="flex items-center gap-4 text-gray-400">
                                                                 <div className="flex items-center gap-1">
@@ -491,36 +506,38 @@ export default async function ShowPage({
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                                                                                 <div className="flex gap-1">
-                                                             {watchList.shows
-                                                                 .slice(0, 4)
-                                                                 .map(
-                                                                    (
-                                                                        watchListShow,
-                                                                        idx
-                                                                    ) => (
-                                                                        <Image
-                                                                            key={
-                                                                                idx
-                                                                            }
-                                                                            src={
-                                                                                watchListShow
-                                                                                    .show
-                                                                                    .posterPath
-                                                                                    ? `https://image.tmdb.org/t/p/w92${watchListShow.show.posterPath}`
-                                                                                    : "/noPoster.jpg"
-                                                                            }
-                                                                            alt="Show poster"
-                                                                            width={
-                                                                                32
-                                                                            }
-                                                                            height={
-                                                                                48
-                                                                            }
-                                                                            className="w-16 h-24 rounded object-cover"
-                                                                        />
-                                                                    )
-                                                                )}
+                                                        <div className="flex justify-start">
+                                                            <div className="flex gap-2">
+                                                                {watchList.shows
+                                                                    .slice(0, 3)
+                                                                    .map(
+                                                                        (
+                                                                            watchListShow,
+                                                                            idx
+                                                                        ) => (
+                                                                            <Image
+                                                                                key={
+                                                                                    idx
+                                                                                }
+                                                                                src={
+                                                                                    watchListShow
+                                                                                        .show
+                                                                                        .posterPath
+                                                                                        ? `https://image.tmdb.org/t/p/w154${watchListShow.show.posterPath}`
+                                                                                        : "/noPoster.jpg"
+                                                                                }
+                                                                                alt="Show poster"
+                                                                                width={
+                                                                                    77
+                                                                                }
+                                                                                height={
+                                                                                    115
+                                                                                }
+                                                                                className="w-20 h-30 rounded object-cover"
+                                                                            />
+                                                                        )
+                                                                    )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </Link>
@@ -536,10 +553,13 @@ export default async function ShowPage({
                             </div>
                         )}
 
-                                                 {/* Discussions Section - Desktop Only */}
-                         <div className="hidden md:block">
-                             <EntityDiscussions entityType="show" entityId={show.id} />
-                         </div>
+                        {/* Discussions Section - Desktop Only */}
+                        <div className="hidden md:block">
+                            <EntityDiscussions
+                                entityType="show"
+                                entityId={show.id}
+                            />
+                        </div>
                     </div>
 
                     {/* Right Column */}
@@ -644,6 +664,21 @@ export default async function ShowPage({
                                                                             this
                                                                             list
                                                                         </p>
+                                                                        {watchList.shows.some(
+                                                                            (
+                                                                                show
+                                                                            ) =>
+                                                                                show.ranking !==
+                                                                                null
+                                                                        ) && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <FiTrendingUp className="w-3 h-3 text-blue-400" />
+                                                                                <span className="text-sm text-blue-400 font-medium">
+                                                                                    Ranked
+                                                                                    list
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     <div className="flex items-center gap-4 text-gray-400">
                                                                         <div className="flex items-center gap-1">
@@ -668,39 +703,46 @@ export default async function ShowPage({
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex gap-1">
-                                                                    {watchList.shows
-                                                                        .slice(
-                                                                            0,
-                                                                            4
-                                                                        )
-                                                                        .map(
-                                                                            (
-                                                                                watchListShow,
-                                                                                idx
-                                                                            ) => (
-                                                                                <Image
-                                                                                    key={
-                                                                                        idx
-                                                                                    }
-                                                                                    src={
-                                                                                        watchListShow
-                                                                                            .show
-                                                                                            .posterPath
-                                                                                            ? `https://image.tmdb.org/t/p/w92${watchListShow.show.posterPath}`
-                                                                                            : "/noPoster.jpg"
-                                                                                    }
-                                                                                    alt="Show poster"
-                                                                                    width={
-                                                                                        32
-                                                                                    }
-                                                                                    height={
-                                                                                        48
-                                                                                    }
-                                                                                    className="w-16 h-24 rounded object-cover"
-                                                                                />
+                                                                <div className="flex justify-start">
+                                                                    <div className="flex gap-2">
+                                                                        {watchList.shows
+                                                                            .slice(
+                                                                                0,
+                                                                                watchList
+                                                                                    .shows
+                                                                                    .length >=
+                                                                                    4
+                                                                                    ? 4
+                                                                                    : 3
                                                                             )
-                                                                        )}
+                                                                            .map(
+                                                                                (
+                                                                                    watchListShow,
+                                                                                    idx
+                                                                                ) => (
+                                                                                    <Image
+                                                                                        key={
+                                                                                            idx
+                                                                                        }
+                                                                                        src={
+                                                                                            watchListShow
+                                                                                                .show
+                                                                                                .posterPath
+                                                                                                ? `https://image.tmdb.org/t/p/w154${watchListShow.show.posterPath}`
+                                                                                                : "/noPoster.jpg"
+                                                                                        }
+                                                                                        alt="Show poster"
+                                                                                        width={
+                                                                                            77
+                                                                                        }
+                                                                                        height={
+                                                                                            115
+                                                                                        }
+                                                                                        className="w-20 h-30 rounded object-cover"
+                                                                                    />
+                                                                                )
+                                                                            )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </Link>
@@ -718,7 +760,10 @@ export default async function ShowPage({
 
                                 {/* Discussions Section - Mobile */}
                                 <div className="md:hidden mb-8">
-                                    <EntityDiscussions entityType="show" entityId={show.id} />
+                                    <EntityDiscussions
+                                        entityType="show"
+                                        entityId={show.id}
+                                    />
                                 </div>
                             </div>
                         </div>

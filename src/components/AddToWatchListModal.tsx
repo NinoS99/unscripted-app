@@ -216,22 +216,24 @@ export default function AddToWatchListModal({ isOpen, onClose, showId, showName 
                                      disabled={isAdding}
                                      className="w-full flex flex-col gap-1 p-3 hover:bg-gray-600 rounded-md transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
                                  >
-                                     <div className="flex items-center justify-between">
-                                         <span className="text-white font-medium truncate mr-2">
-                                             {watchList.name}
-                                         </span>
-                                         <span className="text-gray-400 text-xs flex-shrink-0">
+                                     <div className="flex items-start justify-between min-w-0">
+                                         <div className="flex-1 min-w-0">
+                                             <span className="text-white font-medium truncate block">
+                                                 {watchList.name}
+                                             </span>
+                                             {watchList.description && (
+                                                 <p className="text-gray-300 text-sm truncate mt-1">
+                                                     {watchList.description}
+                                                 </p>
+                                             )}
+                                             <span className="text-gray-400 text-xs block mt-1">
+                                                 {getPrivacyStatus(watchList.isPublic, watchList.friendsOnly)}
+                                             </span>
+                                         </div>
+                                         <span className="text-gray-400 text-xs flex-shrink-0 ml-2">
                                              {formatDate(watchList.createdAt)}
                                          </span>
                                      </div>
-                                     {watchList.description && (
-                                         <p className="text-gray-300 text-sm truncate">
-                                             {watchList.description}
-                                         </p>
-                                     )}
-                                     <span className="text-gray-400 text-xs">
-                                         {getPrivacyStatus(watchList.isPublic, watchList.friendsOnly)}
-                                     </span>
                                  </button>
                             ))
                         ) : (
