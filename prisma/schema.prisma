@@ -552,20 +552,35 @@ model DiscussionTag {
   @@unique([discussionId, tagId])
 }
 
+model ReactionType {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  emoji       String?    // Optional emoji representation
+  category    String?    // "positive", "negative", "emotional", "reality-tv"
+  createdAt   DateTime   @default(now())
+  reactions   Reaction[]
+
+  @@index([name])
+  @@index([category])
+}
+
 model Reaction {
   id                  Int               @id @default(autoincrement())
   userId              String
-  reactionType        String            // "happy", "sad", "angry", "surprised", "love", "laugh", "wow", "care"
+  reactionTypeId      Int
   discussionCommentId Int?
   episodeId           Int?
   createdAt           DateTime          @default(now())
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType        ReactionType      @relation(fields: [reactionTypeId], references: [id], onDelete: Cascade)
   discussionComment   DiscussionComment? @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
   episode             Episode?          @relation(fields: [episodeId], references: [id])
 
   @@unique([userId, discussionCommentId])
   @@unique([userId, episodeId])
   @@index([userId])
+  @@index([reactionTypeId])
   @@index([discussionCommentId])
   @@index([episodeId])
 }
