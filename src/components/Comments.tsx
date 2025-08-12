@@ -15,7 +15,7 @@ interface Comment {
     user: {
         id: string;
         username: string;
-        profilePicture: string | null;
+        profilePicture?: string | null;
     };
 }
 
@@ -156,7 +156,7 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                     <div className="flex gap-3">
                                         <div className="flex-shrink-0">
                                             <Image
-                                                src={comment.user.id === user?.id ? user.imageUrl : (comment.user.profilePicture || "/noAvatar.png")}
+                                                src={comment.user.profilePicture || "/noAvatar.png"}
                                                 alt={comment.user.username}
                                                 width={40}
                                                 height={40}

@@ -15,7 +15,7 @@ interface Discussion {
     user: {
         id: string;
         username: string;
-        profilePicture: string | null;
+        profilePicture?: string | null;
     };
     _count: {
         likes: number;

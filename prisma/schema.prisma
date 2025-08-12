@@ -11,7 +11,6 @@ model User {
   id             String          @id
   username       String          @unique
   email          String          @unique
-  profilePicture String?         @default("/noAvatar.png")
   bio            String?
   createdAt      DateTime        @default(now())
   instagram      String?

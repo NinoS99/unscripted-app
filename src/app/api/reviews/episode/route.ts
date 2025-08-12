@@ -113,7 +113,6 @@ export async function GET(request: Request) {
                     select: {
                         id: true,
                         username: true,
-                        profilePicture: true,
                     },
                 },
                 tags: {

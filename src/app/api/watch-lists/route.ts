@@ -133,8 +133,7 @@ export async function GET(request: NextRequest) {
                 user: {
                     select: {
                         id: true,
-                        username: true,
-                        profilePicture: true
+                        username: true
                     }
                 },
                 shows: {

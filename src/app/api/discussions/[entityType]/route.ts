@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
                     select: {
                         id: true,
                         username: true,
-                        profilePicture: true,
                     },
                 },
                 _count: {
@@ -88,7 +87,7 @@ export async function GET(request: NextRequest) {
                     ...discussion,
                     user: {
                         ...discussion.user,
-                        profilePicture: profilePicture || discussion.user.profilePicture,
+                        profilePicture: profilePicture,
                     },
                 };
             })

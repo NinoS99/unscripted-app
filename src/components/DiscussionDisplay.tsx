@@ -22,7 +22,7 @@ interface DiscussionDisplayProps {
         user: {
             id: string;
             username: string;
-            profilePicture: string | null;
+            profilePicture?: string | null;
         };
         tags: Array<{
             tag: {
@@ -53,7 +53,7 @@ interface DiscussionDisplayProps {
             user: {
                 id: string;
                 username: string;
-                profilePicture: string | null;
+                profilePicture?: string | null;
             };
         }>;
         _count: {
@@ -337,15 +337,24 @@ export default function DiscussionDisplay({
                             <div className="mt-4 space-y-4 px-4">
                                 {/* Discussion by */}
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Discussion by{" "}
-                                        <Link
-                                            href={`/${discussion.user.username}`}
-                                            className="font-semibold text-white hover:text-green-400 transition-colors"
-                                        >
-                                            {discussion.user.username}
-                                        </Link>
-                                    </p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Image
+                                            src={discussion.user.profilePicture || "/noAvatar.png"}
+                                            alt={discussion.user.username}
+                                            width={24}
+                                            height={24}
+                                            className="w-6 h-6 rounded-full object-cover"
+                                        />
+                                        <p className="text-gray-400 text-sm">
+                                            Discussion by{" "}
+                                            <Link
+                                                href={`/${discussion.user.username}`}
+                                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                                            >
+                                                {discussion.user.username}
+                                            </Link>
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* Discussion Title */}
@@ -431,15 +440,24 @@ export default function DiscussionDisplay({
                             {/* Entity Info */}
                             <div className="flex-grow">
                                 <div className="mb-4">
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Discussion by{" "}
-                                        <Link
-                                            href={`/${discussion.user.username}`}
-                                            className="font-semibold text-white hover:text-green-400 transition-colors"
-                                        >
-                                            {discussion.user.username}
-                                        </Link>
-                                    </p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Image
+                                            src={discussion.user.profilePicture || "/noAvatar.png"}
+                                            alt={discussion.user.username}
+                                            width={24}
+                                            height={24}
+                                            className="w-6 h-6 rounded-full object-cover"
+                                        />
+                                        <p className="text-gray-400 text-sm">
+                                            Discussion by{" "}
+                                            <Link
+                                                href={`/${discussion.user.username}`}
+                                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                                            >
+                                                {discussion.user.username}
+                                            </Link>
+                                        </p>
+                                    </div>
                                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
                                         <Link
                                             href={getEntityLink()}

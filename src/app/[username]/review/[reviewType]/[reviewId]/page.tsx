@@ -36,7 +36,6 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                             select: {
                                 id: true,
                                 username: true,
-                                profilePicture: true,
                             },
                         },
                         show: {
@@ -79,7 +78,6 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                     select: {
                                         id: true,
                                         username: true,
-                                        profilePicture: true,
                                     },
                                 },
                             },
@@ -106,7 +104,6 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                             select: {
                                 id: true,
                                 username: true,
-                                profilePicture: true,
                             },
                         },
                         season: {
@@ -156,7 +153,6 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                     select: {
                                         id: true,
                                         username: true,
-                                        profilePicture: true,
                                     },
                                 },
                             },
@@ -183,7 +179,6 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                             select: {
                                 id: true,
                                 username: true,
-                                profilePicture: true,
                             },
                         },
                         episode: {
@@ -226,7 +221,6 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
                                     select: {
                                         id: true,
                                         username: true,
-                                        profilePicture: true,
                                     },
                                 },
                             },
