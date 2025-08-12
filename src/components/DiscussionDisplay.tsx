@@ -9,6 +9,7 @@ import { FiTag, FiMessageCircle, FiStar } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import { useUser } from "@clerk/nextjs";
 import LikeButton from "./LikeButton";
+import DiscussionCommentsList from "./DiscussionCommentsList";
 
 interface DiscussionDisplayProps {
     discussion: {
@@ -646,6 +647,9 @@ export default function DiscussionDisplay({
                                 </div>
                             </div>
                         )}
+
+                        {/* Comments */}
+                        <DiscussionCommentsList discussionId={discussion.id} />
                     </div>
                 </div>
             </div>

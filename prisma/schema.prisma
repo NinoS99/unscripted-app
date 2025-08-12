@@ -507,6 +507,7 @@ model DiscussionComment {
   discussionId Int
   parentId     Int?
   depth        Int                     @default(0)
+  path         String                  // Materialized path for ordering (e.g., "000001.000123.000456")
   spoiler      Boolean                 @default(false)
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
@@ -521,6 +522,9 @@ model DiscussionComment {
   @@index([userId])
   @@index([parentId])
   @@index([depth])
+  @@index([path])
+  @@index([discussionId, path])
+  @@index([discussionId, createdAt])
 }
 
 model DiscussionCommentVote {
