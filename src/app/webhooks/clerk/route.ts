@@ -81,8 +81,7 @@ export async function POST(req: Request) {
                     data: {
                         id: evt.data.id,
                         email: email,
-                        username: username,
-                        profilePicture: "/noAvatar.png", // Always use default, fetch from Clerk when needed
+                        username: username
                     },
                 });
                 return new Response("User has been created!", { status: 200 });
@@ -102,7 +101,6 @@ export async function POST(req: Request) {
                     },
                     data: {
                         username: username,
-                        // Don't update profilePicture - always fetch from Clerk when needed
                         updatedAt: new Date(),
                     },
                 });

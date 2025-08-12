@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
                     select: {
                         id: true,
                         username: true,
-                        profilePicture: true,
                     },
                 },
             },
@@ -90,7 +89,6 @@ export async function POST(request: NextRequest) {
                     select: {
                         id: true,
                         username: true,
-                        profilePicture: true,
                     },
                 },
             },

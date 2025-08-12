@@ -20,7 +20,6 @@ interface Discussion {
     user: {
         id: string;
         username: string;
-        profilePicture: string | null;
     };
     _count: {
         likes: number;

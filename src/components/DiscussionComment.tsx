@@ -1,0 +1,337 @@
+"use client";
+
+import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
+import Link from "next/link";
+import { format } from "date-fns";
+import { FiChevronUp, FiChevronDown, FiMessageSquare } from "react-icons/fi";
+import CommentReactions from "./CommentReactions";
+
+interface CommentWithUser {
+  id: number;
+  content: string;
+  userId: string;
+  discussionId: number;
+  parentId: number | null;
+  depth: number;
+  path: string;
+  spoiler: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    username: string;
+  };
+  _count: {
+    replies: number;
+    votes: number;
+  };
+  votes: Array<{
+    id: number;
+    userId: string;
+    value: "UPVOTE" | "DOWNVOTE";
+  }>;
+  reactions: Array<{
+    id: number;
+    userId: string;
+    reactionType: {
+      id: number;
+      name: string;
+      emoji: string | null;
+      category: string | null;
+    };
+  }>;
+}
+
+interface CommentTree extends CommentWithUser {
+  replies: CommentTree[];
+  score: number;
+  userVote?: "UPVOTE" | "DOWNVOTE";
+}
+
+interface DiscussionCommentProps {
+  comment: CommentTree;
+  discussionId: number;
+  onCommentAdded: () => void;
+  onVoteChange: () => void;
+  onReactionChange: () => void;
+}
+
+export default function DiscussionComment({
+  comment,
+  discussionId,
+  onCommentAdded,
+  onVoteChange,
+  onReactionChange,
+}: DiscussionCommentProps) {
+  const { user } = useUser();
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReplies, setShowReplies] = useState(comment.depth === 0); // Only show replies for top-level comments initially
+  const [replies, setReplies] = useState<CommentTree[]>(comment.replies || []);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(comment.depth > 0); // All replies start collapsed
+
+  // Calculate score from votes
+  const upvotes = comment.votes.filter((v) => v.value === "UPVOTE").length;
+  const downvotes = comment.votes.filter((v) => v.value === "DOWNVOTE").length;
+  const score = upvotes - downvotes;
+
+  const handleVote = async (value: "UPVOTE" | "DOWNVOTE") => {
+    if (!user) return;
+
+    try {
+      const response = await fetch("/api/discussions/comments/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId: comment.id, value }),
+      });
+
+      if (response.ok) {
+        onVoteChange();
+      }
+    } catch (error) {
+      console.error("Error voting:", error);
+    }
+  };
+
+  const handleSubmitReply = async () => {
+    if (!user || !replyContent.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/discussions/comments/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          discussionId,
+          content: replyContent.trim(),
+          parentId: comment.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReplies((prev) => [data.comment, ...prev]);
+        setReplyContent("");
+        setShowReplyForm(false);
+        onCommentAdded();
+      }
+    } catch (error) {
+      console.error("Error adding reply:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const loadMoreReplies = async () => {
+    if (isLoadingReplies) return;
+
+    setIsLoadingReplies(true);
+    try {
+      const response = await fetch(
+        `/api/discussions/comments/${discussionId}?parentId=${comment.id}&limit=10`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        // Replace replies instead of appending to avoid duplicates
+        setReplies(data.comments);
+        setShowReplies(true);
+        setIsCollapsed(false); // Show replies immediately when loaded
+      }
+    } catch (error) {
+      console.error("Error loading replies:", error);
+    } finally {
+      setIsLoadingReplies(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmitReply();
+    }
+  };
+
+  return (
+    <div className={`py-4 bg-gray-900 ${comment.depth > 0 ? "border-l-2 border-gray-700 ml-2 md:ml-4" : ""}`}>
+      <div className="flex gap-2 md:gap-3 ml-2">
+        {/* Vote buttons */}
+        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => handleVote("UPVOTE")}
+            disabled={!user}
+            className={`p-1 rounded transition-colors ${
+              comment.userVote === "UPVOTE"
+                ? "text-green-500 bg-green-500/10"
+                : "text-gray-400 hover:text-green-500 hover:bg-green-500/10"
+            }`}
+          >
+            <FiChevronUp className="w-3 h-3 md:w-4 md:h-4" />
+          </button>
+
+          <span
+            className={`text-xs md:text-sm font-medium ${
+              score > 0 ? "text-green-500" : score < 0 ? "text-red-500" : "text-gray-400"
+            }`}
+          >
+            {score}
+          </span>
+
+          <button
+            onClick={() => handleVote("DOWNVOTE")}
+            disabled={!user}
+            className={`p-1 rounded transition-colors ${
+              comment.userVote === "DOWNVOTE"
+                ? "text-red-500 bg-red-500/10"
+                : "text-gray-400 hover:text-red-500 hover:bg-red-500/10"
+            }`}
+          >
+            <FiChevronDown className="w-3 h-3 md:w-4 md:h-4" />
+          </button>
+        </div>
+
+        {/* Comment content */}
+        <div className="flex-grow">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Image
+              src={
+                user?.id === comment.user.id ? user.imageUrl || "/noAvatar.png" : "/noAvatar.png"
+              }
+              alt={comment.user.username}
+              width={20}
+              height={20}
+              className="rounded-full md:w-6 md:h-6"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "/noAvatar.png";
+              }}
+            />
+            <Link
+              href={`/${comment.user.username}`}
+              className="font-semibold text-white hover:text-green-400 transition-colors text-sm md:text-base"
+            >
+              {comment.user.username}
+            </Link>
+            <span className="text-xs md:text-sm text-gray-400">
+              {format(new Date(comment.createdAt), "MMM d, yyyy")}
+            </span>
+            {comment.spoiler && (
+              <span className="text-xs bg-red-600 text-white px-2 py-1 rounded">SPOILER</span>
+            )}
+          </div>
+
+          <div className="text-gray-200 whitespace-pre-wrap mb-3">{comment.content}</div>
+
+          {/* Reactions */}
+          <CommentReactions
+            commentId={comment.id}
+            reactions={comment.reactions}
+            onReactionChange={onReactionChange}
+          />
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm flex-wrap">
+            <button
+              onClick={() => setShowReplyForm((v) => !v)}
+              disabled={!user}
+              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <FiMessageSquare className="w-3 h-3" />
+              Reply
+            </button>
+
+            {/* Show/Hide replies button */}
+            {comment._count.replies > 0 && (
+              <button
+                onClick={() => {
+                  if (!showReplies) {
+                    loadMoreReplies();
+                  } else {
+                    setIsCollapsed(!isCollapsed);
+                  }
+                }}
+                disabled={isLoadingReplies}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                {isLoadingReplies 
+                  ? "Loading..." 
+                  : !showReplies 
+                    ? `Show ${comment._count.replies} replies`
+                    : isCollapsed 
+                      ? `Show ${comment._count.replies} replies`
+                      : `Hide ${comment._count.replies} replies`
+                }
+              </button>
+            )}
+          </div>
+
+          {/* Reply form */}
+          {showReplyForm && (
+            <div className="mt-4">
+              <div className="flex gap-3">
+                <div className="flex-shrink-0">
+                  <Image
+                    src={user?.imageUrl || "/noAvatar.png"}
+                    alt={user?.username || "User"}
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/noAvatar.png";
+                    }}
+                  />
+                </div>
+                <div className="flex-grow">
+                  <textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Write a reply..."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      onClick={() => setShowReplyForm(false)}
+                      className="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSubmitReply}
+                      disabled={isSubmitting || !replyContent.trim()}
+                      className="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSubmitting ? "Posting..." : "Reply"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Replies tree */}
+          {showReplies && replies.length > 0 && !isCollapsed && (
+            <div className="mt-4 space-y-0 -mr-2 md:-mr-0">
+              {replies.map((reply) => (
+                                 <DiscussionComment
+                   key={reply.id}
+                   comment={reply}
+                   discussionId={discussionId}
+                   onCommentAdded={onCommentAdded}
+                   onVoteChange={onVoteChange}
+                   onReactionChange={onReactionChange}
+                 />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

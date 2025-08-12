@@ -23,7 +23,7 @@ interface ReviewDisplayProps {
             user: {
                 id: string;
                 username: string;
-                profilePicture: string | null;
+                profilePicture?: string | null;
             };
             tags: Array<{
                 tag: {
@@ -54,7 +54,7 @@ interface ReviewDisplayProps {
                 user: {
                     id: string;
                     username: string;
-                    profilePicture: string | null;
+                    profilePicture?: string | null;
                 };
             }>;
             _count: {
@@ -221,15 +221,24 @@ export default function ReviewDisplay({
                             <div className="mt-4 space-y-4 px-4">
                                 {/* Reviewed by */}
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Reviewed by{" "}
-                                        <Link 
-                                            href={`/${review.user.username}`}
-                                            className="font-semibold text-white hover:text-green-400 transition-colors"
-                                        >
-                                            {review.user.username}
-                                        </Link>
-                                    </p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Image
+                                            src={review.user.profilePicture || "/noAvatar.png"}
+                                            alt={review.user.username}
+                                            width={24}
+                                            height={24}
+                                            className="w-6 h-6 rounded-full object-cover"
+                                        />
+                                        <p className="text-gray-400 text-sm">
+                                            Reviewed by{" "}
+                                            <Link 
+                                                href={`/${review.user.username}`}
+                                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                                            >
+                                                {review.user.username}
+                                            </Link>
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* User's Rating and Favorite Status */}
@@ -322,15 +331,24 @@ export default function ReviewDisplay({
                             {/* Entity Info */}
                             <div className="flex-grow">
                                 <div className="mb-4">
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Reviewed by{" "}
-                                        <Link 
-                                            href={`/${review.user.username}`}
-                                            className="font-semibold text-white hover:text-green-400 transition-colors"
-                                        >
-                                            {review.user.username}
-                                        </Link>
-                                    </p>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Image
+                                            src={review.user.profilePicture || "/noAvatar.png"}
+                                            alt={review.user.username}
+                                            width={24}
+                                            height={24}
+                                            className="w-6 h-6 rounded-full object-cover"
+                                        />
+                                        <p className="text-gray-400 text-sm">
+                                            Reviewed by{" "}
+                                            <Link 
+                                                href={`/${review.user.username}`}
+                                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                                            >
+                                                {review.user.username}
+                                            </Link>
+                                        </p>
+                                    </div>
                                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
                                         <Link 
                                             href={getEntityLink()}

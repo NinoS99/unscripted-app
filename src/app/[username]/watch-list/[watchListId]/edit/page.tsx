@@ -40,8 +40,7 @@ export default async function EditWatchListPage({ params }: EditWatchListPagePro
             user: {
                 select: {
                     id: true,
-                    username: true,
-                    profilePicture: true
+                    username: true
                 }
             },
             shows: {

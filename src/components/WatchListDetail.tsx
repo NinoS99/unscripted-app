@@ -37,7 +37,6 @@ interface WatchListComment {
     user: {
         id: string;
         username: string;
-        profilePicture: string | null;
     };
 }
 
@@ -51,7 +50,7 @@ interface WatchList {
     user: {
         id: string;
         username: string;
-        profilePicture: string | null;
+        profilePicture?: string | null;
     };
     shows: WatchListShow[];
     tags: {

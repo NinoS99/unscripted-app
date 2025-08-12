@@ -10,8 +10,8 @@ import { GiRose } from "react-icons/gi";
 interface User {
     id: string;
     username: string;
-    profilePicture: string | null;
     bio?: string | null;
+    profilePicture?: string | null;
 }
 
 interface WatchListShow {

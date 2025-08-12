@@ -51,7 +51,6 @@ interface WatchList {
     user: {
         id: string;
         username: string;
-        profilePicture: string | null;
     };
     shows: WatchListShow[];
     tags: {

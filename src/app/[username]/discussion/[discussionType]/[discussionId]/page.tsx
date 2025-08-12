@@ -36,7 +36,6 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                             select: {
                                 id: true,
                                 username: true,
-                                profilePicture: true,
                             },
                         },
                         show: {
@@ -77,7 +76,6 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                                     select: {
                                         id: true,
                                         username: true,
-                                        profilePicture: true,
                                     },
                                 },
                             },
@@ -104,7 +102,6 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                             select: {
                                 id: true,
                                 username: true,
-                                profilePicture: true,
                             },
                         },
                         season: {
@@ -152,7 +149,6 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                                     select: {
                                         id: true,
                                         username: true,
-                                        profilePicture: true,
                                     },
                                 },
                             },
@@ -178,8 +174,7 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                         user: {
                             select: {
                                 id: true,
-                                username: true,
-                                profilePicture: true,
+                            username: true,
                             },
                         },
                         episode: {
@@ -235,7 +230,6 @@ export default async function DiscussionPage({ params }: DiscussionPageProps) {
                                     select: {
                                         id: true,
                                         username: true,
-                                        profilePicture: true,
                                     },
                                 },
                             },

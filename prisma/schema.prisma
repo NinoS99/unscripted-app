@@ -11,7 +11,6 @@ model User {
   id             String          @id
   username       String          @unique
   email          String          @unique
-  profilePicture String?         @default("/noAvatar.png")
   bio            String?
   createdAt      DateTime        @default(now())
   instagram      String?
@@ -508,12 +507,13 @@ model DiscussionComment {
   discussionId Int
   parentId     Int?
   depth        Int                     @default(0)
+  path         String                  // Materialized path for ordering (e.g., "000001.000123.000456")
   spoiler      Boolean                 @default(false)
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
   user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   discussion   Discussion              @relation(fields: [discussionId], references: [id], onDelete: Cascade)
-  parent       DiscussionComment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  parent       DiscussionComment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      DiscussionComment[]     @relation("CommentReplies")
   reactions    Reaction[]
   votes        DiscussionCommentVote[]
@@ -522,6 +522,9 @@ model DiscussionComment {
   @@index([userId])
   @@index([parentId])
   @@index([depth])
+  @@index([path])
+  @@index([discussionId, path])
+  @@index([discussionId, createdAt])
 }
 
 model DiscussionCommentVote {
@@ -553,20 +556,35 @@ model DiscussionTag {
   @@unique([discussionId, tagId])
 }
 
+model ReactionType {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  emoji       String?    // Optional emoji representation
+  category    String?    // "positive", "negative", "emotional", "reality-tv"
+  createdAt   DateTime   @default(now())
+  reactions   Reaction[]
+
+  @@index([name])
+  @@index([category])
+}
+
 model Reaction {
   id                  Int               @id @default(autoincrement())
   userId              String
-  reactionType        String            // "happy", "sad", "angry", "surprised", "love", "laugh", "wow", "care"
+  reactionTypeId      Int
   discussionCommentId Int?
   episodeId           Int?
   createdAt           DateTime          @default(now())
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType        ReactionType      @relation(fields: [reactionTypeId], references: [id], onDelete: Cascade)
   discussionComment   DiscussionComment? @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
   episode             Episode?          @relation(fields: [episodeId], references: [id])
 
   @@unique([userId, discussionCommentId])
   @@unique([userId, episodeId])
   @@index([userId])
+  @@index([reactionTypeId])
   @@index([discussionCommentId])
   @@index([episodeId])
 }
