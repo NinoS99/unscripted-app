@@ -8,6 +8,7 @@ import Link from "next/link";
 import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import DiscussionComment from "./DiscussionComment";
 import { CommentTree, SortMode } from "@/lib/comments";
+import { useDynamicMaxDepth } from "@/hooks/useDynamicMaxDepth";
 
 interface CommentStats {
   totalComments: number;
@@ -22,7 +23,13 @@ interface DiscussionCommentsListProps {
 export default function DiscussionCommentsList({ discussionId }: DiscussionCommentsListProps) {
   const { user } = useUser();
   const pathname = usePathname();
+  const { maxDepth, containerRef } = useDynamicMaxDepth();
   const [comments, setComments] = useState<CommentTree[]>([]);
+  
+  // Log when maxDepth changes
+  useEffect(() => {
+    console.log("DiscussionCommentsList - Current maxDepth:", maxDepth);
+  }, [maxDepth]);
   const [stats, setStats] = useState<CommentStats | null>(null);
   const [sort, setSort] = useState<SortMode>("new");
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,21 +46,21 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
     try {
       const offset = (currentPage - 1) * commentsPerPage;
       const response = await fetch(
-        `/api/discussions/comments/${discussionId}?sort=${sort}&limit=${commentsPerPage}&offset=${offset}&tree=true`
+        `/api/discussions/comments/${discussionId}?sort=${sort}&limit=${commentsPerPage}&offset=${offset}&tree=true&maxDepth=${maxDepth}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        setComments(data.comments);
-        setStats(data.stats);
-        setHasMore(data.pagination.hasMore);
+        setComments(data.comments || []);
+        setStats(data.stats || null);
+        setHasMore(data.pagination?.hasMore || false);
       }
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [discussionId, sort, currentPage, commentsPerPage]);
+  }, [discussionId, sort, currentPage, commentsPerPage, maxDepth]);
 
   useEffect(() => {
     fetchComments();
@@ -150,7 +157,7 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
   }
 
   return (
-    <div className="mt-6">
+    <div className="mt-6" ref={containerRef}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-green-500">
           Comments {stats && `(${stats.totalComments})`}
@@ -250,6 +257,8 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
                 onCommentAdded={handleCommentAdded}
                 onVoteChange={handleVoteChange}
                 onReactionChange={handleReactionChange}
+                maxDepth={maxDepth}
+                currentDepth={0}
               />
             ))}
             

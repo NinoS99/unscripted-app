@@ -509,6 +509,7 @@ model DiscussionComment {
   depth        Int                     @default(0)
   path         String                  // Materialized path for ordering (e.g., "000001.000123.000456")
   spoiler      Boolean                 @default(false)
+  isDeleted    Boolean                 @default(false)
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
   user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
