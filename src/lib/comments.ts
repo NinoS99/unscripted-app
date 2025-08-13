@@ -238,7 +238,18 @@ export async function addComment(
         },
     });
 
-    return updatedComment;
+    // Fetch the user's image URL from Clerk
+    const userImageUrls = await fetchUserImageUrls([userId]);
+    const userImageUrl = userImageUrls[userId] || null;
+
+    // Add the image URL to the comment
+    return {
+        ...updatedComment,
+        user: {
+            ...updatedComment.user,
+            imageUrl: userImageUrl,
+        },
+    };
 }
 
 /**

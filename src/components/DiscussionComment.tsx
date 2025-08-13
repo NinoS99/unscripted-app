@@ -282,7 +282,7 @@ export default function DiscussionComment({
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center gap-3 md:gap-4 text-xs md:text-sm flex-wrap">
+                    <div className="flex items-center gap-3 md:gap-2 text-xs md:text-sm flex-wrap">
                         {/* Add/Change reaction button */}
                         <CommentReactions
                             commentId={comment.id}
