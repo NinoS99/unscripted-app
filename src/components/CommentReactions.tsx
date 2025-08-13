@@ -22,9 +22,12 @@ interface CommentReactionsProps {
   commentId: number;
   reactions: Reaction[];
   onReactionChange: () => void;
+  showOnlyDisplay?: boolean;
+  showOnlyButton?: boolean;
+  hideButtonText?: boolean;
 }
 
-export default function CommentReactions({ commentId, reactions, onReactionChange }: CommentReactionsProps) {
+export default function CommentReactions({ commentId, reactions, onReactionChange, showOnlyDisplay = false, showOnlyButton = false, hideButtonText = false }: CommentReactionsProps) {
   const { user } = useUser();
   const [reactionTypes, setReactionTypes] = useState<Record<string, ReactionType[]>>({});
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -121,6 +124,124 @@ export default function CommentReactions({ commentId, reactions, onReactionChang
 
   if (!user) return null;
 
+  // Show only the display of existing reactions
+  if (showOnlyDisplay) {
+    if (Object.values(reactionCounts).length === 0) return null;
+    
+    return (
+      <div className="flex items-center gap-1">
+        {Object.values(reactionCounts)
+          .slice(0, 5) // Show max 5 reactions
+          .map(({ count, reactionType }) => (
+            <button
+              key={reactionType.id}
+              onClick={() => handleReaction(reactionType.id)}
+              disabled={isLoading}
+              className={`text-xs transition-colors ${
+                userReaction?.reactionType.id === reactionType.id
+                  ? "text-green-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+              title={`${reactionType.name} (${count})`}
+            >
+              {reactionType.emoji && <span>{reactionType.emoji}</span>}
+              <span className="ml-1">({count})</span>
+            </button>
+          ))
+          .reduce((acc, element, index) => {
+            if (index > 0) {
+              acc.push(<span key={`separator-${index}`} className="text-gray-600">•</span>);
+            }
+            acc.push(element);
+            return acc;
+          }, [] as React.ReactNode[])
+        }
+      </div>
+    );
+  }
+
+  // Show only the add/change reaction button
+  if (showOnlyButton) {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setShowReactionPicker(!showReactionPicker)}
+          disabled={isLoading}
+          className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-xs"
+          title={userReaction ? "Change reaction" : "Add reaction"}
+        >
+          <FiSmile className="w-3 h-3" />
+          {hideButtonText ? null : (userReaction ? "Change reaction" : "Add reaction")}
+        </button>
+
+        {/* Reaction picker dropdown */}
+        {showReactionPicker && (
+          <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10">
+            <div className="p-3">
+              <div className="text-sm font-medium text-white mb-3">Choose a reaction</div>
+              
+              {Object.entries(reactionTypes).map(([category, types]) => (
+                <div key={category} className="mb-3">
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-300 hover:text-white mb-2"
+                  >
+                    <span className="capitalize">{category}</span>
+                    {expandedCategories.has(category) ? (
+                      <FiChevronUp className="w-4 h-4" />
+                    ) : (
+                      <FiChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  {expandedCategories.has(category) && (
+                    <div className="grid grid-cols-2 gap-1">
+                      {types.map((type) => (
+                        <button
+                          key={type.id}
+                          onClick={() => handleReaction(type.id)}
+                          disabled={isLoading}
+                          className={`flex items-center gap-2 p-2 text-sm rounded transition-colors ${
+                            userReaction?.reactionType.id === type.id
+                              ? "bg-green-600 text-white"
+                              : "text-gray-300 hover:bg-gray-700"
+                          }`}
+                        >
+                          {type.emoji && <span>{type.emoji}</span>}
+                          <span>{type.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Remove reaction option */}
+              {userReaction && (
+                <button
+                  onClick={removeReaction}
+                  disabled={isLoading}
+                  className="w-full p-2 text-sm text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                >
+                  Remove reaction
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Click outside to close */}
+        {showReactionPicker && (
+          <div
+            className="fixed inset-0 z-0"
+            onClick={() => setShowReactionPicker(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Default behavior (show both display and button)
   return (
     <div className="relative">
       {/* Display existing reactions */}
@@ -160,7 +281,7 @@ export default function CommentReactions({ commentId, reactions, onReactionChang
         <button
           onClick={() => setShowReactionPicker(!showReactionPicker)}
           disabled={isLoading}
-          className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-sm"
+          className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-xs"
           title={userReaction ? "Change reaction" : "Add reaction"}
         >
           <FiSmile className="w-3 h-3" />

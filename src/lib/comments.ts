@@ -1,45 +1,47 @@
 import prisma from "@/lib/client";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export interface CommentWithUser {
-  id: number;
-  content: string;
-  userId: string;
-  discussionId: number;
-  parentId: number | null;
-  depth: number;
-  path: string;
-  spoiler: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  user: {
-    id: string;
-    username: string;
-  };
-  _count: {
-    replies: number;
-    votes: number;
-  };
-  votes: Array<{
     id: number;
+    content: string;
     userId: string;
-    value: "UPVOTE" | "DOWNVOTE";
-  }>;
-  reactions: Array<{
-    id: number;
-    userId: string;
-    reactionType: {
-      id: number;
-      name: string;
-      emoji: string | null;
-      category: string | null;
+    discussionId: number;
+    parentId: number | null;
+    depth: number;
+    path: string;
+    spoiler: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    user: {
+        id: string;
+        username: string;
+        imageUrl?: string | null;
     };
-  }>;
+    _count: {
+        replies: number;
+        votes: number;
+    };
+    votes: Array<{
+        id: number;
+        userId: string;
+        value: "UPVOTE" | "DOWNVOTE";
+    }>;
+    reactions: Array<{
+        id: number;
+        userId: string;
+        reactionType: {
+            id: number;
+            name: string;
+            emoji: string | null;
+            category: string | null;
+        };
+    }>;
 }
 
 export interface CommentTree extends CommentWithUser {
-  replies: CommentTree[];
-  score: number;
-  userVote?: "UPVOTE" | "DOWNVOTE";
+    replies: CommentTree[];
+    score: number;
+    userVote?: "UPVOTE" | "DOWNVOTE";
 }
 
 export type SortMode = "new" | "top" | "best";
@@ -48,442 +50,545 @@ export type SortMode = "new" | "top" | "best";
  * Wilson Score algorithm for ranking comments
  */
 export function wilsonScore(upvotes: number, downvotes: number): number {
-  const n = upvotes + downvotes;
-  if (n === 0) return 0;
-  
-  const z = 1.281551565545; // 80% confidence
-  const p = upvotes / n;
-  const numerator = p + (z*z)/(2*n) - z * Math.sqrt((p*(1-p) + (z*z)/(4*n))/n);
-  const denominator = 1 + (z*z)/n;
-  return numerator / denominator;
+    const n = upvotes + downvotes;
+    if (n === 0) return 0;
+
+    const z = 1.281551565545; // 80% confidence
+    const p = upvotes / n;
+    const numerator =
+        p +
+        (z * z) / (2 * n) -
+        z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n);
+    const denominator = 1 + (z * z) / n;
+    return numerator / denominator;
 }
 
 /**
  * Pad a number to 6 digits for consistent path ordering
  */
 function padId(id: number): string {
-  return id.toString().padStart(6, '0');
+    return id.toString().padStart(6, "0");
 }
 
+/**
+ * Fetch user image URLs from Clerk for a list of user IDs
+ */
+async function fetchUserImageUrls(
+    userIds: string[]
+): Promise<Record<string, string | null>> {
+    const imageUrls: Record<string, string | null> = {};
 
+    try {
+        const clerk = await clerkClient();
+        const uniqueUserIds = [...new Set(userIds)];
+
+        for (const userId of uniqueUserIds) {
+            try {
+                const clerkUser = await clerk.users.getUser(userId);
+                imageUrls[userId] = clerkUser?.imageUrl || null;
+            } catch (error) {
+                console.error(
+                    `Failed to fetch Clerk user for ${userId}:`,
+                    error
+                );
+                imageUrls[userId] = null;
+            }
+        }
+    } catch (error) {
+        console.error("Failed to initialize Clerk client:", error);
+    }
+
+    return imageUrls;
+}
 
 /**
  * Add a new comment to a discussion
  */
 export async function addComment(
-  discussionId: number,
-  userId: string,
-  content: string,
-  parentId?: number,
-  spoiler: boolean = false
+    discussionId: number,
+    userId: string,
+    content: string,
+    parentId?: number,
+    spoiler: boolean = false
 ): Promise<CommentWithUser> {
-  let path: string;
-  let depth: number = 0;
+    let path: string;
+    let depth: number = 0;
 
-  if (parentId) {
-    // Get parent comment to build path
-    const parent = await prisma.discussionComment.findUnique({
-      where: { id: parentId },
-      select: { path: true, depth: true, discussionId: true }
+    if (parentId) {
+        // Get parent comment to build path
+        const parent = await prisma.discussionComment.findUnique({
+            where: { id: parentId },
+            select: { path: true, depth: true, discussionId: true },
+        });
+
+        if (!parent) {
+            throw new Error("Parent comment not found");
+        }
+
+        if (parent.discussionId !== discussionId) {
+            throw new Error(
+                "Parent comment does not belong to this discussion"
+            );
+        }
+
+        depth = parent.depth + 1;
+        if (depth > 10) {
+            // Prevent excessive nesting
+            throw new Error("Comment nesting too deep");
+        }
+    }
+
+    // Create the comment first to get the ID
+    const comment = await prisma.discussionComment.create({
+        data: {
+            content,
+            userId,
+            discussionId,
+            parentId,
+            depth,
+            spoiler,
+            path: "", // Temporary, will update after creation
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                },
+            },
+            votes: {
+                select: {
+                    id: true,
+                    userId: true,
+                    value: true,
+                },
+            },
+            reactions: {
+                select: {
+                    id: true,
+                    userId: true,
+                    reactionType: {
+                        select: {
+                            id: true,
+                            name: true,
+                            emoji: true,
+                            category: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    replies: true,
+                    votes: true,
+                },
+            },
+        },
     });
 
-    if (!parent) {
-      throw new Error("Parent comment not found");
+    // Build the path
+    if (parentId) {
+        const parent = await prisma.discussionComment.findUnique({
+            where: { id: parentId },
+            select: { path: true },
+        });
+        path = `${parent!.path}.${padId(comment.id)}`;
+    } else {
+        path = padId(comment.id);
     }
 
-    if (parent.discussionId !== discussionId) {
-      throw new Error("Parent comment does not belong to this discussion");
-    }
-
-    depth = parent.depth + 1;
-    if (depth > 10) { // Prevent excessive nesting
-      throw new Error("Comment nesting too deep");
-    }
-  }
-
-  // Create the comment first to get the ID
-  const comment = await prisma.discussionComment.create({
-    data: {
-      content,
-      userId,
-      discussionId,
-      parentId,
-      depth,
-      spoiler,
-      path: "", // Temporary, will update after creation
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-        },
-      },
-      votes: {
-        select: {
-          id: true,
-          userId: true,
-          value: true,
-        },
-      },
-      reactions: {
-        select: {
-          id: true,
-          userId: true,
-          reactionType: {
-            select: {
-              id: true,
-              name: true,
-              emoji: true,
-              category: true,
+    // Update the comment with the correct path
+    const updatedComment = await prisma.discussionComment.update({
+        where: { id: comment.id },
+        data: { path },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                },
             },
-          },
+            votes: {
+                select: {
+                    id: true,
+                    userId: true,
+                    value: true,
+                },
+            },
+            reactions: {
+                select: {
+                    id: true,
+                    userId: true,
+                    reactionType: {
+                        select: {
+                            id: true,
+                            name: true,
+                            emoji: true,
+                            category: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    replies: true,
+                    votes: true,
+                },
+            },
         },
-      },
-      _count: {
-        select: {
-          replies: true,
-          votes: true,
-        },
-      },
-    },
-  });
-
-  // Build the path
-  if (parentId) {
-    const parent = await prisma.discussionComment.findUnique({
-      where: { id: parentId },
-      select: { path: true }
     });
-    path = `${parent!.path}.${padId(comment.id)}`;
-  } else {
-    path = padId(comment.id);
-  }
 
-  // Update the comment with the correct path
-  const updatedComment = await prisma.discussionComment.update({
-    where: { id: comment.id },
-    data: { path },
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-        },
-      },
-      votes: {
-        select: {
-          id: true,
-          userId: true,
-          value: true,
-        },
-      },
-      reactions: {
-        select: {
-          id: true,
-          userId: true,
-          reactionType: {
-            select: {
-              id: true,
-              name: true,
-              emoji: true,
-              category: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          replies: true,
-          votes: true,
-        },
-      },
-    },
-  });
-
-  return updatedComment;
+    return updatedComment;
 }
 
 /**
  * Get comments for a discussion with various sorting options
  */
 export async function getCommentsForDiscussion(
-  discussionId: number,
-  sort: SortMode = "new",
-  parentId?: number | null,
-  limit: number = 50,
-  offset: number = 0,
-  currentUserId?: string
+    discussionId: number,
+    sort: SortMode = "new",
+    parentId?: number | null,
+    limit: number = 50,
+    offset: number = 0,
+    currentUserId?: string
 ): Promise<CommentWithUser[]> {
-  const where = {
-    discussionId,
-    parentId: parentId ?? null,
-  };
-
-  let orderBy: { createdAt: "desc" | "asc" } = { createdAt: "desc" };
-
-  switch (sort) {
-    case "new":
-      orderBy = { createdAt: "desc" };
-      break;
-    case "top":
-      // For top sorting, we'll need to calculate scores in the application
-      orderBy = { createdAt: "desc" };
-      break;
-    case "best":
-      // For best sorting, we'll need to calculate Wilson scores in the application
-      orderBy = { createdAt: "desc" };
-      break;
-    default:
-      orderBy = { createdAt: "desc" };
-  }
-
-  const comments = await prisma.discussionComment.findMany({
-    where,
-    orderBy,
-    take: limit,
-    skip: offset,
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-        },
-      },
-      votes: {
-        select: {
-          id: true,
-          userId: true,
-          value: true,
-        },
-      },
-      reactions: {
-        select: {
-          id: true,
-          userId: true,
-          reactionType: {
-            select: {
-              id: true,
-              name: true,
-              emoji: true,
-              category: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          replies: true,
-          votes: true,
-        },
-      },
-                replies: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                },
-              },
-              votes: {
-                select: {
-                  id: true,
-                  userId: true,
-                  value: true,
-                },
-              },
-              reactions: {
-                select: {
-                  id: true,
-                  userId: true,
-                  reactionType: {
-                    select: {
-                      id: true,
-                      name: true,
-                      emoji: true,
-                      category: true,
-                    },
-                  },
-                },
-              },
-              _count: {
-                select: {
-                  replies: true,
-                  votes: true,
-                },
-              },
-              replies: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      username: true,
-                    },
-                  },
-                  votes: {
-                    select: {
-                      id: true,
-                      userId: true,
-                      value: true,
-                    },
-                  },
-                  reactions: {
-                    select: {
-                      id: true,
-                      userId: true,
-                      reactionType: {
-                        select: {
-                          id: true,
-                          name: true,
-                          emoji: true,
-                          category: true,
-                        },
-                      },
-                    },
-                  },
-                  _count: {
-                    select: {
-                      replies: true,
-                      votes: true,
-                    },
-                  },
-                  replies: {
-                    include: {
-                      user: {
-                        select: {
-                          id: true,
-                          username: true,
-                        },
-                      },
-                      votes: {
-                        select: {
-                          id: true,
-                          userId: true,
-                          value: true,
-                        },
-                      },
-                      reactions: {
-                        select: {
-                          id: true,
-                          userId: true,
-                          reactionType: {
-                            select: {
-                              id: true,
-                              name: true,
-                              emoji: true,
-                              category: true,
-                            },
-                          },
-                        },
-                      },
-                      _count: {
-                        select: {
-                          replies: true,
-                          votes: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-    },
-  });
-
-  
-
-  // Calculate scores and apply sorting
-  const commentsWithScores = comments.map(comment => {
-    const upvotes = comment.votes.filter(v => v.value === "UPVOTE").length;
-    const downvotes = comment.votes.filter(v => v.value === "DOWNVOTE").length;
-    const score = upvotes - downvotes;
-    const wilsonScoreValue = wilsonScore(upvotes, downvotes);
-    const userVote = currentUserId 
-      ? comment.votes.find(v => v.userId === currentUserId)?.value 
-      : undefined;
-
-    return {
-      ...comment,
-      score,
-      wilsonScore: wilsonScoreValue,
-      userVote,
+    const where = {
+        discussionId,
+        parentId: parentId ?? null,
     };
-  });
 
-  // Apply sorting based on calculated scores
-  if (sort === "top") {
-    commentsWithScores.sort((a, b) => b.score - a.score);
-  } else if (sort === "best") {
-    commentsWithScores.sort((a, b) => b.wilsonScore - a.wilsonScore);
-  }
+    let orderBy: { createdAt: "desc" | "asc" } = { createdAt: "desc" };
 
-  return commentsWithScores;
+    switch (sort) {
+        case "new":
+            orderBy = { createdAt: "desc" };
+            break;
+        case "top":
+            // For top sorting, we'll need to calculate scores in the application
+            orderBy = { createdAt: "desc" };
+            break;
+        case "best":
+            // For best sorting, we'll need to calculate Wilson scores in the application
+            orderBy = { createdAt: "desc" };
+            break;
+        default:
+            orderBy = { createdAt: "desc" };
+    }
+
+    const comments = await prisma.discussionComment.findMany({
+        where,
+        orderBy,
+        take: limit,
+        skip: offset,
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                },
+            },
+            votes: {
+                select: {
+                    id: true,
+                    userId: true,
+                    value: true,
+                },
+            },
+            reactions: {
+                select: {
+                    id: true,
+                    userId: true,
+                    reactionType: {
+                        select: {
+                            id: true,
+                            name: true,
+                            emoji: true,
+                            category: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    replies: true,
+                    votes: true,
+                },
+            },
+            replies: {
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            username: true,
+                        },
+                    },
+                    votes: {
+                        select: {
+                            id: true,
+                            userId: true,
+                            value: true,
+                        },
+                    },
+                    reactions: {
+                        select: {
+                            id: true,
+                            userId: true,
+                            reactionType: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    emoji: true,
+                                    category: true,
+                                },
+                            },
+                        },
+                    },
+                    _count: {
+                        select: {
+                            replies: true,
+                            votes: true,
+                        },
+                    },
+                    replies: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    username: true,
+                                },
+                            },
+                            votes: {
+                                select: {
+                                    id: true,
+                                    userId: true,
+                                    value: true,
+                                },
+                            },
+                            reactions: {
+                                select: {
+                                    id: true,
+                                    userId: true,
+                                    reactionType: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            emoji: true,
+                                            category: true,
+                                        },
+                                    },
+                                },
+                            },
+                            _count: {
+                                select: {
+                                    replies: true,
+                                    votes: true,
+                                },
+                            },
+                            replies: {
+                                include: {
+                                    user: {
+                                        select: {
+                                            id: true,
+                                            username: true,
+                                        },
+                                    },
+                                    votes: {
+                                        select: {
+                                            id: true,
+                                            userId: true,
+                                            value: true,
+                                        },
+                                    },
+                                    reactions: {
+                                        select: {
+                                            id: true,
+                                            userId: true,
+                                            reactionType: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    emoji: true,
+                                                    category: true,
+                                                },
+                                            },
+                                        },
+                                    },
+                                    _count: {
+                                        select: {
+                                            replies: true,
+                                            votes: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    // Calculate scores and apply sorting
+    const commentsWithScores = comments.map((comment) => {
+        const upvotes = comment.votes.filter(
+            (v) => v.value === "UPVOTE"
+        ).length;
+        const downvotes = comment.votes.filter(
+            (v) => v.value === "DOWNVOTE"
+        ).length;
+        const score = upvotes - downvotes;
+        const wilsonScoreValue = wilsonScore(upvotes, downvotes);
+        const userVote = currentUserId
+            ? comment.votes.find((v) => v.userId === currentUserId)?.value
+            : undefined;
+
+        return {
+            ...comment,
+            score,
+            wilsonScore: wilsonScoreValue,
+            userVote,
+        };
+    });
+
+    // Apply sorting based on calculated scores
+    if (sort === "top") {
+        commentsWithScores.sort((a, b) => b.score - a.score);
+    } else if (sort === "best") {
+        commentsWithScores.sort((a, b) => b.wilsonScore - a.wilsonScore);
+    }
+
+    // Collect all user IDs to fetch image URLs
+    const userIds: string[] = [];
+    const collectUserIds = (
+        comments: Array<{
+            user: { id: string };
+            replies?: Array<{
+                user: { id: string };
+                replies?: Array<{
+                    user: { id: string };
+                    replies?: Array<{ user: { id: string } }>;
+                }>;
+            }>;
+        }>
+    ) => {
+        comments.forEach((comment) => {
+            userIds.push(comment.user.id);
+            if (comment.replies) {
+                collectUserIds(comment.replies);
+            }
+        });
+    };
+    collectUserIds(commentsWithScores);
+
+    // Fetch user image URLs
+    const userImageUrls = await fetchUserImageUrls(userIds);
+
+    // Add image URLs to comments
+    const addImageUrls = (
+        comments: Array<{
+            user: { id: string; username: string };
+            replies?: Array<{
+                user: { id: string; username: string };
+                replies?: Array<{
+                    user: { id: string; username: string };
+                    replies?: Array<{ user: { id: string; username: string } }>;
+                }>;
+            }>;
+        }>
+    ): Array<{
+        user: { id: string; username: string; imageUrl: string | null };
+        replies: Array<{
+            user: { id: string; username: string; imageUrl: string | null };
+            replies: Array<{
+                user: { id: string; username: string; imageUrl: string | null };
+                replies: Array<{
+                    user: {
+                        id: string;
+                        username: string;
+                        imageUrl: string | null;
+                    };
+                }>;
+            }>;
+        }>;
+    }> => {
+        return comments.map((comment) => ({
+            ...comment,
+            user: {
+                ...comment.user,
+                imageUrl: userImageUrls[comment.user.id] || null,
+            },
+            replies: comment.replies ? addImageUrls(comment.replies) : [],
+        }));
+    };
+
+    return addImageUrls(commentsWithScores) as unknown as CommentWithUser[];
 }
 
 /**
  * Build a comment tree from a flat array of comments
  */
 export function buildCommentTree(comments: CommentWithUser[]): CommentTree[] {
-  const commentMap = new Map<number, CommentTree>();
-  const rootComments: CommentTree[] = [];
+    const commentMap = new Map<number, CommentTree>();
+    const rootComments: CommentTree[] = [];
 
-  // First pass: create all comment objects
-  comments.forEach(comment => {
-    const commentWithScore: CommentTree = {
-      ...comment,
-      replies: [],
-      score: comment.votes.filter(v => v.value === "UPVOTE").length - 
-             comment.votes.filter(v => v.value === "DOWNVOTE").length,
-      userVote: comment.votes.find(v => v.userId === comment.userId)?.value,
-    };
-    commentMap.set(comment.id, commentWithScore);
-  });
+    // First pass: create all comment objects
+    comments.forEach((comment) => {
+        const commentWithScore: CommentTree = {
+            ...comment,
+            replies: [],
+            score:
+                comment.votes.filter((v) => v.value === "UPVOTE").length -
+                comment.votes.filter((v) => v.value === "DOWNVOTE").length,
+            userVote: comment.votes.find((v) => v.userId === comment.userId)
+                ?.value,
+        };
+        commentMap.set(comment.id, commentWithScore);
+    });
 
-  // Second pass: build the tree structure
-  comments.forEach(comment => {
-    const commentWithScore = commentMap.get(comment.id)!;
-    
-    if (comment.parentId) {
-      const parent = commentMap.get(comment.parentId);
-      if (parent) {
-        parent.replies.push(commentWithScore);
-      }
-    } else {
-      rootComments.push(commentWithScore);
-    }
-  });
+    // Second pass: build the tree structure
+    comments.forEach((comment) => {
+        const commentWithScore = commentMap.get(comment.id)!;
 
-  return rootComments;
+        if (comment.parentId) {
+            const parent = commentMap.get(comment.parentId);
+            if (parent) {
+                parent.replies.push(commentWithScore);
+            }
+        } else {
+            rootComments.push(commentWithScore);
+        }
+    });
+
+    return rootComments;
 }
 
 /**
  * Get comment statistics for a discussion
  */
 export async function getCommentStats(discussionId: number): Promise<{
-  totalComments: number;
-  topLevelComments: number;
-  maxDepth: number;
+    totalComments: number;
+    topLevelComments: number;
+    maxDepth: number;
 }> {
-  const [totalComments, topLevelComments, maxDepth] = await Promise.all([
-    prisma.discussionComment.count({
-      where: { discussionId }
-    }),
-    prisma.discussionComment.count({
-      where: { 
-        discussionId,
-        parentId: null
-      }
-    }),
-    prisma.discussionComment.aggregate({
-      where: { discussionId },
-      _max: { depth: true }
-    })
-  ]);
+    const [totalComments, topLevelComments, maxDepth] = await Promise.all([
+        prisma.discussionComment.count({
+            where: { discussionId },
+        }),
+        prisma.discussionComment.count({
+            where: {
+                discussionId,
+                parentId: null,
+            },
+        }),
+        prisma.discussionComment.aggregate({
+            where: { discussionId },
+            _max: { depth: true },
+        }),
+    ]);
 
-  return {
-    totalComments,
-    topLevelComments,
-    maxDepth: maxDepth._max.depth || 0,
-  };
+    return {
+        totalComments,
+        topLevelComments,
+        maxDepth: maxDepth._max.depth || 0,
+    };
 }
