@@ -1,7 +1,8 @@
 import prisma from "@/lib/client";
 import { clerkClient } from "@clerk/nextjs/server";
 
-export interface CommentWithUser {
+// Base comment type from Prisma
+type PrismaComment = {
     id: number;
     content: string;
     userId: string;
@@ -10,16 +11,12 @@ export interface CommentWithUser {
     depth: number;
     path: string;
     spoiler: boolean;
+    isDeleted: boolean;
     createdAt: Date;
     updatedAt: Date;
     user: {
         id: string;
         username: string;
-        imageUrl?: string | null;
-    };
-    _count: {
-        replies: number;
-        votes: number;
     };
     votes: Array<{
         id: number;
@@ -36,6 +33,19 @@ export interface CommentWithUser {
             category: string | null;
         };
     }>;
+    _count: {
+        replies: number;
+        votes: number;
+    };
+    replies?: PrismaComment[];
+};
+
+export interface CommentWithUser extends PrismaComment {
+    user: {
+        id: string;
+        username: string;
+        imageUrl?: string | null;
+    };
 }
 
 export interface CommentTree extends CommentWithUser {
@@ -100,6 +110,37 @@ async function fetchUserImageUrls(
 
     return imageUrls;
 }
+
+/**
+ * Recursively collect user IDs from nested comments
+ */
+function collectUserIdsRecursive(comments: PrismaComment[], userIds: string[]): void {
+    comments.forEach((comment) => {
+        userIds.push(comment.user.id);
+        if (comment.replies && comment.replies.length > 0) {
+            collectUserIdsRecursive(comment.replies, userIds);
+        }
+    });
+}
+
+/**
+ * Recursively add image URLs to comments
+ */
+function addImageUrlsRecursive(
+    comments: PrismaComment[],
+    userImageUrls: Record<string, string | null>
+): CommentWithUser[] {
+    return comments.map((comment) => ({
+        ...comment,
+        user: {
+            ...comment.user,
+            imageUrl: userImageUrls[comment.user.id] || null,
+        },
+        replies: comment.replies ? addImageUrlsRecursive(comment.replies, userImageUrls) : [],
+    }));
+}
+
+
 
 /**
  * Add a new comment to a discussion
@@ -261,7 +302,8 @@ export async function getCommentsForDiscussion(
     parentId?: number | null,
     limit: number = 50,
     offset: number = 0,
-    currentUserId?: string
+    currentUserId?: string,
+    maxDepth: number = 1 // Default to 1 level deep for initial render
 ): Promise<CommentWithUser[]> {
     const where = {
         discussionId,
@@ -286,12 +328,25 @@ export async function getCommentsForDiscussion(
             orderBy = { createdAt: "desc" };
     }
 
+
+
     const comments = await prisma.discussionComment.findMany({
         where,
         orderBy,
         take: limit,
         skip: offset,
-        include: {
+        select: {
+            id: true,
+            content: true,
+            userId: true,
+            discussionId: true,
+            parentId: true,
+            depth: true,
+            path: true,
+            spoiler: true,
+            isDeleted: true,
+            createdAt: true,
+            updatedAt: true,
             user: {
                 select: {
                     id: true,
@@ -325,7 +380,7 @@ export async function getCommentsForDiscussion(
                     votes: true,
                 },
             },
-            replies: {
+            replies: maxDepth > 0 ? {
                 include: {
                     user: {
                         select: {
@@ -360,84 +415,12 @@ export async function getCommentsForDiscussion(
                             votes: true,
                         },
                     },
-                    replies: {
-                        include: {
-                            user: {
-                                select: {
-                                    id: true,
-                                    username: true,
-                                },
-                            },
-                            votes: {
-                                select: {
-                                    id: true,
-                                    userId: true,
-                                    value: true,
-                                },
-                            },
-                            reactions: {
-                                select: {
-                                    id: true,
-                                    userId: true,
-                                    reactionType: {
-                                        select: {
-                                            id: true,
-                                            name: true,
-                                            emoji: true,
-                                            category: true,
-                                        },
-                                    },
-                                },
-                            },
-                            _count: {
-                                select: {
-                                    replies: true,
-                                    votes: true,
-                                },
-                            },
-                            replies: {
-                                include: {
-                                    user: {
-                                        select: {
-                                            id: true,
-                                            username: true,
-                                        },
-                                    },
-                                    votes: {
-                                        select: {
-                                            id: true,
-                                            userId: true,
-                                            value: true,
-                                        },
-                                    },
-                                    reactions: {
-                                        select: {
-                                            id: true,
-                                            userId: true,
-                                            reactionType: {
-                                                select: {
-                                                    id: true,
-                                                    name: true,
-                                                    emoji: true,
-                                                    category: true,
-                                                },
-                                            },
-                                        },
-                                    },
-                                    _count: {
-                                        select: {
-                                            replies: true,
-                                            votes: true,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
                 },
-            },
+            } : false,
         },
-    });
+    }) as PrismaComment[];
+
+
 
     // Calculate scores and apply sorting
     const commentsWithScores = comments.map((comment) => {
@@ -470,69 +453,13 @@ export async function getCommentsForDiscussion(
 
     // Collect all user IDs to fetch image URLs
     const userIds: string[] = [];
-    const collectUserIds = (
-        comments: Array<{
-            user: { id: string };
-            replies?: Array<{
-                user: { id: string };
-                replies?: Array<{
-                    user: { id: string };
-                    replies?: Array<{ user: { id: string } }>;
-                }>;
-            }>;
-        }>
-    ) => {
-        comments.forEach((comment) => {
-            userIds.push(comment.user.id);
-            if (comment.replies) {
-                collectUserIds(comment.replies);
-            }
-        });
-    };
-    collectUserIds(commentsWithScores);
+    collectUserIdsRecursive(commentsWithScores, userIds);
 
     // Fetch user image URLs
     const userImageUrls = await fetchUserImageUrls(userIds);
 
-    // Add image URLs to comments
-    const addImageUrls = (
-        comments: Array<{
-            user: { id: string; username: string };
-            replies?: Array<{
-                user: { id: string; username: string };
-                replies?: Array<{
-                    user: { id: string; username: string };
-                    replies?: Array<{ user: { id: string; username: string } }>;
-                }>;
-            }>;
-        }>
-    ): Array<{
-        user: { id: string; username: string; imageUrl: string | null };
-        replies: Array<{
-            user: { id: string; username: string; imageUrl: string | null };
-            replies: Array<{
-                user: { id: string; username: string; imageUrl: string | null };
-                replies: Array<{
-                    user: {
-                        id: string;
-                        username: string;
-                        imageUrl: string | null;
-                    };
-                }>;
-            }>;
-        }>;
-    }> => {
-        return comments.map((comment) => ({
-            ...comment,
-            user: {
-                ...comment.user,
-                imageUrl: userImageUrls[comment.user.id] || null,
-            },
-            replies: comment.replies ? addImageUrls(comment.replies) : [],
-        }));
-    };
-
-    return addImageUrls(commentsWithScores) as unknown as CommentWithUser[];
+    // Add image URLs to comments recursively
+    return addImageUrlsRecursive(commentsWithScores, userImageUrls);
 }
 
 /**
