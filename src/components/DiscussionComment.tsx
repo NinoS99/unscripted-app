@@ -229,6 +229,7 @@ export default function DiscussionComment({
     const [showSpoiler, setShowSpoiler] = useState(false);
     const [showThreadModal, setShowThreadModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Check if we should show "Continue this thread" based on maxDepth
     const shouldShowContinueThread =
@@ -252,6 +253,21 @@ export default function DiscussionComment({
     const handleVote = async (value: "UPVOTE" | "DOWNVOTE") => {
         if (!user) return;
 
+        // Optimistic update
+        const previousVote = comment.userVote;
+        
+        // Update the comment object directly
+        comment.userVote = value;
+        comment.votes = comment.votes.filter(v => v.userId !== user.id);
+        comment.votes.push({
+            id: Date.now(), // Temporary ID
+            userId: user.id,
+            value
+        });
+
+        // Force re-render
+        setReplies([...replies]);
+
         try {
             const response = await fetch("/api/discussions/comments/vote", {
                 method: "POST",
@@ -259,38 +275,104 @@ export default function DiscussionComment({
                 body: JSON.stringify({ commentId: comment.id, value }),
             });
 
-            if (response.ok) {
-                onVoteChange();
+            if (!response.ok) {
+                // Revert on error
+                comment.userVote = previousVote;
+                comment.votes = comment.votes.filter(v => v.userId !== user.id);
+                if (previousVote) {
+                    comment.votes.push({
+                        id: Date.now(),
+                        userId: user.id,
+                        value: previousVote
+                    });
+                }
+                setReplies([...replies]);
             }
         } catch (error) {
             console.error("Error voting:", error);
+            // Revert on error
+            comment.userVote = previousVote;
+            comment.votes = comment.votes.filter(v => v.userId !== user.id);
+            if (previousVote) {
+                comment.votes.push({
+                    id: Date.now(),
+                    userId: user.id,
+                    value: previousVote
+                });
+            }
+            setReplies([...replies]);
         }
     };
 
     const handleSubmitReply = async () => {
         if (!user || !replyContent.trim() || isSubmitting) return;
 
+        const replyContentToSubmit = replyContent.trim();
         setIsSubmitting(true);
+        
+        // Optimistic update - create a temporary reply
+        const tempReply: CommentTree = {
+            id: Date.now(), // Temporary ID
+            content: replyContentToSubmit,
+            userId: user.id,
+            discussionId,
+            parentId: comment.id,
+            depth: comment.depth + 1,
+            path: comment.path + "/" + Date.now(),
+            spoiler: false,
+            isDeleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            user: {
+                id: user.id,
+                username: user.username || "User",
+                imageUrl: user.imageUrl
+            },
+            _count: {
+                replies: 0,
+                votes: 0
+            },
+            votes: [],
+            reactions: [],
+            replies: [],
+            score: 0,
+            userVote: undefined
+        };
+
+        // Add to replies immediately
+        setReplies((prev) => [tempReply, ...prev]);
+        setReplyContent("");
+        setShowReplyForm(false);
+        setShowReplies(true);
+        setIsCollapsed(false);
+
         try {
             const response = await fetch("/api/discussions/comments/add", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     discussionId,
-                    content: replyContent.trim(),
+                    content: replyContentToSubmit,
                     parentId: comment.id,
                 }),
             });
 
             if (response.ok) {
                 const data = await response.json();
-                setReplies((prev) => [data.comment, ...prev]);
-                setReplyContent("");
-                setShowReplyForm(false);
-                onCommentAdded();
+                // Replace temp reply with real one
+                setReplies((prev) => 
+                    prev.map(reply => 
+                        reply.id === tempReply.id ? data.comment : reply
+                    )
+                );
+            } else {
+                // Remove temp reply on error
+                setReplies((prev) => prev.filter(reply => reply.id !== tempReply.id));
             }
         } catch (error) {
             console.error("Error adding reply:", error);
+            // Remove temp reply on error
+            setReplies((prev) => prev.filter(reply => reply.id !== tempReply.id));
         } finally {
             setIsSubmitting(false);
         }
@@ -330,6 +412,13 @@ export default function DiscussionComment({
         if (!user || isDeleting) return;
 
         setIsDeleting(true);
+        setShowDeleteConfirm(false);
+        
+        // Optimistic update
+        const wasDeleted = comment.isDeleted;
+        comment.isDeleted = true;
+        setReplies([...replies]); // Force re-render
+
         try {
             const response = await fetch(
                 `/api/discussions/comments/delete/${comment.id}`,
@@ -339,11 +428,16 @@ export default function DiscussionComment({
                 }
             );
 
-            if (response.ok) {
-                onCommentAdded(); // Refresh the comment list
+            if (!response.ok) {
+                // Revert on error
+                comment.isDeleted = wasDeleted;
+                setReplies([...replies]);
             }
         } catch (error) {
             console.error("Error deleting comment:", error);
+            // Revert on error
+            comment.isDeleted = wasDeleted;
+            setReplies([...replies]);
         } finally {
             setIsDeleting(false);
         }
@@ -470,7 +564,10 @@ export default function DiscussionComment({
                                 <CommentReactions
                                     commentId={comment.id}
                                     reactions={comment.reactions}
-                                    onReactionChange={onReactionChange}
+                                    onReactionChange={() => {
+                                        // Force re-render to show updated reactions
+                                        setReplies([...replies]);
+                                    }}
                                     showOnlyDisplay={true}
                                 />
                             </div>
@@ -483,7 +580,7 @@ export default function DiscussionComment({
                                 comment.userId === user.id &&
                                 !comment.isDeleted && (
                                     <button
-                                        onClick={handleDeleteComment}
+                                        onClick={() => setShowDeleteConfirm(true)}
                                         disabled={isDeleting}
                                         className="text-red-400 hover:text-red-300 transition-colors"
                                         title="Delete comment"
@@ -497,7 +594,10 @@ export default function DiscussionComment({
                                 <CommentReactions
                                     commentId={comment.id}
                                     reactions={comment.reactions}
-                                    onReactionChange={onReactionChange}
+                                    onReactionChange={() => {
+                                        // Force re-render to show updated reactions
+                                        setReplies([...replies]);
+                                    }}
                                     showOnlyButton={true}
                                     hideButtonText={
                                         comment.parentId ? true : false
@@ -631,6 +731,38 @@ export default function DiscussionComment({
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-gray-900 rounded-lg max-w-md w-full p-6">
+                        <div className="text-center">
+                            <h3 className="text-lg font-semibold text-white mb-4">
+                                Delete Comment
+                            </h3>
+                            <p className="text-gray-300 mb-6">
+                                Are you sure you want to delete this comment? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    disabled={isDeleting}
+                                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteComment}
+                                    disabled={isDeleting}
+                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {isDeleting ? "Deleting..." : "Delete"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Thread Modal */}
             {showThreadModal && (
