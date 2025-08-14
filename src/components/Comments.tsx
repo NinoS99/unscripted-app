@@ -110,7 +110,7 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                 }}
                             />
                         </div>
-                        <div className="flex-grow">
+                        <div className="flex-1 min-w-0">
                             <textarea
                                 value={newComment}
                                 onChange={(e) => setNewComment(e.target.value)}
@@ -167,7 +167,7 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                                 }}
                                             />
                                         </div>
-                                        <div className="flex-grow">
+                                        <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <Link 
                                                     href={`/${comment.user.username}`}
@@ -179,7 +179,7 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                                     {format(new Date(comment.createdAt), "MMM d, yyyy")}
                                                 </span>
                                             </div>
-                                            <p className="text-gray-200 whitespace-pre-wrap">
+                                            <p className="text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all pr-4">
                                                 {comment.content}
                                             </p>
                                         </div>
