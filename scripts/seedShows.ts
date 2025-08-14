@@ -140,7 +140,7 @@ async function createShow(showData: ShowDetails) {
     data: {
       tmdbId: showData.id,
       name: showData.name,
-      overview: showData.overview,
+      overview: showData.overview || null,
       firstAirDate:
         showData.first_air_date && showData.first_air_date !== "null"
           ? new Date(showData.first_air_date)
@@ -149,7 +149,7 @@ async function createShow(showData: ShowDetails) {
       originalLanguage,
       posterPath: safePath(showData.poster_path),
       backdropPath: showData.backdrop_path ?? null,
-      tagline: showData.tagline || "",
+      tagline: showData.tagline || null,
       tmdbRating: showData.vote_average,
       isRunning: showData.next_episode_to_air !== null,
     },
@@ -185,7 +185,7 @@ async function createSeason(showId: number, season: {
         season.air_date && season.air_date !== "null"
           ? new Date(season.air_date)
           : null,
-      overview: season.overview,
+      overview: season.overview || null,
       posterPath: safePath(season.poster_path),
       tmdbRating: season.vote_average,
     },
@@ -204,7 +204,7 @@ async function createEpisodes(seasonId: number, episodes: Array<{
     data: episodes.map((ep) => ({
       episodeNumber: ep.episode_number,
       name: ep.name,
-      overview: ep.overview,
+      overview: ep.overview || null,
       tmdbRating: ep.vote_average,
       stillPath: safePath(ep.still_path),
       airDate:
@@ -328,7 +328,7 @@ async function seedShows() {
 
   while (showsInserted < 20) {
     const response = await fetch(
-      `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=en-US&first_air_date.gte=2010-01-01&with_origin_country=US&original_language='en'&with_genres=10764&sort_by=popularity.desc&page=${page}`
+      `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=en-US&first_air_date.gte=2010-01-01&with_origin_country=CA&original_language='en'&with_genres=10764&sort_by=popularity.desc&page=${page}`
     );
     const data = (await response.json()) as DiscoverResponse;
 

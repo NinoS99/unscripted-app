@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { FiSmile, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiSmile, FiChevronDown, FiChevronUp, FiX } from "react-icons/fi";
 
 interface ReactionType {
     id: number;
@@ -27,6 +27,118 @@ interface CommentReactionsProps {
     hideButtonText?: boolean;
 }
 
+// New ReactionPickerModal component
+interface ReactionPickerModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    reactionTypes: Record<string, ReactionType[]>;
+    userReaction: Reaction | undefined;
+    onReaction: (reactionTypeId: number) => void;
+    onRemoveReaction: () => void;
+    isLoading: boolean;
+}
+
+function ReactionPickerModal({
+    isOpen,
+    onClose,
+    reactionTypes,
+    userReaction,
+    onReaction,
+    onRemoveReaction,
+    isLoading,
+}: ReactionPickerModalProps) {
+    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+        new Set()
+    );
+
+    const toggleCategory = (category: string) => {
+        const newExpanded = new Set(expandedCategories);
+        if (newExpanded.has(category)) {
+            newExpanded.delete(category);
+        } else {
+            newExpanded.add(category);
+        }
+        setExpandedCategories(newExpanded);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+            <div className="bg-gray-800 border border-gray-600 rounded-lg shadow-lg w-96 max-h-[80vh] overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-gray-600">
+                    <h3 className="text-lg font-medium text-white">
+                        Choose a reaction
+                    </h3>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-white transition-colors"
+                    >
+                        <FiX className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+                    {Object.entries(reactionTypes).map(([category, types]) => (
+                        <div key={category} className="mb-4">
+                            <button
+                                onClick={() => toggleCategory(category)}
+                                className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-300 hover:text-white mb-2"
+                            >
+                                <span className="capitalize">{category}</span>
+                                {expandedCategories.has(category) ? (
+                                    <FiChevronUp className="w-4 h-4" />
+                                ) : (
+                                    <FiChevronDown className="w-4 h-4" />
+                                )}
+                            </button>
+
+                            {expandedCategories.has(category) && (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {types.map((type) => (
+                                        <button
+                                            key={type.id}
+                                            onClick={() => {
+                                                onReaction(type.id);
+                                                onClose();
+                                            }}
+                                            disabled={isLoading}
+                                            className={`flex items-center gap-2 p-3 text-sm rounded transition-colors ${
+                                                userReaction?.reactionType.id === type.id
+                                                    ? "bg-green-600 text-white"
+                                                    : "text-gray-300 hover:bg-gray-700"
+                                            }`}
+                                        >
+                                            {type.emoji && (
+                                                <span className="text-lg">{type.emoji}</span>
+                                            )}
+                                            <span>{type.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+
+                    {/* Remove reaction option */}
+                    {userReaction && (
+                        <button
+                            onClick={() => {
+                                onRemoveReaction();
+                                onClose();
+                            }}
+                            disabled={isLoading}
+                            className="w-full p-3 text-sm text-red-400 hover:bg-red-900/20 rounded transition-colors border border-red-400/20"
+                        >
+                            Remove reaction
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function CommentReactions({
     commentId,
     reactions,
@@ -39,9 +151,6 @@ export default function CommentReactions({
     const [reactionTypes, setReactionTypes] = useState<
         Record<string, ReactionType[]>
     >({});
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-        new Set()
-    );
     const [isLoading, setIsLoading] = useState(false);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
 
@@ -57,6 +166,11 @@ export default function CommentReactions({
         acc[typeId].count++;
         return acc;
     }, {} as Record<number, { count: number; reactionType: ReactionType }>);
+
+    // Sort reactions by count in descending order
+    const sortedReactions = Object.values(reactionCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5); // Take top 5
 
     // Check if current user has a reaction
     const userReaction = reactions.find((r) => r.userId === user?.id);
@@ -101,7 +215,6 @@ export default function CommentReactions({
 
         // Force re-render
         onReactionChange();
-        setShowReactionPicker(false);
 
         setIsLoading(true);
         try {
@@ -141,9 +254,8 @@ export default function CommentReactions({
         // Update the reactions array directly
         reactions.splice(0, reactions.length, ...updatedReactions);
 
-        // Force re-render and close modal
+        // Force re-render
         onReactionChange();
-        setShowReactionPicker(false);
 
         setIsLoading(true);
         try {
@@ -169,26 +281,15 @@ export default function CommentReactions({
         }
     };
 
-    const toggleCategory = (category: string) => {
-        const newExpanded = new Set(expandedCategories);
-        if (newExpanded.has(category)) {
-            newExpanded.delete(category);
-        } else {
-            newExpanded.add(category);
-        }
-        setExpandedCategories(newExpanded);
-    };
-
     if (!user) return null;
 
     // Show only the display of existing reactions
     if (showOnlyDisplay) {
-        if (Object.values(reactionCounts).length === 0) return null;
+        if (sortedReactions.length === 0) return null;
 
         return (
             <div className="flex items-center gap-1">
-                {Object.values(reactionCounts)
-                    .slice(0, 5) // Show max 5 reactions
+                {sortedReactions
                     .map(({ count, reactionType }) => (
                         <button
                             key={reactionType.id}
@@ -229,9 +330,9 @@ export default function CommentReactions({
     // Show only the add/change reaction button
     if (showOnlyButton) {
         return (
-            <div className="relative">
+            <>
                 <button
-                    onClick={() => setShowReactionPicker(!showReactionPicker)}
+                    onClick={() => setShowReactionPicker(true)}
                     disabled={isLoading}
                     className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-xs"
                     title={userReaction ? "Change reaction" : "Add reaction"}
@@ -244,90 +345,16 @@ export default function CommentReactions({
                         : "Add reaction"}
                 </button>
 
-                {/* Reaction picker dropdown */}
-                {showReactionPicker && (
-                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-[60]">
-                        <div className="p-3">
-                            <div className="text-sm font-medium text-white mb-3">
-                                Choose a reaction
-                            </div>
-
-                            {Object.entries(reactionTypes).map(
-                                ([category, types]) => (
-                                    <div key={category} className="mb-3">
-                                        <button
-                                            onClick={() =>
-                                                toggleCategory(category)
-                                            }
-                                            className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-300 hover:text-white mb-2"
-                                        >
-                                            <span className="capitalize">
-                                                {category}
-                                            </span>
-                                            {expandedCategories.has(
-                                                category
-                                            ) ? (
-                                                <FiChevronUp className="w-4 h-4" />
-                                            ) : (
-                                                <FiChevronDown className="w-4 h-4" />
-                                            )}
-                                        </button>
-
-                                        {expandedCategories.has(category) && (
-                                            <div className="grid grid-cols-2 gap-1">
-                                                {types.map((type) => (
-                                                    <button
-                                                        key={type.id}
-                                                        onClick={() =>
-                                                            handleReaction(
-                                                                type.id
-                                                            )
-                                                        }
-                                                        disabled={isLoading}
-                                                        className={`flex items-center gap-2 p-2 text-sm rounded transition-colors ${
-                                                            userReaction
-                                                                ?.reactionType
-                                                                .id === type.id
-                                                                ? "bg-green-600 text-white"
-                                                                : "text-gray-300 hover:bg-gray-700"
-                                                        }`}
-                                                    >
-                                                        {type.emoji && (
-                                                            <span>
-                                                                {type.emoji}
-                                                            </span>
-                                                        )}
-                                                        <span>{type.name}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            )}
-
-                            {/* Remove reaction option */}
-                            {userReaction && (
-                                <button
-                                    onClick={removeReaction}
-                                    disabled={isLoading}
-                                    className="w-full p-2 text-sm text-red-400 hover:bg-red-900/20 rounded transition-colors"
-                                >
-                                    Remove reaction
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Click outside to close */}
-                {showReactionPicker && (
-                    <div
-                        className="fixed inset-0 z-0"
-                        onClick={() => setShowReactionPicker(false)}
-                    />
-                )}
-            </div>
+                <ReactionPickerModal
+                    isOpen={showReactionPicker}
+                    onClose={() => setShowReactionPicker(false)}
+                    reactionTypes={reactionTypes}
+                    userReaction={userReaction}
+                    onReaction={handleReaction}
+                    onRemoveReaction={removeReaction}
+                    isLoading={isLoading}
+                />
+            </>
         );
     }
 
@@ -335,10 +362,9 @@ export default function CommentReactions({
     return (
         <div className="relative">
             {/* Display existing reactions */}
-            {Object.values(reactionCounts).length > 0 && (
+            {sortedReactions.length > 0 && (
                 <div className="flex items-center gap-1 mb-2">
-                    {Object.values(reactionCounts)
-                        .slice(0, 5) // Show max 5 reactions
+                    {sortedReactions
                         .map(({ count, reactionType }) => (
                             <button
                                 key={reactionType.id}
@@ -376,101 +402,25 @@ export default function CommentReactions({
             )}
 
             {/* Add reaction button */}
-            <div className="relative">
-                <button
-                    onClick={() => setShowReactionPicker(!showReactionPicker)}
-                    disabled={isLoading}
-                    className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-xs"
-                    title={userReaction ? "Change reaction" : "Add reaction"}
-                >
-                    <FiSmile className="w-3 h-3" />
-                    {userReaction ? "Change reaction" : "Add reaction"}
-                </button>
+            <button
+                onClick={() => setShowReactionPicker(true)}
+                disabled={isLoading}
+                className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors text-xs"
+                title={userReaction ? "Change reaction" : "Add reaction"}
+            >
+                <FiSmile className="w-3 h-3" />
+                {userReaction ? "Change reaction" : "Add reaction"}
+            </button>
 
-                {/* Reaction picker dropdown */}
-                {showReactionPicker && (
-                    <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-[60]">
-                        <div className="p-3">
-                            <div className="text-sm font-medium text-white mb-3">
-                                Choose a reaction
-                            </div>
-
-                            {Object.entries(reactionTypes).map(
-                                ([category, types]) => (
-                                    <div key={category} className="mb-3">
-                                        <button
-                                            onClick={() =>
-                                                toggleCategory(category)
-                                            }
-                                            className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-300 hover:text-white mb-2"
-                                        >
-                                            <span className="capitalize">
-                                                {category}
-                                            </span>
-                                            {expandedCategories.has(
-                                                category
-                                            ) ? (
-                                                <FiChevronUp className="w-4 h-4" />
-                                            ) : (
-                                                <FiChevronDown className="w-4 h-4" />
-                                            )}
-                                        </button>
-
-                                        {expandedCategories.has(category) && (
-                                            <div className="grid grid-cols-2 gap-1">
-                                                {types.map((type) => (
-                                                    <button
-                                                        key={type.id}
-                                                        onClick={() =>
-                                                            handleReaction(
-                                                                type.id
-                                                            )
-                                                        }
-                                                        disabled={isLoading}
-                                                        className={`flex items-center gap-2 p-2 text-sm rounded transition-colors ${
-                                                            userReaction
-                                                                ?.reactionType
-                                                                .id === type.id
-                                                                ? "bg-green-600 text-white"
-                                                                : "text-gray-300 hover:bg-gray-700"
-                                                        }`}
-                                                    >
-                                                        {type.emoji && (
-                                                            <span>
-                                                                {type.emoji}
-                                                            </span>
-                                                        )}
-                                                        <span>{type.name}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            )}
-
-                            {/* Remove reaction option */}
-                            {userReaction && (
-                                <button
-                                    onClick={removeReaction}
-                                    disabled={isLoading}
-                                    className="w-full p-2 text-sm text-red-400 hover:bg-red-900/20 rounded transition-colors"
-                                >
-                                    Remove reaction
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Click outside to close */}
-            {showReactionPicker && (
-                <div
-                    className="fixed inset-0 z-0"
-                    onClick={() => setShowReactionPicker(false)}
-                />
-            )}
+            <ReactionPickerModal
+                isOpen={showReactionPicker}
+                onClose={() => setShowReactionPicker(false)}
+                reactionTypes={reactionTypes}
+                userReaction={userReaction}
+                onReaction={handleReaction}
+                onRemoveReaction={removeReaction}
+                isLoading={isLoading}
+            />
         </div>
     );
 }

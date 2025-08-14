@@ -166,12 +166,12 @@ function ThreadModal({
                     </button>
                 </div>
 
-                {/* Original Comment */}
-                <div className="p-4 border-b border-gray-700">
-                    <div className="text-gray-200 whitespace-pre-wrap">
-                        {comment.content}
-                    </div>
-                </div>
+                                 {/* Original Comment */}
+                 <div className="p-4 border-b border-gray-700">
+                     <div className="text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full pr-4">
+                         {comment.content}
+                     </div>
+                 </div>
 
                 {/* Thread Comments */}
                 <div className="overflow-y-auto max-h-[60vh]">
@@ -504,7 +504,7 @@ export default function DiscussionComment({
                     </div>
 
                     {/* Comment content */}
-                    <div className="flex-grow">
+                    <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <Image
                                 src={comment.user.imageUrl || "/noAvatar.png"}
@@ -540,18 +540,18 @@ export default function DiscussionComment({
                             )}
                         </div>
 
-                        <div className="relative mb-3">
-                            <div
-                                className={`text-gray-200 whitespace-pre-wrap ${
-                                    comment.spoiler && !showSpoiler
-                                        ? "blur-sm select-none"
-                                        : ""
-                                } ${
-                                    comment.isDeleted
-                                        ? "italic text-gray-500"
-                                        : ""
-                                }`}
-                            >
+                                                 <div className="relative mb-3 w-full pr-4">
+                                                          <div
+                                 className={`text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all ${
+                                     comment.spoiler && !showSpoiler
+                                         ? "blur-sm select-none"
+                                         : ""
+                                 } ${
+                                     comment.isDeleted
+                                         ? "italic text-gray-500"
+                                         : ""
+                                 }`}
+                             >
                                 {comment.isDeleted
                                     ? "comment deleted"
                                     : comment.content}
@@ -605,7 +605,7 @@ export default function DiscussionComment({
                                 />
                             )}
 
-                            {user && !comment.isDeleted && (
+                            {user && !comment.isDeleted && comment.depth < 10 && (
                                 <button
                                     onClick={() => setShowReplyForm((v) => !v)}
                                     className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors"
@@ -670,18 +670,18 @@ export default function DiscussionComment({
                                             }}
                                         />
                                     </div>
-                                    <div className="flex-grow">
-                                        <textarea
-                                            value={replyContent}
-                                            onChange={(e) =>
-                                                setReplyContent(e.target.value)
-                                            }
-                                            onKeyPress={handleKeyPress}
-                                            placeholder="Write a reply..."
-                                            rows={3}
-                                            className="w-10/12 px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
-                                        />
-                                        <div className="flex justify-end gap-2 mt-2 w-10/12">
+                                                                         <div className="flex-1 min-w-0">
+                                         <textarea
+                                             value={replyContent}
+                                             onChange={(e) =>
+                                                 setReplyContent(e.target.value)
+                                             }
+                                             onKeyPress={handleKeyPress}
+                                             placeholder="Write a reply..."
+                                             rows={3}
+                                             className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                         />
+                                                                                 <div className="flex justify-end gap-2 mt-2 w-full">
                                             <button
                                                 onClick={() =>
                                                     setShowReplyForm(false)
