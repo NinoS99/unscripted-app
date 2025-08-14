@@ -64,6 +64,31 @@ model Show {
   watched          Watched[]
   watchListShows   WatchListShow[]
   discussions      Discussion[]
+  lastCheckedForUpdate ShowLastCheckedForUpdate?
+  updateLogs       UpdateShowsLog[]
+}
+
+model ShowLastCheckedForUpdate {
+  id        Int      @id @default(autoincrement())
+  showId    Int      @unique
+  lastChecked DateTime @default(now())
+  show      Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+}
+
+model UpdateShowsLog {
+  id          Int      @id @default(autoincrement())
+  showId      Int
+  show        Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  entityType  String   // "show", "season", "episode", "character", "creator", "network"
+  entityId    Int?     // ID of the specific entity that was updated (null for show-level updates)
+  action      String   // "created", "updated", "deleted"
+  fieldName   String?  // Specific field that was updated (null for entity-level actions)
+  oldValue    String?  // Previous value (for updates)
+  newValue    String?  // New value (for updates/creates)
+  createdAt   DateTime @default(now())
+
+  @@index([showId, createdAt])
+  @@index([entityType, action])
 }
 
 model Season {
