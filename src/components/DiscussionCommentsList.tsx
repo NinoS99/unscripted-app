@@ -10,6 +10,7 @@ import DiscussionComment from "./DiscussionComment";
 import { CommentTree, SortMode } from "@/lib/comments";
 import { useDynamicMaxDepth } from "@/hooks/useDynamicMaxDepth";
 
+
 interface CommentStats {
   totalComments: number;
   topLevelComments: number;

@@ -5,8 +5,8 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { format } from "date-fns";
 import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { formatRelativeTime } from "@/lib/utils";
 
 interface Comment {
     id: number;
@@ -176,7 +176,7 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                                     {comment.user.username}
                                                 </Link>
                                                 <span className="text-sm text-gray-400">
-                                                    {format(new Date(comment.createdAt), "MMM d, yyyy")}
+                                                    {formatRelativeTime(new Date(comment.createdAt))}
                                                 </span>
                                             </div>
                                             <p className="text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all pr-4">

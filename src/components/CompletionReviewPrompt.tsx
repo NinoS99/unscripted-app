@@ -49,7 +49,7 @@ export default function CompletionReviewPrompt({
     const handleGoToPage = () => {
         setShowNotification(false);
         
-        if (entityType === "season" && showId && seasonNumber) {
+        if (entityType === "season" && showId && seasonNumber !== undefined) {
             // Navigate to season page
             router.push(`/show/${showId}/season/${seasonNumber}`);
         } else if (entityType === "show") {
