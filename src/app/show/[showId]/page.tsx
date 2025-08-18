@@ -16,6 +16,7 @@ import EntityDiscussions from "../../../components/EntityDiscussions";
 import { FiMessageCircle, FiTrendingUp } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import { format } from "date-fns";
+import { formatNumber } from "@/lib/utils";
 
 const prisma = new PrismaClient();
 
@@ -377,6 +378,7 @@ export default async function ShowPage({
                                     On Network
                                     {show.ShowsOnNetworks.length > 1 ? "s" : ""}
                                 </h3>
+                                <div className="hidden md:block border-b border-gray-600 mb-4"></div>
                                 <div className="flex flex-wrap gap-2">
                                     {show.ShowsOnNetworks.map(({ network }) =>
                                         network.homepage ? (
@@ -425,11 +427,12 @@ export default async function ShowPage({
                         )}
 
                         {/* Included in Watch Lists Section - Desktop Only */}
-                        {sortedWatchLists.length > 0 && (
-                            <div className="hidden md:block mt-3">
-                                <h3 className="text-lg font-semibold text-green-500">
-                                    Included in Watch Lists
-                                </h3>
+                        <div className="hidden md:block mt-3">
+                            <h3 className="text-lg font-semibold text-green-500">
+                                Included in Watch Lists ({formatNumber(sortedWatchLists.length)})
+                            </h3>
+                            <div className="border-b border-gray-600 mt-2"></div>
+                            {sortedWatchLists.length > 0 ? (
                                 <div className="space-y-0">
                                     {sortedWatchLists.map(
                                         (watchList, index) => (
@@ -439,73 +442,75 @@ export default async function ShowPage({
                                                     className="block py-3"
                                                 >
                                                     <div className="flex flex-col gap-2">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex-grow">
-                                                                <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
-                                                                    {
-                                                                        watchList.name
-                                                                    }
-                                                                </h4>
-                                                                <p className="text-sm text-gray-400">
-                                                                    by{" "}
-                                                                    {
-                                                                        watchList
-                                                                            .user
-                                                                            .username
-                                                                    }
-                                                                </p>
-                                                                <p className="text-sm text-gray-400">
-                                                                    {
-                                                                        watchList
-                                                                            .shows
-                                                                            .length
-                                                                    }{" "}
-                                                                    show
-                                                                    {watchList
-                                                                        .shows
-                                                                        .length !==
-                                                                    1
-                                                                        ? "s"
-                                                                        : ""}{" "}
-                                                                    in this list
-                                                                </p>
-                                                                {watchList.shows.some(
-                                                                    (show) =>
-                                                                        show.ranking !==
-                                                                        null
-                                                                ) && (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <FiTrendingUp className="w-3 h-3 text-blue-400" />
-                                                                        <span className="text-sm text-blue-400 font-medium">
-                                                                            Ranked
-                                                                            list
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-4 text-gray-400">
-                                                                <div className="flex items-center gap-1">
-                                                                    <FiMessageCircle className="w-4 h-4" />
-                                                                    <span className="text-sm">
-                                                                        {
-                                                                            watchList
-                                                                                ._count
-                                                                                .comments
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1">
-                                                                    <GiRose className="w-4 h-4 text-red-400" />
-                                                                    <span className="text-sm">
-                                                                        {
-                                                                            watchList
-                                                                                ._count
-                                                                                .likes
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                                                                                 <div className="flex items-start justify-between">
+                                                             <div className="flex-grow">
+                                                                 <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
+                                                                     {
+                                                                         watchList.name
+                                                                     }
+                                                                 </h4>
+                                                                 {watchList.description && (
+                                                                     <p className="text-sm text-gray-200 break-words">
+                                                                         {watchList.description.length > 100
+                                                                             ? `${watchList.description.substring(0, 100)}...`
+                                                                             : watchList.description}
+                                                                     </p>
+                                                                 )}
+                                                                 <p className="text-sm text-gray-400">
+                                                                     by{" "}
+                                                                     {
+                                                                         watchList
+                                                                             .user
+                                                                             .username
+                                                                     }
+                                                                 </p>
+                                                                 <p className="text-sm text-gray-400">
+                                                                     {
+                                                                         watchList
+                                                                             .shows
+                                                                             .length
+                                                                     }{" "}
+                                                                     show
+                                                                     {watchList
+                                                                         .shows
+                                                                         .length !==
+                                                                     1
+                                                                         ? "s"
+                                                                         : ""}{" "}
+                                                                     in this list
+                                                                 </p>
+                                                                 {watchList.shows.some(
+                                                                     (show) =>
+                                                                         show.ranking !==
+                                                                         null
+                                                                 ) && (
+                                                                     <div className="flex items-center gap-1">
+                                                                         <FiTrendingUp className="w-3 h-3 text-blue-400" />
+                                                                         <span className="text-sm text-blue-400 font-medium">
+                                                                             Ranked list
+                                                                         </span>
+                                                                     </div>
+                                                                 )}
+                                                             </div>
+                                                             <div className="flex items-center gap-4 text-gray-400 flex-shrink-0 ml-3">
+                                                                 <div className="flex items-center gap-1">
+                                                                     <FiMessageCircle className="w-4 h-4" />
+                                                                     <span className="text-sm">
+                                                                         {
+                                                                             formatNumber(watchList._count.comments)
+                                                                         }
+                                                                     </span>
+                                                                 </div>
+                                                                 <div className="flex items-center gap-1">
+                                                                     <GiRose className="w-4 h-4 text-red-400" />
+                                                                     <span className="text-sm">
+                                                                         {
+                                                                             formatNumber(watchList._count.likes)
+                                                                         }
+                                                                     </span>
+                                                                 </div>
+                                                             </div>
+                                                         </div>
                                                         <div className="flex justify-start">
                                                             <div className="flex gap-2">
                                                                 {watchList.shows
@@ -550,8 +555,12 @@ export default async function ShowPage({
                                         )
                                     )}
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <p className="text-gray-400 text-sm mt-2">
+                                    Show not included in any watch lists yet, be the first to add it to a watch list!
+                                </p>
+                            )}
+                        </div>
 
                         {/* Discussions Section - Desktop Only */}
                         <div className="hidden md:block">
@@ -617,12 +626,12 @@ export default async function ShowPage({
                                 />
 
                                 {/* Included in Watch Lists Section - Mobile Only */}
-                                {sortedWatchLists.length > 0 && (
-                                    <div className="md:hidden mb-8">
-                                        <h2 className="text-xl font-semibold text-green-500 mb-4">
-                                            Included in Watch Lists
-                                        </h2>
-                                        <div className="border-b border-gray-600 "></div>
+                                <div className="md:hidden mb-8">
+                                    <h2 className="text-xl font-semibold text-green-500 mb-4">
+                                        Included in Watch Lists ({formatNumber(sortedWatchLists.length)})
+                                    </h2>
+                                    <div className="border-b border-gray-600 "></div>
+                                    {sortedWatchLists.length > 0 ? (
                                         <div className="space-y-0">
                                             {sortedWatchLists.map(
                                                 (watchList, index) => (
@@ -632,77 +641,84 @@ export default async function ShowPage({
                                                             className="block py-3"
                                                         >
                                                             <div className="flex flex-col gap-2">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex-grow">
-                                                                        <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
-                                                                            {
-                                                                                watchList.name
-                                                                            }
-                                                                        </h4>
-                                                                        <p className="text-sm text-gray-400">
-                                                                            by{" "}
-                                                                            {
-                                                                                watchList
-                                                                                    .user
-                                                                                    .username
-                                                                            }
-                                                                        </p>
-                                                                        <p className="text-sm text-gray-400">
-                                                                            {
-                                                                                watchList
-                                                                                    .shows
-                                                                                    .length
-                                                                            }{" "}
-                                                                            show
-                                                                            {watchList
-                                                                                .shows
-                                                                                .length !==
-                                                                            1
-                                                                                ? "s"
-                                                                                : ""}{" "}
-                                                                            in
-                                                                            this
-                                                                            list
-                                                                        </p>
-                                                                        {watchList.shows.some(
-                                                                            (
-                                                                                show
-                                                                            ) =>
-                                                                                show.ranking !==
-                                                                                null
-                                                                        ) && (
-                                                                            <div className="flex items-center gap-1">
-                                                                                <FiTrendingUp className="w-3 h-3 text-blue-400" />
-                                                                                <span className="text-sm text-blue-400 font-medium">
-                                                                                    Ranked
-                                                                                    list
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex items-center gap-4 text-gray-400">
-                                                                        <div className="flex items-center gap-1">
-                                                                            <FiMessageCircle className="w-4 h-4" />
-                                                                            <span className="text-sm">
-                                                                                {
-                                                                                    watchList
-                                                                                        ._count
-                                                                                        .comments
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1">
-                                                                            <GiRose className="w-4 h-4 text-red-400" />
-                                                                            <span className="text-sm">
-                                                                                {
-                                                                                    watchList
-                                                                                        ._count
-                                                                                        .likes
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                                                                                 <div className="flex items-start justify-between">
+                                                                     <div className="flex-grow">
+                                                                         <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
+                                                                             {
+                                                                                 watchList.name
+                                                                             }
+                                                                         </h4>
+                                                                         {watchList.description && (
+                                                                             <p className="text-sm text-gray-200 break-words">
+                                                                                 {watchList.description.length > 100
+                                                                                     ? `${watchList.description.substring(0, 100)}...`
+                                                                                     : watchList.description}
+                                                                             </p>
+                                                                         )}
+                                                                         <p className="text-sm text-gray-400">
+                                                                             by{" "}
+                                                                             {
+                                                                                 watchList
+                                                                                     .user
+                                                                                     .username
+                                                                             }
+                                                                         </p>
+                                                                         <p className="text-sm text-gray-400">
+                                                                             {
+                                                                                 watchList
+                                                                                     .shows
+                                                                                     .length
+                                                                             }{" "}
+                                                                             show
+                                                                             {watchList
+                                                                                 .shows
+                                                                                 .length !==
+                                                                             1
+                                                                                 ? "s"
+                                                                                 : ""}{" "}
+                                                                             in
+                                                                             this
+                                                                             list
+                                                                         </p>
+                                                                         {watchList.shows.some(
+                                                                             (
+                                                                                 show
+                                                                             ) =>
+                                                                                 show.ranking !==
+                                                                                 null
+                                                                         ) && (
+                                                                             <div className="flex items-center gap-1">
+                                                                                 <FiTrendingUp className="w-3 h-3 text-blue-400" />
+                                                                                 <span className="text-sm text-blue-400 font-medium">
+                                                                                     Ranked
+                                                                                     list
+                                                                                 </span>
+                                                                             </div>
+                                                                         )}
+                                                                     </div>
+                                                                     <div className="flex items-center gap-4 text-gray-400 flex-shrink-0 ml-3">
+                                                                         <div className="flex items-center gap-1">
+                                                                             <FiMessageCircle className="w-4 h-4" />
+                                                                             <span className="text-sm">
+                                                                                 {
+                                                                                     watchList
+                                                                                         ._count
+                                                                                         .comments
+                                                                                 }
+                                                                             </span>
+                                                                         </div>
+                                                                         <div className="flex items-center gap-1">
+                                                                             <GiRose className="w-4 h-4 text-red-400" />
+                                                                             <span className="text-sm">
+                                                                                 {
+                                                                                     watchList
+                                                                                         ._count
+                                                                                         .likes
+                                                                                 }
+                                                                             </span>
+                                                                         </div>
+                                                                     </div>
+                                                                 </div>
                                                                 <div className="flex justify-start">
                                                                     <div className="flex gap-2">
                                                                         {watchList.shows
@@ -755,8 +771,12 @@ export default async function ShowPage({
                                                 )
                                             )}
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <p className="text-gray-400 text-md mt-2 text-center">
+                                            Show not included in any watch lists yet, be the first to add it to a watch list!
+                                        </p>
+                                    )}
+                                </div>
 
                                 {/* Discussions Section - Mobile */}
                                 <div className="md:hidden mb-8">

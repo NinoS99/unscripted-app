@@ -10,58 +10,58 @@ import LikeButton from "./LikeButton";
 import Comments from "./Comments";
 
 interface ReviewDisplayProps {
-            review: {
+    review: {
+        id: number;
+        content: string;
+        startedOn?: Date | null;
+        endedOn?: Date | null;
+        watchedOn?: Date | null;
+        spoiler: boolean;
+        createdAt: Date;
+        userRating?: number;
+        userFavorite?: boolean;
+        user: {
+            id: string;
+            username: string;
+            profilePicture?: string | null;
+        };
+        tags: Array<{
+            tag: {
+                id: number;
+                name: string;
+            };
+        }>;
+        favouriteCharacters?: Array<{
+            character: {
+                id: number;
+                showRole: string | null;
+                person: {
+                    id: number;
+                    name: string;
+                    profilePath: string | null;
+                };
+                season?: {
+                    id: number;
+                    seasonNumber: number;
+                };
+            };
+        }>;
+        likes: Array<{ id: number }>;
+        comments?: Array<{
             id: number;
             content: string;
-            startedOn?: Date | null;
-            endedOn?: Date | null;
-            watchedOn?: Date | null;
-            spoiler: boolean;
             createdAt: Date;
-            userRating?: number;
-            userFavorite?: boolean;
             user: {
                 id: string;
                 username: string;
                 profilePicture?: string | null;
             };
-            tags: Array<{
-                tag: {
-                    id: number;
-                    name: string;
-                };
-            }>;
-            favouriteCharacters?: Array<{
-                character: {
-                    id: number;
-                    showRole: string | null;
-                    person: {
-                        id: number;
-                        name: string;
-                        profilePath: string | null;
-                    };
-                    season?: {
-                        id: number;
-                        seasonNumber: number;
-                    };
-                };
-            }>;
-            likes: Array<{ id: number }>;
-            comments?: Array<{
-                id: number;
-                content: string;
-                createdAt: Date;
-                user: {
-                    id: string;
-                    username: string;
-                    profilePicture?: string | null;
-                };
-            }>;
-            _count: {
-                likes: number;
-                comments: number;
-            };
+        }>;
+        _count: {
+            likes: number;
+            comments: number;
         };
+    };
     reviewType: "show" | "season" | "episode";
     entity: {
         id: number;
@@ -95,11 +95,11 @@ interface ReviewDisplayProps {
     };
 }
 
-export default function ReviewDisplay({ 
-    review, 
-    reviewType, 
+export default function ReviewDisplay({
+    review,
+    reviewType,
     entity,
-    availableImages = {}
+    availableImages = {},
 }: ReviewDisplayProps) {
     const [comments, setComments] = useState(review.comments || []);
     const [likeCount, setLikeCount] = useState(review._count.likes || 0);
@@ -108,9 +108,19 @@ export default function ReviewDisplay({
             case "show":
                 return entity?.name || "Unknown Show";
             case "season":
-                return `${entity?.show?.name || "Unknown Show"} - ${entity?.seasonNumber === 0 ? "Specials" : `Season ${entity?.seasonNumber}`}`;
+                return `${entity?.show?.name || "Unknown Show"} - ${
+                    entity?.seasonNumber === 0
+                        ? "Specials"
+                        : `Season ${entity?.seasonNumber}`
+                }`;
             case "episode":
-                return `${entity?.season?.show?.name || "Unknown Show"} - ${entity?.season?.seasonNumber === 0 ? "S" : `S${entity?.season?.seasonNumber}E`}${entity?.episodeNumber} - ${entity?.name || "Unknown Episode"}`;
+                return `${entity?.season?.show?.name || "Unknown Show"} - ${
+                    entity?.season?.seasonNumber === 0
+                        ? "S"
+                        : `S${entity?.season?.seasonNumber}E`
+                }${entity?.episodeNumber} - ${
+                    entity?.name || "Unknown Episode"
+                }`;
         }
     };
 
@@ -131,13 +141,14 @@ export default function ReviewDisplay({
                 return entity?.posterPath;
             case "season":
                 // Priority order: season poster → show poster
-                return entity?.posterPath || 
-                       availableImages?.showPosterPath;
+                return entity?.posterPath || availableImages?.showPosterPath;
             case "episode":
                 // Priority order: episode still → season poster → show poster
-                return availableImages?.episodeStillPath || 
-                       availableImages?.seasonPosterPath || 
-                       availableImages?.showPosterPath;
+                return (
+                    availableImages?.episodeStillPath ||
+                    availableImages?.seasonPosterPath ||
+                    availableImages?.showPosterPath
+                );
         }
     };
 
@@ -146,12 +157,16 @@ export default function ReviewDisplay({
             case "show":
                 return entity?.posterPath;
             case "season":
-                return availableImages?.seasonPosterPath || 
-                       availableImages?.showPosterPath;
+                return (
+                    availableImages?.seasonPosterPath ||
+                    availableImages?.showPosterPath
+                );
             case "episode":
                 // For desktop, prefer season poster → show poster (skip episode still)
-                return availableImages?.seasonPosterPath || 
-                       availableImages?.showPosterPath;
+                return (
+                    availableImages?.seasonPosterPath ||
+                    availableImages?.showPosterPath
+                );
         }
     };
 
@@ -160,9 +175,13 @@ export default function ReviewDisplay({
             case "show":
                 return `/show/${entity?.id}`;
             case "season":
-                return `/show/${entity?.show?.id || 0}/season/${entity?.seasonNumber}`;
+                return `/show/${entity?.show?.id || 0}/season/${
+                    entity?.seasonNumber
+                }`;
             case "episode":
-                return `/show/${entity?.season?.show?.id || 0}/season/${entity?.season?.seasonNumber || 0}/episode/${entity?.episodeNumber || 0}`;
+                return `/show/${entity?.season?.show?.id || 0}/season/${
+                    entity?.season?.seasonNumber || 0
+                }/episode/${entity?.episodeNumber || 0}`;
         }
     };
 
@@ -182,17 +201,30 @@ export default function ReviewDisplay({
                             {/* Full-width poster with overlay */}
                             <div
                                 className="relative w-screen"
-                                style={{ 
-                                    height: "auto", 
-                                    aspectRatio: reviewType === "episode" && availableImages?.episodeStillPath ? "16/9" : "2/3" 
+                                style={{
+                                    height: "auto",
+                                    aspectRatio:
+                                        reviewType === "episode" &&
+                                        availableImages?.episodeStillPath
+                                            ? "16/9"
+                                            : "2/3",
                                 }}
                             >
                                 <Link href={getEntityLink()}>
                                     <Image
-                                        src={getPosterPath() ? `https://image.tmdb.org/t/p/w780${getPosterPath()}` : "/noPoster.jpg"}
+                                        src={
+                                            getPosterPath()
+                                                ? `https://image.tmdb.org/t/p/w780${getPosterPath()}`
+                                                : "/noPoster.jpg"
+                                        }
                                         alt={getEntityName()}
                                         width={780}
-                                        height={reviewType === "episode" && availableImages?.episodeStillPath ? 439 : 1170}
+                                        height={
+                                            reviewType === "episode" &&
+                                            availableImages?.episodeStillPath
+                                                ? 439
+                                                : 1170
+                                        }
                                         className="w-full h-full object-cover absolute inset-0"
                                         priority
                                         quality={90}
@@ -202,7 +234,7 @@ export default function ReviewDisplay({
                                 {/* Overlay with entity info */}
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 z-10">
                                     <h1 className="text-xl font-bold text-white mb-1">
-                                        <Link 
+                                        <Link
                                             href={getEntityLink()}
                                             className="hover:text-green-400 transition-colors"
                                         >
@@ -211,40 +243,49 @@ export default function ReviewDisplay({
                                     </h1>
                                     {getAirDate() && (
                                         <p className="text-sm text-gray-200">
-                                            Aired on {format(getAirDate()!, "MMMM d, yyyy")}
+                                            Aired on{" "}
+                                            {format(
+                                                getAirDate()!,
+                                                "MMMM d, yyyy"
+                                            )}
                                         </p>
                                     )}
+                                    <div>
+                                        {/* Reviewed by */}
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <Image
+                                                src={
+                                                    review.user
+                                                        .profilePicture ||
+                                                    "/noAvatar.png"
+                                                }
+                                                alt={review.user.username}
+                                                width={24}
+                                                height={24}
+                                                className="w-6 h-6 rounded-full object-cover"
+                                            />
+                                            <p className="text-gray-400 text-sm">
+                                                Reviewed by{" "}
+                                                <Link
+                                                    href={`/${review.user.username}`}
+                                                    className="font-semibold text-white hover:text-green-400 transition-colors"
+                                                >
+                                                    {review.user.username}
+                                                </Link>
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Mobile info below poster */}
                             <div className="mt-4 space-y-4 px-4">
-                                {/* Reviewed by */}
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Image
-                                            src={review.user.profilePicture || "/noAvatar.png"}
-                                            alt={review.user.username}
-                                            width={24}
-                                            height={24}
-                                            className="w-6 h-6 rounded-full object-cover"
-                                        />
-                                        <p className="text-gray-400 text-sm">
-                                            Reviewed by{" "}
-                                            <Link 
-                                                href={`/${review.user.username}`}
-                                                className="font-semibold text-white hover:text-green-400 transition-colors"
-                                            >
-                                                {review.user.username}
-                                            </Link>
-                                        </p>
-                                    </div>
-                                </div>
 
                                 {/* User's Rating and Favorite Status */}
                                 <div className="space-y-2">
                                     {/* First row: Rating and Rose (if both exist) */}
-                                    {(review.userRating || review.userFavorite) && (
+                                    {(review.userRating ||
+                                        review.userFavorite) && (
                                         <div className="flex items-center gap-4">
                                             {review.userRating && (
                                                 <div className="flex items-center gap-1">
@@ -252,22 +293,29 @@ export default function ReviewDisplay({
                                                     <span className="text-lg font-semibold text-yellow-400">
                                                         {review.userRating}
                                                     </span>
-                                                    <span className="text-sm text-gray-400">/ 5</span>
+                                                    <span className="text-sm text-gray-400">
+                                                        / 5
+                                                    </span>
                                                 </div>
                                             )}
                                             {review.userFavorite && (
                                                 <div className="flex items-center gap-1">
                                                     <GiRose className="w-5 h-5 text-red-400 fill-current" />
-                                                    <span className="text-sm text-red-400 font-medium pl-1">Reviewer gave this a rose</span>
+                                                    <span className="text-sm text-red-400 font-medium pl-1">
+                                                        Reviewer gave this a
+                                                        rose
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
                                     )}
-                                    
+
                                     {/* Second row: Spoiler (if exists) */}
                                     {review.spoiler && (
                                         <div className="flex items-center gap-1">
-                                            <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>
+                                            <span className="text-red-400 text-sm font-medium">
+                                                ⚠️ SPOILER
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -278,22 +326,37 @@ export default function ReviewDisplay({
                                         <div className="space-y-2">
                                             {review.startedOn && (
                                                 <p className="text-sm">
-                                                    <span className="text-gray-400">Started watching on:</span>{" "}
-                                                    {format(review.startedOn, "MMM d, yyyy")}
+                                                    <span className="text-gray-400">
+                                                        Started watching on:
+                                                    </span>{" "}
+                                                    {format(
+                                                        review.startedOn,
+                                                        "MMM d, yyyy"
+                                                    )}
                                                 </p>
                                             )}
                                             {review.endedOn && (
                                                 <p className="text-sm">
-                                                    <span className="text-gray-400">Ended watching on:</span>{" "}
-                                                    {format(review.endedOn, "MMM d, yyyy")}
+                                                    <span className="text-gray-400">
+                                                        Ended watching on:
+                                                    </span>{" "}
+                                                    {format(
+                                                        review.endedOn,
+                                                        "MMM d, yyyy"
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
                                     ) : (
                                         review.watchedOn && (
                                             <p className="text-sm">
-                                                <span className="text-gray-400">Watched on:</span>{" "}
-                                                {format(new Date(review.watchedOn), "MMM d, yyyy")}
+                                                <span className="text-gray-400">
+                                                    Watched on:
+                                                </span>{" "}
+                                                {format(
+                                                    new Date(review.watchedOn),
+                                                    "MMM d, yyyy"
+                                                )}
                                             </p>
                                         )
                                     )}
@@ -307,7 +370,9 @@ export default function ReviewDisplay({
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <FiMessageCircle className="w-4 h-4" />
-                                        <span>{review._count.comments || 0}</span>
+                                        <span>
+                                            {review._count.comments || 0}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -319,7 +384,11 @@ export default function ReviewDisplay({
                             <div className="flex-shrink-0">
                                 <Link href={getEntityLink()}>
                                     <Image
-                                        src={getDesktopPosterPath() ? `https://image.tmdb.org/t/p/w500${getDesktopPosterPath()}` : "/noPoster.jpg"}
+                                        src={
+                                            getDesktopPosterPath()
+                                                ? `https://image.tmdb.org/t/p/w500${getDesktopPosterPath()}`
+                                                : "/noPoster.jpg"
+                                        }
                                         alt={getEntityName()}
                                         width={200}
                                         height={300}
@@ -333,7 +402,10 @@ export default function ReviewDisplay({
                                 <div className="mb-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Image
-                                            src={review.user.profilePicture || "/noAvatar.png"}
+                                            src={
+                                                review.user.profilePicture ||
+                                                "/noAvatar.png"
+                                            }
                                             alt={review.user.username}
                                             width={24}
                                             height={24}
@@ -341,7 +413,7 @@ export default function ReviewDisplay({
                                         />
                                         <p className="text-gray-400 text-sm">
                                             Reviewed by{" "}
-                                            <Link 
+                                            <Link
                                                 href={`/${review.user.username}`}
                                                 className="font-semibold text-white hover:text-green-400 transition-colors"
                                             >
@@ -350,7 +422,7 @@ export default function ReviewDisplay({
                                         </p>
                                     </div>
                                     <h1 className="text-2xl md:text-3xl font-bold mb-2">
-                                        <Link 
+                                        <Link
                                             href={getEntityLink()}
                                             className="hover:text-green-400 transition-colors"
                                         >
@@ -359,7 +431,11 @@ export default function ReviewDisplay({
                                     </h1>
                                     {getAirDate() && (
                                         <p className="text-gray-400">
-                                            Aired on {format(getAirDate()!, "MMMM d, yyyy")}
+                                            Aired on{" "}
+                                            {format(
+                                                getAirDate()!,
+                                                "MMMM d, yyyy"
+                                            )}
                                         </p>
                                     )}
                                 </div>
@@ -372,18 +448,24 @@ export default function ReviewDisplay({
                                             <span className="text-lg font-semibold text-yellow-400">
                                                 {review.userRating}
                                             </span>
-                                            <span className="text-sm text-gray-400">/ 5</span>
+                                            <span className="text-sm text-gray-400">
+                                                / 5
+                                            </span>
                                         </div>
                                     )}
                                     {review.userFavorite && (
                                         <div className="flex items-center gap-1">
                                             <GiRose className="w-5 h-5 text-red-400 fill-current" />
-                                            <span className="text-sm text-red-400 font-medium pl-1">Reviewer gave this a rose</span>
+                                            <span className="text-sm text-red-400 font-medium pl-1">
+                                                Reviewer gave this a rose
+                                            </span>
                                         </div>
                                     )}
                                     {review.spoiler && (
                                         <div className="flex items-center gap-1">
-                                            <span className="text-red-400 text-sm font-medium">⚠️ SPOILER</span>
+                                            <span className="text-red-400 text-sm font-medium">
+                                                ⚠️ SPOILER
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -394,22 +476,37 @@ export default function ReviewDisplay({
                                         <div className="space-y-2">
                                             {review.startedOn && (
                                                 <p className="text-sm">
-                                                    <span className="text-gray-400">Started watching on:</span>{" "}
-                                                    {format(review.startedOn, "MMM d, yyyy")}
+                                                    <span className="text-gray-400">
+                                                        Started watching on:
+                                                    </span>{" "}
+                                                    {format(
+                                                        review.startedOn,
+                                                        "MMM d, yyyy"
+                                                    )}
                                                 </p>
                                             )}
                                             {review.endedOn && (
                                                 <p className="text-sm">
-                                                    <span className="text-gray-400">Ended watching on:</span>{" "}
-                                                    {format(review.endedOn, "MMM d, yyyy")}
+                                                    <span className="text-gray-400">
+                                                        Ended watching on:
+                                                    </span>{" "}
+                                                    {format(
+                                                        review.endedOn,
+                                                        "MMM d, yyyy"
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
                                     ) : (
                                         review.watchedOn && (
                                             <p className="text-sm">
-                                                <span className="text-gray-400">Watched on:</span>{" "}
-                                                {format(new Date(review.watchedOn), "MMM d, yyyy")}
+                                                <span className="text-gray-400">
+                                                    Watched on:
+                                                </span>{" "}
+                                                {format(
+                                                    new Date(review.watchedOn),
+                                                    "MMM d, yyyy"
+                                                )}
                                             </p>
                                         )
                                     )}
@@ -423,7 +520,9 @@ export default function ReviewDisplay({
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <FiMessageCircle className="w-4 h-4" />
-                                        <span>{review._count.comments || 0}</span>
+                                        <span>
+                                            {review._count.comments || 0}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -431,7 +530,9 @@ export default function ReviewDisplay({
 
                         {/* Review Content */}
                         <div className="mb-8">
-                            <h2 className="text-xl font-semibold text-green-500 mb-4">Review</h2>
+                            <h2 className="text-xl font-semibold text-green-500 mb-4">
+                                Review
+                            </h2>
                             <div className="border-b border-gray-600 mb-4"></div>
                             <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">
                                 {review.content}
@@ -446,7 +547,9 @@ export default function ReviewDisplay({
                                 initialIsLiked={review.likes?.length > 0}
                                 size="lg"
                                 onLikeChange={(isLiked) => {
-                                    setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+                                    setLikeCount((prev) =>
+                                        isLiked ? prev + 1 : prev - 1
+                                    );
                                 }}
                             />
                         </div>
@@ -473,44 +576,71 @@ export default function ReviewDisplay({
                         )}
 
                         {/* Favourite Characters (Show and Season only) */}
-                        {reviewType !== "episode" && getFavouriteCharacters() && getFavouriteCharacters()!.length > 0 && (
-                            <div className="mb-8">
-                                <h3 className="text-lg font-semibold text-green-500 mb-4 flex items-center gap-2">
-                                    <FiUser className="text-green-400" />
-                                    Favourite &apos;Characters&apos;
-                                </h3>
-                                <div className="border-b border-gray-600 mb-4"></div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {getFavouriteCharacters()!.map((character) => (
-                                        <div
-                                            key={character.id}
-                                            className="flex items-center gap-3 py-3 border-b border-gray-700"
-                                        >
-                                            <Image
-                                                src={character.person?.profilePath ? `https://image.tmdb.org/t/p/w500${character.person.profilePath}` : "/noAvatar.png"}
-                                                alt={character.person?.name || "Unknown"}
-                                                width={40}
-                                                height={40}
-                                                className="rounded-md object-cover"
-                                            />
-                                            <div>
-                                                <p className="font-medium text-white">{character.person?.name || "Unknown"}</p>
-                                                {character.showRole && (
-                                                    <p className="text-sm text-gray-400">
-                                                        as {character.showRole}
-                                                    </p>
-                                                )}
-                                                {reviewType === "show" && character.season && (
-                                                    <p className="text-sm text-gray-500">
-                                                        Season {character.season.seasonNumber}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                        {reviewType !== "episode" &&
+                            getFavouriteCharacters() &&
+                            getFavouriteCharacters()!.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-semibold text-green-500 mb-4 flex items-center gap-2">
+                                        <FiUser className="text-green-400" />
+                                        Favourite &apos;Characters&apos;
+                                    </h3>
+                                    <div className="border-b border-gray-600 mb-4"></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {getFavouriteCharacters()!.map(
+                                            (character) => (
+                                                <div
+                                                    key={character.id}
+                                                    className="flex items-center gap-3 py-3 border-b border-gray-700"
+                                                >
+                                                    <Image
+                                                        src={
+                                                            character.person
+                                                                ?.profilePath
+                                                                ? `https://image.tmdb.org/t/p/w500${character.person.profilePath}`
+                                                                : "/noAvatar.png"
+                                                        }
+                                                        alt={
+                                                            character.person
+                                                                ?.name ||
+                                                            "Unknown"
+                                                        }
+                                                        width={40}
+                                                        height={40}
+                                                        className="rounded-md object-cover"
+                                                    />
+                                                    <div>
+                                                        <p className="font-medium text-white">
+                                                            {character.person
+                                                                ?.name ||
+                                                                "Unknown"}
+                                                        </p>
+                                                        {character.showRole && (
+                                                            <p className="text-sm text-gray-400">
+                                                                as{" "}
+                                                                {
+                                                                    character.showRole
+                                                                }
+                                                            </p>
+                                                        )}
+                                                        {reviewType ===
+                                                            "show" &&
+                                                            character.season && (
+                                                                <p className="text-sm text-gray-500">
+                                                                    Season{" "}
+                                                                    {
+                                                                        character
+                                                                            .season
+                                                                            .seasonNumber
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
                         {/* Comments */}
                         <Comments
@@ -518,7 +648,7 @@ export default function ReviewDisplay({
                             entityId={review.id}
                             comments={comments}
                             onCommentAdded={(comment) => {
-                                setComments(prev => [comment, ...prev]);
+                                setComments((prev) => [comment, ...prev]);
                             }}
                             reviewType={reviewType}
                         />
@@ -527,4 +657,4 @@ export default function ReviewDisplay({
             </div>
         </div>
     );
-} 
+}

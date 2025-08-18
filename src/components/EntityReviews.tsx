@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { FiClock, FiTrendingUp } from "react-icons/fi";
 import ReviewRow from "./ReviewRow";
+import { formatNumber } from "@/lib/utils";
 
 interface Review {
     id: number;
@@ -109,7 +110,7 @@ export default function EntityReviews({
         return (
             <div className="mt-8">
                 <h2 className="text-xl font-semibold text-green-500 mb-4">
-                    Reviews
+                    Reviews ({formatNumber(reviews.length)})
                 </h2>
                 <div className="text-gray-400 text-center py-8">
                     Loading reviews...
@@ -122,9 +123,10 @@ export default function EntityReviews({
         return (
             <div className="mt-8">
                 <h2 className="text-xl font-semibold text-green-500 mb-4">
-                    Reviews
+                    Reviews ({formatNumber(reviews.length)})
                 </h2>
-                <div className="text-gray-400 text-center py-8">
+                <div className="border-b border-gray-600 mb-2 md:mb-4"></div>
+                <div className="text-gray-400 text-center mb-8">
                     {user ? (
                         `No reviews yet. Be the first to review this ${entityType}!`
                     ) : (
@@ -149,28 +151,29 @@ export default function EntityReviews({
 
     return (
         <div className="mt-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-green-500">
-                    Reviews
+                    Reviews ({formatNumber(reviews.length)})
                 </h2>
                 <Link
                     href={`/reviews/${entityType}/${entityId}`}
                     className="text-green-400 hover:text-green-300 transition-colors font-medium"
                 >
-                    See all reviews
+                    <span className="md:hidden text-sm">See all</span>
+                    <span className="hidden md:inline">See all reviews</span>
                 </Link>
             </div>
+            <div className="border-b border-gray-600 mb-4"></div>
 
             {/* Most Popular Reviews */}
             {mostPopular.length > 0 && (
                 <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-2 md:mb-4">
                         <FiTrendingUp className="w-5 h-5 text-green-400" />
-                        <h3 className="text-lg font-semibold text-white">
-                            Most Popular
+                        <h3 className="text-base md:text-lg font-semibold text-white">
+                            Popular
                         </h3>
                     </div>
-                    <div className="border-b border-gray-600"></div>
                     <div className="space-y-0">
                         {mostPopular.map(renderReviewRow)}
                     </div>
@@ -180,13 +183,12 @@ export default function EntityReviews({
             {/* Most Recent Reviews */}
             {mostRecent.length > 0 && (
                 <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-2 md:mb-4">
                         <FiClock className="w-5 h-5 text-green-400" />
-                        <h3 className="text-lg font-semibold text-white">
-                            Most Recent
+                        <h3 className="text-base md:text-lg font-semibold text-white">
+                            Recent
                         </h3>
                     </div>
-                    <div className="border-b border-gray-600"></div>
                     <div className="space-y-0">
                         {mostRecent.map(renderReviewRow)}
                     </div>

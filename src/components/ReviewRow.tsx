@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { GiRose } from "react-icons/gi";
 import { FiMessageCircle, FiStar } from "react-icons/fi";
+import { formatNumber } from "@/lib/utils";
 
 interface Review {
     id: number;
@@ -126,7 +127,7 @@ export default function ReviewRow({
                             </div>
                         ) : (
                             <p className="text-gray-200 leading-relaxed">
-                                {truncateContent(review.content, 500)}
+                                {truncateContent(review.content, 300)}
                             </p>
                         )}
                     </div>
@@ -135,11 +136,11 @@ export default function ReviewRow({
                     <div className="flex items-center gap-4 text-sm text-gray-400">
                         <div className="flex items-center gap-1">
                             <GiRose className="w-4 h-4" />
-                            <span>{review._count.likes}</span>
+                            <span>{formatNumber(review._count.likes)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <FiMessageCircle className="w-4 h-4" />
-                            <span>{review._count.comments}</span>
+                            <span>{formatNumber(review._count.comments)}</span>
                         </div>
                     </div>
                 </div>

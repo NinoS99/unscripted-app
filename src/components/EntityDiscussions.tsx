@@ -10,6 +10,7 @@ import {
     FiBarChart2,
 } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
+import { formatNumber } from "@/lib/utils";
 
 interface Discussion {
     id: number;
@@ -90,14 +91,24 @@ export default function EntityDiscussions({
     const allDiscussions = [...discussions.recent, ...discussions.popular];
 
     if (allDiscussions.length === 0) {
-        return null;
+        return (
+            <div className="mb-8">
+                <h2 className="text-xl md:text-lg font-semibold text-green-500 mb-4 mt-3">
+                    Discussions (0)
+                </h2>
+                <div className="border-b border-gray-600 mb-2 md:mb-4"></div>
+                <p className="text-gray-400 text-sm mt-2 md:text-left text-center">
+                    No discussions yet, be the first to start a discussion!
+                </p>
+            </div>
+        );
     }
 
     return (
         <div className="mb-8">
             <div className="flex items-center justify-between mb-4 mt-3">
                 <h2 className="text-xl md:text-lg font-semibold text-green-500">
-                    Discussions
+                    Discussions ({formatNumber(allDiscussions.length)})
                 </h2>
                 <Link
                     href={`/discussions/${entityType}/${entityId}`}
@@ -107,6 +118,7 @@ export default function EntityDiscussions({
                 </Link>
             </div>
             <div className="md:hidden border-b border-gray-600 mb-4"></div>
+            <div className="hidden md:block border-b border-gray-600 mb-4"></div>
 
             {/* Desktop Layout */}
             <div className="hidden md:block space-y-6">
@@ -154,7 +166,7 @@ export default function EntityDiscussions({
                                 .slice(0, 3)
                                 .map((discussion, index) => (
                                     <div key={discussion.id}>
-                                        <DiscussionCard
+                                        <DiscussionCard 
                                             discussion={discussion}
                                             entityType={entityType}
                                         />
@@ -281,7 +293,7 @@ function DiscussionCard({
                                 <p className="text-xs text-gray-400">
                                     {format(
                                         new Date(discussion.createdAt),
-                                        "MMM d"
+                                        "MMM d, yyyy"
                                     )}
                                 </p>
                             </div>
@@ -299,13 +311,13 @@ function DiscussionCard({
                             <div className="flex items-center gap-1">
                                 <FiMessageCircle className="w-3 h-3" />
                                 <span className="text-xs">
-                                    {discussion._count.comments}
+                                    {formatNumber(discussion._count.comments)}
                                 </span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <GiRose className="w-3 h-3 text-red-400" />
                                 <span className="text-xs">
-                                    {discussion._count.likes}
+                                    {formatNumber(discussion._count.likes)}
                                 </span>
                             </div>
                         </div>

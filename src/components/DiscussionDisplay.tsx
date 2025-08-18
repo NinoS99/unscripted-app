@@ -331,14 +331,9 @@ export default function DiscussionDisplay({
                                             )}
                                         </p>
                                     )}
-                                </div>
-                            </div>
-
-                            {/* Mobile info below poster */}
-                            <div className="mt-4 space-y-4 px-4">
-                                {/* Discussion by */}
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
+                                    {/* Discussion by */}
+                                    <div>
+                                        <div className="flex items-center gap-2 mt-2">
                                         <Image
                                             src={discussion.user.profilePicture || "/noAvatar.png"}
                                             alt={discussion.user.username}
@@ -357,6 +352,11 @@ export default function DiscussionDisplay({
                                         </p>
                                     </div>
                                 </div>
+                                </div>
+                            </div>
+
+                            {/* Mobile info below poster */}
+                            <div className="mt-4 space-y-4 px-4">
 
                                 {/* Discussion Title */}
                                 <div>
