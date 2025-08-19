@@ -322,7 +322,7 @@ export default function ReviewsPage({
                                 </Link>
                             </h1>
                             {getAirDate() && (
-                                <p className="text-sm text-gray-200">
+                                <p className="text-sm text-gray-200 mb-1">
                                     Aired on{" "}
                                     {format(
                                         new Date(getAirDate()!),
@@ -330,37 +330,33 @@ export default function ReviewsPage({
                                     )}
                                 </p>
                             )}
+                            <p className="text-sm text-gray-200 mt-1">
+                                {reviews.length} review
+                                {reviews.length !== 1 ? "s" : ""}
+                            </p>
                         </div>
                     </div>
 
-                                         {/* Mobile info below poster */}
-                     <div className="mt-4 space-y-4 px-4">
-                         {/* Review count on first line */}
-                         <div className="text-gray-300 text-sm">
-                             <span>
-                                 {reviews.length} review
-                                 {reviews.length !== 1 ? "s" : ""}
-                             </span>
-                         </div>
-                         
-                         {/* Like and watched counts on separate lines */}
-                         <div className="flex flex-col gap-2 text-gray-300 text-sm">
-                             <div className="flex items-center gap-1">
-                                 <GiRose className="w-4 h-4 text-red-400 fill-current" />
-                                 <span>
-                                     {totalLikes} user
-                                     {totalLikes !== 1 ? "s" : ""} gave a rose
-                                 </span>
-                             </div>
-                             <div className="flex items-center gap-1">
-                                 <FiEye className="w-4 h-4 text-green-400" />
-                                 <span>
-                                     {totalWatched} user
-                                     {totalWatched !== 1 ? "s" : ""} have watched
-                                     this {entityType}
-                                 </span>
-                             </div>
-                         </div>
+                    {/* Mobile info below poster */}
+                    <div className="mt-4 space-y-4 px-4">
+                        {/* Like and watched counts on separate lines */}
+                        <div className="flex flex-col gap-2 text-gray-300 text-sm">
+                            <div className="flex items-center gap-1">
+                                <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                <span>
+                                    {totalLikes} user
+                                    {totalLikes !== 1 ? "s" : ""} gave a rose
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <FiEye className="w-4 h-4 text-green-400" />
+                                <span>
+                                    {totalWatched} user
+                                    {totalWatched !== 1 ? "s" : ""} have watched
+                                    this {entityType}
+                                </span>
+                            </div>
+                        </div>
 
                         {/* Rating Distribution Chart */}
                         <div className="mt-6">
@@ -417,7 +413,9 @@ export default function ReviewsPage({
                             <Image
                                 src={
                                     getPosterPath(true)
-                                        ? `https://image.tmdb.org/t/p/w500${getPosterPath(true)}`
+                                        ? `https://image.tmdb.org/t/p/w500${getPosterPath(
+                                              true
+                                          )}`
                                         : "/noPoster.jpg"
                                 }
                                 alt={entityName}

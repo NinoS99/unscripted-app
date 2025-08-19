@@ -95,16 +95,34 @@ export default async function SeasonPage({
     const totalWatched = season.watched.length; // Count of users who watched
     const totalLikes = season.favorites.length; // Count of favorites from users
     const totalRatings = season.ratings.length;
-    const averageRating = totalRatings > 0 
-        ? (season.ratings.reduce((sum, rating) => sum + rating.rating, 0) / totalRatings).toFixed(1)
-        : "No ratings";
+    
+    // Fetch discussion count for this season
+    const totalDiscussions = await prisma.discussion.count({
+        where: {
+            seasonId: season.id,
+        },
+    });
+    const averageRating =
+        totalRatings > 0
+            ? (
+                  season.ratings.reduce(
+                      (sum, rating) => sum + rating.rating,
+                      0
+                  ) / totalRatings
+              ).toFixed(1)
+            : "No ratings";
 
     // Calculate rating distribution
-    const ratingDistribution = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(rating => {
-        const count = season.ratings.filter(r => r.rating === rating).length;
-        const percentage = totalRatings > 0 ? (count / totalRatings) * 100 : 0;
-        return { rating, count, percentage };
-    });
+    const ratingDistribution = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map(
+        (rating) => {
+            const count = season.ratings.filter(
+                (r) => r.rating === rating
+            ).length;
+            const percentage =
+                totalRatings > 0 ? (count / totalRatings) * 100 : 0;
+            return { rating, count, percentage };
+        }
+    );
 
     // Get user's rating and favorite status for this season
     let userRating;
@@ -125,8 +143,6 @@ export default async function SeasonPage({
             },
         });
     }
-
-
 
     return (
         <div className="min-h-screen bg-gray-900 container mx-auto">
@@ -158,7 +174,12 @@ export default async function SeasonPage({
                     </h2>
                     <div className="flex flex-col gap-1 text-sm text-gray-200">
                         {season.airDate && (
-                            <p>Season aired on {formatDate(season.airDate)}</p>
+                            <p>
+                                {new Date(season.airDate) > new Date()
+                                    ? "Airing on"
+                                    : "Aired on"}{" "}
+                                {formatDate(season.airDate)}
+                            </p>
                         )}
                         {season.show.creator.length > 0 && (
                             <p>
@@ -168,12 +189,18 @@ export default async function SeasonPage({
                                     .join(", ")}
                             </p>
                         )}
-                        <WatchedStatusDisplay entityType="season" entityId={season.id} />
+                        <WatchedStatusDisplay
+                            entityType="season"
+                            entityId={season.id}
+                        />
                     </div>
                 </div>
 
                 {/* Season Navigation */}
-                <SeasonNavigation showId={showId} currentSeasonNumber={season.seasonNumber} />
+                <SeasonNavigation
+                    showId={showId}
+                    currentSeasonNumber={season.seasonNumber}
+                />
             </div>
 
             {/* Mobile Layout */}
@@ -230,7 +257,9 @@ export default async function SeasonPage({
                         <div className="flex flex-col gap-1 text-sm text-gray-200">
                             {season.airDate && (
                                 <p>
-                                    {new Date(season.airDate) > new Date() ? "Airing on" : "Season aired on"}{" "}
+                                    {new Date(season.airDate) > new Date()
+                                        ? "Airing on"
+                                        : "Aired on"}{" "}
                                     {formatDate(season.airDate)}
                                 </p>
                             )}
@@ -238,7 +267,10 @@ export default async function SeasonPage({
                     </div>
 
                     {/* Season Navigation - Mobile */}
-                    <SeasonNavigation showId={showId} currentSeasonNumber={season.seasonNumber} />
+                    <SeasonNavigation
+                        showId={showId}
+                        currentSeasonNumber={season.seasonNumber}
+                    />
                 </div>
             </div>
 
@@ -275,11 +307,12 @@ export default async function SeasonPage({
                             initialTotalWatched={totalWatched}
                             initialTotalLikes={totalLikes}
                             initialTotalReviews={totalReviews}
+                            initialTotalDiscussions={totalDiscussions}
                             showIdForRedirect={showId}
                         />
-                            
+
                         {userId && (
-                            <SeasonReviewButton 
+                            <SeasonReviewButton
                                 season={{
                                     id: season.id,
                                     seasonNumber: season.seasonNumber,
@@ -288,14 +321,17 @@ export default async function SeasonPage({
                                     show: {
                                         id: showId,
                                         name: season.show.name,
-                                        posterPath: season.show.posterPath
+                                        posterPath: season.show.posterPath,
                                     },
-                                    characters: season.characters.map(char => ({
-                                        id: char.id,
-                                        name: char.person.name,
-                                        characterName: char.showRole,
-                                        profilePath: char.person.profilePath
-                                    }))
+                                    characters: season.characters.map(
+                                        (char) => ({
+                                            id: char.id,
+                                            name: char.person.name,
+                                            characterName: char.showRole,
+                                            profilePath:
+                                                char.person.profilePath,
+                                        })
+                                    ),
                                 }}
                             />
                         )}
@@ -305,17 +341,24 @@ export default async function SeasonPage({
                             <StartDiscussionButton
                                 entityType="season"
                                 entityId={season.id}
-                                entityName={`${season.show.name} - ${season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}`}
+                                entityName={`${season.show.name} - ${
+                                    season.seasonNumber === 0
+                                        ? "Specials"
+                                        : `Season ${season.seasonNumber}`
+                                }`}
                                 entityData={{
                                     rating: userRating?.rating,
-                                    isFavorited: !!userFavorite
+                                    isFavorited: !!userFavorite,
                                 }}
                             />
                         </div>
 
                         {/* Discussions Section - Desktop Only */}
                         <div className="hidden md:block">
-                            <EntityDiscussions entityType="season" entityId={season.id} />
+                            <EntityDiscussions
+                                entityType="season"
+                                entityId={season.id}
+                            />
                         </div>
                     </div>
 
@@ -324,7 +367,7 @@ export default async function SeasonPage({
                         <div className="rounded-lg shadow overflow-hidden h-full flex flex-col">
                             <div className="overflow-y-auto p-6 flex-grow">
                                 {/* Rating Distribution Chart */}
-                                <RatingDistributionChart 
+                                <RatingDistributionChart
                                     averageRating={averageRating}
                                     totalRatings={totalRatings}
                                     ratingDistribution={ratingDistribution}
@@ -361,19 +404,26 @@ export default async function SeasonPage({
                                 <EntityReviews
                                     entityType="season"
                                     entityId={season.id}
-                                    entityName={`${season.show.name} - ${season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}`}
+                                    entityName={`${season.show.name} - ${
+                                        season.seasonNumber === 0
+                                            ? "Specials"
+                                            : `Season ${season.seasonNumber}`
+                                    }`}
                                 />
 
                                 {/* Discussions Section - Mobile */}
                                 <div className="md:hidden mb-8">
-                                    <EntityDiscussions entityType="season" entityId={season.id} />
+                                    <EntityDiscussions
+                                        entityType="season"
+                                        entityId={season.id}
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <CompletionReviewPrompt
                 entityType="season"
                 entityId={season.id}
@@ -381,13 +431,12 @@ export default async function SeasonPage({
                 showId={showId}
                 seasonNumber={season.seasonNumber}
             />
-            
+
             <CompletionReviewPrompt
                 entityType="show"
                 entityId={showId}
                 entityName={season.show.name}
             />
-
         </div>
     );
 }

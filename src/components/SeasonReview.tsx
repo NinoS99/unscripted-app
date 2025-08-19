@@ -236,6 +236,20 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
 
                         {/* Right Side - Review Form */}
                         <div className="flex-grow space-y-4 md:space-y-6">
+                            {/* Review Content */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Review *
+                                </label>
+                                <textarea
+                                    value={reviewContent}
+                                    onChange={(e) => setReviewContent(e.target.value)}
+                                    placeholder="Share your thoughts about this season..."
+                                    rows={6}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                />
+                            </div>
+
                             {/* Date Inputs */}
                             <div className="flex justify-between gap-2 h-20">
                                 <div className="relative">
@@ -292,20 +306,6 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                                         <p className="text-red-400 text-xs mt-1 ml-1">Hmm...</p>
                                     )}
                                 </div>
-                            </div>
-
-                                                         {/* Review Content */}
-                             <div>
-                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                     Review *
-                                 </label>
-                                <textarea
-                                    value={reviewContent}
-                                    onChange={(e) => setReviewContent(e.target.value)}
-                                    placeholder="Share your thoughts about this season..."
-                                    rows={6}
-                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
-                                />
                             </div>
 
                             {/* Tags and Favourite Characters */}

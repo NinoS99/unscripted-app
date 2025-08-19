@@ -424,9 +424,9 @@ model ReviewComment {
   seasonReviewId  Int?
   episodeReviewId Int?
   createdAt       DateTime       @default(now())
-  episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id])
-  seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id])
-  showReview      ShowReview?    @relation(fields: [showReviewId], references: [id])
+  episodeReview   EpisodeReview? @relation(fields: [episodeReviewId], references: [id], onDelete: Cascade)
+  seasonReview    SeasonReview?  @relation(fields: [seasonReviewId], references: [id], onDelete: Cascade)
+  showReview      ShowReview?    @relation(fields: [showReviewId], references: [id], onDelete: Cascade)
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

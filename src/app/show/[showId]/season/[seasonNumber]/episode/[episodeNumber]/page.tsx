@@ -94,6 +94,13 @@ export default async function EpisodePage({
     const totalWatched = episode.watched.length; // Count of users who watched
     const totalLikes = episode.favorites.length; // Count of favorites from users
     const totalRatings = episode.ratings.length;
+    
+    // Fetch discussion count for this episode
+    const totalDiscussions = await prisma.discussion.count({
+        where: {
+            episodeId: episode.id,
+        },
+    });
     const averageRating = totalRatings > 0 
         ? (episode.ratings.reduce((sum, rating) => sum + rating.rating, 0) / totalRatings).toFixed(1)
         : "No ratings";
@@ -285,6 +292,7 @@ export default async function EpisodePage({
                             initialTotalWatched={totalWatched}
                             initialTotalLikes={totalLikes}
                             initialTotalReviews={totalReviews}
+                            initialTotalDiscussions={totalDiscussions}
                             showIdForRedirect={Number(showId)}
                             seasonId={episode.season.id}
                             episodeId={episode.id}

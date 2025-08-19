@@ -93,11 +93,11 @@ export default function EntityDiscussions({
     if (allDiscussions.length === 0) {
         return (
             <div className="mb-8">
-                <h2 className="text-xl md:text-lg font-semibold text-green-500 mb-4 mt-3">
+                <h2 className="text-xl md:text-lg font-semibold text-green-500 mb-4 md:mb-2 mt-2">
                     Discussions (0)
                 </h2>
-                <div className="border-b border-gray-600 mb-2 md:mb-4"></div>
-                <p className="text-gray-400 text-sm mt-2 md:text-left text-center">
+                <div className="border-b border-gray-600 mb-4 md:mb-2"></div>
+                <p className="text-gray-400 md:text-sm mt-2 md:text-left text-center">
                     No discussions yet, be the first to start a discussion!
                 </p>
             </div>

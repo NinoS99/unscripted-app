@@ -618,7 +618,7 @@ export default function CreateWatchListForm() {
                                         }`}
                                     >
                                         {isRanked && (
-                                            <FiMove className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                            <FiMove className="hidden md:block w-4 h-4 text-gray-400 flex-shrink-0" />
                                         )}
                                         {isRanked && (
                                             <span className="text-green-400 font-bold text-sm w-6 text-center">
