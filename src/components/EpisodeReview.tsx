@@ -229,19 +229,33 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
 
                         {/* Right Side - Review Form */}
                         <div className="flex-grow space-y-4 md:space-y-6">
-                            {/* Watched On Date */}
-                            <div className="relative h-20">
+                            {/* Review Content */}
+                            <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Watched On
+                                    Review *
                                 </label>
-                                <input
-                                    type="date"
-                                    value={watchedOn}
-                                    onChange={(e) => setWatchedOn(e.target.value)}
-                                    max={today}
-                                    className={`w-32 md:w-full px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
-                                        !isWatchedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
-                                    }`}
+                                <textarea
+                                    value={reviewContent}
+                                    onChange={(e) => setReviewContent(e.target.value)}
+                                    placeholder="Share your thoughts about this episode..."
+                                    rows={6}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                />
+                            </div>
+
+                                                         {/* Watched On Date */}
+                             <div className="relative h-20">
+                                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                                     Watched On
+                                 </label>
+                                 <input
+                                     type="date"
+                                     value={watchedOn}
+                                     onChange={(e) => setWatchedOn(e.target.value)}
+                                     max={today}
+                                     className={`w-32 px-2 py-1 md:px-3 md:py-2 bg-gray-600 border rounded-md text-white focus:outline-none text-xs md:text-sm [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:contrast-200 ${
+                                         !isWatchedDateValid ? 'border-red-500 focus:border-red-400' : 'border-gray-500 focus:border-green-400'
+                                     }`}
                                     style={{
                                         colorScheme: 'dark',
                                         '--webkit-datetime-edit-fields-wrapper': 'color: white',
@@ -254,20 +268,6 @@ export default function EpisodeReview({ episode, isOpen, onClose }: EpisodeRevie
                                 {!isWatchedDateValid && (
                                     <p className="text-red-400 text-xs mt-1 ml-1">Date error!</p>
                                 )}
-                            </div>
-
-                                                         {/* Review Content */}
-                             <div>
-                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                     Review *
-                                 </label>
-                                <textarea
-                                    value={reviewContent}
-                                    onChange={(e) => setReviewContent(e.target.value)}
-                                    placeholder="Share your thoughts about this episode..."
-                                    rows={6}
-                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
-                                />
                             </div>
 
                             {/* Tags and Favourite Characters */}

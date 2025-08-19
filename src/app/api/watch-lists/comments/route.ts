@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
 export async function GET(request: NextRequest) {
@@ -31,7 +31,41 @@ export async function GET(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({ comments });
+        // Get Clerk user data for all comment authors
+        const commentsWithClerkImages = await Promise.all(
+            comments.map(async (comment) => {
+                try {
+                    const clerk = await clerkClient();
+                    const clerkUser = await clerk.users.getUser(comment.user.id);
+                    
+                    return {
+                        id: comment.id,
+                        content: comment.content,
+                        createdAt: comment.createdAt,
+                        user: {
+                            id: comment.user.id,
+                            username: comment.user.username,
+                            profilePicture: clerkUser?.imageUrl,
+                        },
+                    };
+                } catch (error) {
+                    // If Clerk user lookup fails, log error but don't fall back
+                    console.error(`Failed to fetch Clerk user for ${comment.user.id}:`, error);
+                    return {
+                        id: comment.id,
+                        content: comment.content,
+                        createdAt: comment.createdAt,
+                        user: {
+                            id: comment.user.id,
+                            username: comment.user.username,
+                            profilePicture: null,
+                        },
+                    };
+                }
+            })
+        );
+
+        return NextResponse.json({ comments: commentsWithClerkImages });
     } catch (error) {
         console.error("Error fetching watch list comments:", error);
         return NextResponse.json(
@@ -94,7 +128,22 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({ comment });
+        // Get Clerk user data for the comment author
+        const clerk = await clerkClient();
+        const clerkUser = await clerk.users.getUser(comment.user.id);
+        
+        return NextResponse.json({ 
+            comment: {
+                id: comment.id,
+                content: comment.content,
+                createdAt: comment.createdAt,
+                user: {
+                    id: comment.user.id,
+                    username: comment.user.username,
+                    profilePicture: clerkUser?.imageUrl,
+                },
+            }
+        });
     } catch (error) {
         console.error("Error creating watch list comment:", error);
         return NextResponse.json(

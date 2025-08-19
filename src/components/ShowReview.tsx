@@ -276,6 +276,22 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
 
                         {/* Right Side - Review Form */}
                         <div className="flex-grow space-y-4 md:space-y-6">
+                            {/* Review Content */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Review *
+                                </label>
+                                <textarea
+                                    value={reviewContent}
+                                    onChange={(e) =>
+                                        setReviewContent(e.target.value)
+                                    }
+                                    placeholder="Share your thoughts about this show..."
+                                    rows={6}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                />
+                            </div>
+
                             {/* Date Inputs */}
                             <div className="flex justify-between gap-2 h-20">
                                 <div className="relative">
@@ -360,22 +376,6 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                         </p>
                                     )}
                                 </div>
-                            </div>
-
-                                                         {/* Review Content */}
-                             <div>
-                                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                                     Review *
-                                 </label>
-                                <textarea
-                                    value={reviewContent}
-                                    onChange={(e) =>
-                                        setReviewContent(e.target.value)
-                                    }
-                                    placeholder="Share your thoughts about this show..."
-                                    rows={6}
-                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
-                                />
                             </div>
 
                             {/* Tags and Favourite Characters */}
@@ -475,7 +475,10 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                                                             >
                                                                 <div className="flex items-center gap-2 flex-grow">
                                                                     <span className="text-sm font-medium text-white">
-                                                                        {season.seasonNumber === 0 ? "Specials" : `Season ${season.seasonNumber}`}
+                                                                        {season.seasonNumber ===
+                                                                        0
+                                                                            ? "Specials"
+                                                                            : `Season ${season.seasonNumber}`}
                                                                     </span>
                                                                     <span className="text-xs text-gray-400">
                                                                         (

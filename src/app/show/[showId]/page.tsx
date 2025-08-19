@@ -167,6 +167,20 @@ export default async function ShowPage({
     const totalWatched = show.watched.length; // Count of users who watched
     const totalLikes = show.favorites.length; // Count of favorites from users
     const totalRatings = show.ratings.length;
+    
+    // Fetch discussion count for this show
+    const totalDiscussions = await prisma.discussion.count({
+        where: {
+            showId: Number(showId),
+        },
+    });
+    
+    // Count watch lists containing this show
+    const totalWatchLists = await prisma.watchListShow.count({
+        where: {
+            showId: Number(showId),
+        },
+    });
     const averageRating =
         totalRatings > 0
             ? (
@@ -325,6 +339,8 @@ export default async function ShowPage({
                             initialTotalWatched={totalWatched}
                             initialTotalLikes={totalLikes}
                             initialTotalReviews={totalReviews}
+                            initialTotalDiscussions={totalDiscussions}
+                            initialTotalWatchLists={totalWatchLists}
                         />
 
                         {/* Review Button */}

@@ -210,7 +210,7 @@ export default function DiscussionComment({
     const [showSpoiler, setShowSpoiler] = useState(false);
     const [showThreadModal, setShowThreadModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [commentToDelete, setCommentToDelete] = useState<CommentTree | null>(null);
 
     // Check if we should show "Continue this thread" based on maxDepth
     const shouldShowContinueThread =
@@ -395,20 +395,23 @@ export default function DiscussionComment({
         }
     };
 
-    const handleDeleteComment = async () => {
-        if (!user || isDeleting) return;
+    const handleDeleteClick = (commentToDelete: CommentTree) => {
+        setCommentToDelete(commentToDelete);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!user || isDeleting || !commentToDelete) return;
 
         setIsDeleting(true);
-        setShowDeleteConfirm(false);
 
         // Optimistic update
-        const wasDeleted = comment.isDeleted;
-        comment.isDeleted = true;
+        const wasDeleted = commentToDelete.isDeleted;
+        commentToDelete.isDeleted = true;
         setReplies([...replies]); // Force re-render
 
         try {
             const response = await fetch(
-                `/api/discussions/comments/delete/${comment.id}`,
+                `/api/discussions/comments/delete/${commentToDelete.id}`,
                 {
                     method: "DELETE",
                     headers: { "Content-Type": "application/json" },
@@ -417,17 +420,22 @@ export default function DiscussionComment({
 
             if (!response.ok) {
                 // Revert on error
-                comment.isDeleted = wasDeleted;
+                commentToDelete.isDeleted = wasDeleted;
                 setReplies([...replies]);
             }
         } catch (error) {
             console.error("Error deleting comment:", error);
             // Revert on error
-            comment.isDeleted = wasDeleted;
+            commentToDelete.isDeleted = wasDeleted;
             setReplies([...replies]);
         } finally {
             setIsDeleting(false);
+            setCommentToDelete(null);
         }
+    };
+
+    const handleDeleteCancel = () => {
+        setCommentToDelete(null);
     };
 
     return (
@@ -515,7 +523,7 @@ export default function DiscussionComment({
                                     new Date(comment.createdAt)
                                 )}
                             </span>
-                            {comment.spoiler && (
+                            {comment.spoiler && !comment.isDeleted && (
                                 <button
                                     onClick={() => setShowSpoiler(!showSpoiler)}
                                     className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition-colors"
@@ -528,21 +536,56 @@ export default function DiscussionComment({
                         </div>
 
                         <div className="relative mb-3 w-full pr-4">
-                            <div
-                                className={`text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all ${
-                                    comment.spoiler && !showSpoiler
-                                        ? "blur-sm select-none"
-                                        : ""
-                                } ${
-                                    comment.isDeleted
-                                        ? "italic text-gray-500"
-                                        : ""
-                                }`}
-                            >
-                                {comment.isDeleted
-                                    ? "comment deleted"
-                                    : comment.content}
-                            </div>
+                            {commentToDelete?.id === comment.id ? (
+                                // Delete confirmation view
+                                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                                    <p className="text-red-300 text-sm mb-3">
+                                        Are you sure you want to delete this comment? This action cannot be undone.
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleDeleteCancel}
+                                            disabled={isDeleting}
+                                            className="px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteConfirm}
+                                            disabled={isDeleting}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isDeleting ? (
+                                                <>
+                                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    Deleting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FiTrash2 className="w-3 h-3" />
+                                                    Delete
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    className={`text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all ${
+                                        comment.spoiler && !showSpoiler
+                                            ? "blur-sm select-none"
+                                            : ""
+                                    } ${
+                                        comment.isDeleted
+                                            ? "italic text-gray-500"
+                                            : ""
+                                    }`}
+                                >
+                                    {comment.isDeleted
+                                        ? "comment deleted"
+                                        : comment.content}
+                                </div>
+                            )}
                         </div>
 
                         {/* Reactions display */}
@@ -568,7 +611,7 @@ export default function DiscussionComment({
                                 !comment.isDeleted && (
                                     <button
                                         onClick={() =>
-                                            setShowDeleteConfirm(true)
+                                            handleDeleteClick(comment)
                                         }
                                         disabled={isDeleting}
                                         className="text-red-400 hover:text-red-300 transition-colors"
@@ -725,38 +768,7 @@ export default function DiscussionComment({
                 </div>
             </div>
 
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-900 rounded-lg max-w-md w-full p-6">
-                        <div className="text-center">
-                            <h3 className="text-lg font-semibold text-white mb-4">
-                                Delete Comment
-                            </h3>
-                            <p className="text-gray-300 mb-6">
-                                Are you sure you want to delete this comment?
-                                This action cannot be undone.
-                            </p>
-                            <div className="flex gap-3 justify-center">
-                                <button
-                                    onClick={() => setShowDeleteConfirm(false)}
-                                    disabled={isDeleting}
-                                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDeleteComment}
-                                    disabled={isDeleting}
-                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    {isDeleting ? "Deleting..." : "Delete"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* Thread Modal */}
             {showThreadModal && (

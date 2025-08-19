@@ -810,7 +810,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                             isSubmitting ? (
                                                 <FiLoader className="w-4 h-4 text-gray-400 flex-shrink-0 animate-spin" />
                                             ) : (
-                                                <FiMove className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                <FiMove className="hidden md:block w-4 h-4 text-gray-400 flex-shrink-0" />
                                             )
                                         )}
                                         {isRanked && (

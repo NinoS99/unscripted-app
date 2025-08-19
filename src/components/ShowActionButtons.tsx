@@ -5,8 +5,10 @@ import Link from "next/link";
 import RatingComponent from "./RatingComponent";
 import FavouriteButton from "./FavouriteButton";
 import WatchedButton from "./WatchedButton";
-import { FaPenSquare, FaEye } from "react-icons/fa";
+import { FaPenSquare, FaEye, FaMugHot } from "react-icons/fa";
 import { GiRose } from "react-icons/gi";
+import { FiList } from "react-icons/fi";
+import { formatNumber } from "@/lib/utils";
 
 interface ShowActionButtonsProps {
     showId: number;
@@ -16,6 +18,8 @@ interface ShowActionButtonsProps {
     initialTotalWatched: number;
     initialTotalLikes: number;
     initialTotalReviews: number;
+    initialTotalDiscussions: number;
+    initialTotalWatchLists?: number; // Only for shows
     showIdForRedirect?: number;
     seasonId?: number;
     episodeId?: number;
@@ -29,6 +33,8 @@ export default function ShowActionButtons({
     initialTotalWatched,
     initialTotalLikes,
     initialTotalReviews,
+    initialTotalDiscussions,
+    initialTotalWatchLists,
     showIdForRedirect,
     seasonId,
     episodeId
@@ -36,6 +42,8 @@ export default function ShowActionButtons({
     const [totalWatched, setTotalWatched] = useState(initialTotalWatched);
     const [totalLikes, setTotalLikes] = useState(initialTotalLikes);
     const [totalReviews] = useState(initialTotalReviews);
+    const [totalDiscussions] = useState(initialTotalDiscussions);
+    const [totalWatchLists] = useState(initialTotalWatchLists || 0);
 
     const handleFavoriteChange = (isFavorite: boolean) => {
         setTotalLikes(prev => isFavorite ? prev + 1 : prev - 1);
@@ -51,19 +59,29 @@ export default function ShowActionButtons({
         <>
             {/* Statistics */}
             <div className="w-full mb-4 px-4 py-2">
-                <div className="flex items-center justify-center gap-4 text-gray-300 text-sm">
+                <div className="flex items-center justify-center gap-3 text-gray-300 text-sm">
                     <div className="flex items-center gap-1" title={totalWatched === 0 ? "No users have watched" : totalWatched === 1 ? "Watched by 1 user" : `Watched by ${totalWatched} users`}>
                         <FaEye className="w-4 h-4 text-green-400" />
-                        <span>{totalWatched}</span>
+                        <span>{formatNumber(totalWatched)}</span>
                     </div>
                     <div className="flex items-center gap-1" title={totalLikes === 0 ? "No users gave a rose" : totalLikes === 1 ? "1 user gave a rose" : `${totalLikes} users gave a rose`}>
                         <GiRose className="w-4 h-4 text-red-400 fill-current" />
-                        <span>{totalLikes}</span>
+                        <span>{formatNumber(totalLikes)}</span>
                     </div>
                     <div className="flex items-center gap-1" title={totalReviews === 0 ? "No users left a review" : totalReviews === 1 ? "1 user left a review" : `${totalReviews} users left a review`}>
                         <FaPenSquare className="w-4 h-4 text-blue-400" />
-                        <span>{totalReviews}</span>
+                        <span>{formatNumber(totalReviews)}</span>
                     </div>
+                    <div className="flex items-center gap-1" title={totalDiscussions === 0 ? "No discussions made" : totalDiscussions === 1 ? "1 discussion made" : `${totalDiscussions} discussions made`}>
+                        <FaMugHot className="w-4 h-4 text-orange-400" />
+                        <span>{formatNumber(totalDiscussions)}</span>
+                    </div>
+                    {entityType === "show" && (
+                        <div className="flex items-center gap-1" title={totalWatchLists === 0 ? "Not in any watch lists" : totalWatchLists === 1 ? "In 1 watch list" : `In ${totalWatchLists} watch lists`}>
+                            <FiList className="w-4 h-4 text-purple-400" />
+                            <span>{formatNumber(totalWatchLists)}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

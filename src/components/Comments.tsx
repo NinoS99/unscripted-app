@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiSend, FiChevronLeft, FiChevronRight, FiTrash2 } from "react-icons/fi";
 import { formatRelativeTime } from "@/lib/utils";
 
 interface Comment {
@@ -35,6 +35,8 @@ export default function Comments({ entityType, entityId, comments: initialCommen
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const commentsPerPage = 10;
+    const [commentToDelete, setCommentToDelete] = useState<Comment | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleSubmitComment = async () => {
         if (!user || !newComment.trim() || isSubmitting) return;
@@ -88,70 +90,107 @@ export default function Comments({ entityType, entityId, comments: initialCommen
         }
     };
 
+    const handleDeleteClick = (comment: Comment) => {
+        setCommentToDelete(comment);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!commentToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            const endpoint = entityType === "review" 
+                ? `/api/reviews/comments/${commentToDelete.id}`
+                : `/api/watch-lists/comments/${commentToDelete.id}`;
+
+            const response = await fetch(endpoint, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                // Remove the comment from the local state
+                setComments(prev => prev.filter(c => c.id !== commentToDelete.id));
+                setCommentToDelete(null);
+            } else {
+                const error = await response.json();
+                console.error("Failed to delete comment:", error);
+            }
+        } catch (error) {
+            console.error("Error deleting comment:", error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setCommentToDelete(null);
+    };
+
     return (
-        <div className="mt-6">
-            <h3 className="text-lg font-semibold text-green-500 mb-4">Comments ({comments.length})</h3>
-            <div className="border-b border-gray-600 mb-4"></div>
-            
-            {/* Add Comment Form */}
-            {user && (
-                <div className="mb-4">
-                    <div className="flex gap-3">
-                        <div className="flex-shrink-0">
-                            <Image
-                                src={user.imageUrl || "/noAvatar.png"}
-                                alt={user.username || "User"}
-                                width={40}
-                                height={40}
-                                className="rounded-full object-cover h-10 w-10"
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = "/noAvatar.png";
-                                }}
-                            />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <textarea
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Add a comment..."
-                                rows={3}
-                                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
-                            />
-                            <div className="flex justify-end mt-2">
-                                <button
-                                    onClick={handleSubmitComment}
-                                    disabled={isSubmitting || !newComment.trim()}
-                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    {isSubmitting ? (
-                                        "Posting..."
-                                    ) : (
-                                        <>
-                                            <FiSend className="w-4 h-4" />
-                                            Post Comment
-                                        </>
-                                    )}
-                                </button>
+        <>
+            <div className="mt-6">
+                <h3 className="text-lg font-semibold text-green-500 mb-4">Comments ({comments.length})</h3>
+                <div className="border-b border-gray-600 mb-4"></div>
+                
+                {/* Add Comment Form */}
+                {user && (
+                    <div className="mb-4">
+                        <div className="flex gap-3">
+                            <div className="flex-shrink-0">
+                                <Image
+                                    src={user.imageUrl || "/noAvatar.png"}
+                                    alt={user.username || "User"}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover h-10 w-10"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = "/noAvatar.png";
+                                    }}
+                                />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <textarea
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Add a comment..."
+                                    rows={3}
+                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none"
+                                />
+                                <div className="flex justify-end mt-2">
+                                    <button
+                                        onClick={handleSubmitComment}
+                                        disabled={isSubmitting || !newComment.trim()}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        {isSubmitting ? (
+                                            "Posting..."
+                                        ) : (
+                                            <>
+                                                <FiSend className="w-4 h-4" />
+                                                Post Comment
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Comments List */}
-            <div className="space-y-0">
-                {comments.length === 0 ? (
-                    <div className="text-gray-400 text-center py-8">
-                        No comments yet. Be the first to comment!
-                    </div>
-                ) : (
-                    <>
-                        {/* Paginated Comments */}
-                        {comments
-                            .slice((currentPage - 1) * commentsPerPage, currentPage * commentsPerPage)
-                            .map((comment) => (
+                {/* Comments List */}
+                <div className="space-y-0">
+                    {comments.length === 0 ? (
+                        <div className="text-gray-400 text-center py-8">
+                            No comments yet. Be the first to comment!
+                        </div>
+                    ) : (
+                        <>
+                            {/* Paginated Comments */}
+                            {comments
+                                .slice((currentPage - 1) * commentsPerPage, currentPage * commentsPerPage)
+                                                            .map((comment) => (
                                 <div key={comment.id} className="py-4 border-b border-gray-700">
                                     <div className="flex gap-3">
                                         <div className="flex-shrink-0">
@@ -168,64 +207,131 @@ export default function Comments({ entityType, entityId, comments: initialCommen
                                             />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Link 
-                                                    href={`/${comment.user.username}`}
-                                                    className="font-semibold text-white hover:text-green-400 transition-colors"
-                                                >
-                                                    {comment.user.username}
-                                                </Link>
-                                                <span className="text-sm text-gray-400">
-                                                    {formatRelativeTime(new Date(comment.createdAt))}
-                                                </span>
-                                            </div>
-                                            <p className="text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all pr-4">
-                                                {comment.content}
-                                            </p>
+                                            {commentToDelete?.id === comment.id ? (
+                                                // Delete confirmation view
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Link 
+                                                                href={`/${comment.user.username}`}
+                                                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                                                            >
+                                                                {comment.user.username}
+                                                            </Link>
+                                                            <span className="text-sm text-gray-400">
+                                                                {formatRelativeTime(new Date(comment.createdAt))}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                                                        <p className="text-red-300 text-sm mb-3">
+                                                            Are you sure you want to delete this comment? This action cannot be undone.
+                                                        </p>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={handleDeleteCancel}
+                                                                disabled={isDeleting}
+                                                                className="px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors disabled:opacity-50"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                onClick={handleDeleteConfirm}
+                                                                disabled={isDeleting}
+                                                                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                            >
+                                                                {isDeleting ? (
+                                                                    <>
+                                                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                                        Deleting...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <FiTrash2 className="w-3 h-3" />
+                                                                        Delete
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // Normal comment view
+                                                <>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Link 
+                                                                href={`/${comment.user.username}`}
+                                                                className="font-semibold text-white hover:text-green-400 transition-colors"
+                                                            >
+                                                                {comment.user.username}
+                                                            </Link>
+                                                            <span className="text-sm text-gray-400">
+                                                                {formatRelativeTime(new Date(comment.createdAt))}
+                                                            </span>
+                                                        </div>
+                                                        {user && comment.user.id === user.id && (
+                                                            <button
+                                                                onClick={() => handleDeleteClick(comment)}
+                                                                className="text-gray-400 hover:text-red-400 transition-colors p-1"
+                                                                title="Delete comment"
+                                                            >
+                                                                <FiTrash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all pr-4">
+                                                        {comment.content}
+                                                    </p>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             ))}
-                        
-                        {/* Pagination */}
-                        <div className="flex items-center justify-center gap-3 py-4">
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1 || comments.length <= commentsPerPage}
-                                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <FiChevronLeft className="w-3 h-3" />
-                                Previous
-                            </button>
                             
-                            <span className="text-sm text-gray-400">
-                                Page {currentPage} of {Math.max(1, Math.ceil(comments.length / commentsPerPage))}
-                            </span>
-                            
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(comments.length / commentsPerPage), prev + 1))}
-                                disabled={currentPage === Math.ceil(comments.length / commentsPerPage) || comments.length <= commentsPerPage}
-                                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                Next
-                                <FiChevronRight className="w-3 h-3" />
-                            </button>
-                        </div>
-                    </>
+                            {/* Pagination */}
+                            <div className="flex items-center justify-center gap-3 py-4">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1 || comments.length <= commentsPerPage}
+                                    className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <FiChevronLeft className="w-3 h-3" />
+                                    Previous
+                                </button>
+                                
+                                <span className="text-sm text-gray-400">
+                                    Page {currentPage} of {Math.max(1, Math.ceil(comments.length / commentsPerPage))}
+                                </span>
+                                
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(comments.length / commentsPerPage), prev + 1))}
+                                    disabled={currentPage === Math.ceil(comments.length / commentsPerPage) || comments.length <= commentsPerPage}
+                                    className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Next
+                                    <FiChevronRight className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+                
+                {/* Sign in prompt for non-authenticated users */}
+                {!user && (
+                    <div className="mt-1">
+                        <p className="text-gray-400 text-sm">
+                            <Link href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
+                                Sign in
+                            </Link>{" "}
+                            to leave a comment
+                        </p>
+                    </div>
                 )}
             </div>
             
-            {/* Sign in prompt for non-authenticated users */}
-            {!user && (
-                <div className="mt-1">
-                    <p className="text-gray-400 text-sm">
-                        <Link href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`} className="text-green-400 hover:text-green-300 transition-colors font-medium">
-                            Sign in
-                        </Link>{" "}
-                        to leave a comment
-                    </p>
-                </div>
-            )}
-        </div>
+
+        </>
     );
 } 

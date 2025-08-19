@@ -113,7 +113,6 @@ export default async function WatchListPage({ params }: WatchListPageProps) {
     let watchListAuthorImage = null;
     try {
         const watchListAuthorClerkUser = await clerk.users.getUser(watchList.user.id);
-        console.log(watchListAuthorClerkUser?.imageUrl);
         watchListAuthorImage = watchListAuthorClerkUser?.imageUrl;
     } catch (error) {
         console.error(`Failed to fetch Clerk user for watch list author ${watchList.user.id}:`, error);

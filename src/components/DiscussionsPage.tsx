@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { GiRose } from "react-icons/gi";
-import { FiFilter, FiChevronLeft, FiChevronRight, FiEye} from "react-icons/fi";
+import { FiFilter, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 import DiscussionRow from "./DiscussionRow";
 import RatingDistributionChart from "./RatingDistributionChart";
 
@@ -84,7 +84,9 @@ export default function DiscussionsPage({
     ratingDistribution = {},
 }: DiscussionsPageProps) {
     const [discussions, setDiscussions] = useState<Discussion[]>([]);
-    const [filteredDiscussions, setFilteredDiscussions] = useState<Discussion[]>([]);
+    const [filteredDiscussions, setFilteredDiscussions] = useState<
+        Discussion[]
+    >([]);
     const [isLoading, setIsLoading] = useState(true);
     const [sortBy, setSortBy] = useState<SortOption>("recent");
     const [spoilerFilter, setSpoilerFilter] = useState<SpoilerFilter>("all");
@@ -163,7 +165,9 @@ export default function DiscussionsPage({
     }, [discussions, sortBy, spoilerFilter]);
 
     // Pagination calculations
-    const totalPages = Math.ceil(filteredDiscussions.length / discussionsPerPage);
+    const totalPages = Math.ceil(
+        filteredDiscussions.length / discussionsPerPage
+    );
     const startIndex = (currentPage - 1) * discussionsPerPage;
     const endIndex = startIndex + discussionsPerPage;
     const currentDiscussions = filteredDiscussions.slice(startIndex, endIndex);
@@ -317,82 +321,78 @@ export default function DiscussionsPage({
                                     )}
                                 </p>
                             )}
+                            <p className="text-sm text-gray-200 mt-1">
+                                {discussions.length} discussion
+                                {discussions.length !== 1 ? "s" : ""}
+                            </p>
                         </div>
                     </div>
 
                     {/* Mobile info below poster */}
                     <div className="mt-4 space-y-4 px-4">
-                        {/* Discussion count on first line */}
-                        <div className="text-gray-300 text-sm">
-                            <span>
-                                {discussions.length} discussion
-                                {discussions.length !== 1 ? "s" : ""}
-                            </span>
+                        {/* Like and watched counts on separate lines */}
+                        <div className="flex flex-col gap-2 text-gray-300 text-sm">
+                            <div className="flex items-center gap-1">
+                                <GiRose className="w-4 h-4 text-red-400 fill-current" />
+                                <span>
+                                    {totalLikes} user
+                                    {totalLikes !== 1 ? "s" : ""} gave a rose
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <FiEye className="w-4 h-4 text-green-400" />
+                                <span>
+                                    {totalWatched} user
+                                    {totalWatched !== 1 ? "s" : ""} have watched
+                                    this {entityType}
+                                </span>
+                            </div>
                         </div>
-                        
-                                                 {/* Like and watched counts on separate lines */}
-                         <div className="flex flex-col gap-2 text-gray-300 text-sm">
-                             <div className="flex items-center gap-1">
-                                 <GiRose className="w-4 h-4 text-red-400 fill-current" />
-                                 <span>
-                                     {totalLikes} user
-                                     {totalLikes !== 1 ? "s" : ""} gave a rose
-                                 </span>
-                             </div>
-                             <div className="flex items-center gap-1">
-                                 <FiEye className="w-4 h-4 text-green-400" />
-                                 <span>
-                                     {totalWatched} user
-                                     {totalWatched !== 1 ? "s" : ""} have watched
-                                     this {entityType}
-                                 </span>
-                             </div>
-                         </div>
 
-                         {/* Rating Distribution Chart */}
-                         <div className="mt-6">
-                             {(() => {
-                                 // Calculate total ratings and average
-                                 const totalRatings = Object.values(
-                                     ratingDistribution
-                                 ).reduce((sum, count) => sum + count, 0);
-                                 const totalRatingSum = Object.entries(
-                                     ratingDistribution
-                                 ).reduce(
-                                     (sum, [rating, count]) =>
-                                         sum + parseFloat(rating) * count,
-                                     0
-                                 );
-                                 const averageRating =
-                                     totalRatings > 0
-                                         ? (
-                                               totalRatingSum / totalRatings
-                                           ).toFixed(1)
-                                         : "0.0";
+                        {/* Rating Distribution Chart */}
+                        <div className="mt-6">
+                            {(() => {
+                                // Calculate total ratings and average
+                                const totalRatings = Object.values(
+                                    ratingDistribution
+                                ).reduce((sum, count) => sum + count, 0);
+                                const totalRatingSum = Object.entries(
+                                    ratingDistribution
+                                ).reduce(
+                                    (sum, [rating, count]) =>
+                                        sum + parseFloat(rating) * count,
+                                    0
+                                );
+                                const averageRating =
+                                    totalRatings > 0
+                                        ? (
+                                              totalRatingSum / totalRatings
+                                          ).toFixed(1)
+                                        : "0.0";
 
-                                 // Format rating distribution for the chart
-                                 const chartData = [
-                                     0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
-                                 ].map((rating) => {
-                                     const count =
-                                         ratingDistribution[rating] || 0;
-                                     const percentage =
-                                         totalRatings > 0
-                                             ? (count / totalRatings) * 100
-                                             : 0;
-                                     return { rating, count, percentage };
-                                 });
+                                // Format rating distribution for the chart
+                                const chartData = [
+                                    0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
+                                ].map((rating) => {
+                                    const count =
+                                        ratingDistribution[rating] || 0;
+                                    const percentage =
+                                        totalRatings > 0
+                                            ? (count / totalRatings) * 100
+                                            : 0;
+                                    return { rating, count, percentage };
+                                });
 
-                                 return (
-                                     <RatingDistributionChart
-                                         averageRating={averageRating}
-                                         totalRatings={totalRatings}
-                                         ratingDistribution={chartData}
-                                         entityType={entityType}
-                                     />
-                                 );
-                             })()}
-                         </div>
+                                return (
+                                    <RatingDistributionChart
+                                        averageRating={averageRating}
+                                        totalRatings={totalRatings}
+                                        ratingDistribution={chartData}
+                                        entityType={entityType}
+                                    />
+                                );
+                            })()}
+                        </div>
                     </div>
                 </div>
 
@@ -404,7 +404,9 @@ export default function DiscussionsPage({
                             <Image
                                 src={
                                     getPosterPath(true)
-                                        ? `https://image.tmdb.org/t/p/w500${getPosterPath(true)}`
+                                        ? `https://image.tmdb.org/t/p/w500${getPosterPath(
+                                              true
+                                          )}`
                                         : "/noPoster.jpg"
                                 }
                                 alt={entityName}
@@ -583,7 +585,9 @@ export default function DiscussionsPage({
                                         }
                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-green-400"
                                     >
-                                        <option value="all">All Discussions</option>
+                                        <option value="all">
+                                            All Discussions
+                                        </option>
                                         <option value="spoiler_free">
                                             Spoiler Free
                                         </option>
