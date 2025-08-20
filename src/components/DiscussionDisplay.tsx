@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { FiTag, FiMessageCircle, FiStar } from "react-icons/fi";
+import { FiTag, FiMessageCircle, FiStar, FiTrash2 } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import { useUser } from "@clerk/nextjs";
 import LikeButton from "./LikeButton";
 import DiscussionCommentsList from "./DiscussionCommentsList";
+import DeleteEntityModal from "./DeleteEntityModal";
 
 interface DiscussionDisplayProps {
     discussion: {
@@ -103,11 +104,14 @@ export default function DiscussionDisplay({
 }: DiscussionDisplayProps) {
     const { user } = useUser();
     const pathname = usePathname();
+    const router = useRouter();
     const [likeCount, setLikeCount] = useState(discussion._count.likes || 0);
     const [pollVotes, setPollVotes] = useState<{ [key: number]: number }>({});
     const [userVote, setUserVote] = useState<number | null>(null);
     const [creatorVote, setCreatorVote] = useState<number | null>(null);
     const [isVoting, setIsVoting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const getEntityName = () => {
         switch (discussionType) {
@@ -271,6 +275,38 @@ export default function DiscussionDisplay({
         }
     };
 
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!user) return;
+
+        setIsDeleting(true);
+        try {
+            const response = await fetch(`/api/discussions/delete/${discussion.id}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                // Navigate back to the entity page
+                const entityLink = getEntityLink();
+                router.push(entityLink);
+            } else {
+                const error = await response.json();
+                console.error("Failed to delete discussion:", error);
+                setIsDeleting(false);
+            }
+        } catch (error) {
+            console.error("Error deleting discussion:", error);
+            setIsDeleting(false);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setShowDeleteModal(false);
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 text-white">
             <div className="container mx-auto px-4 py-0 md:py-8">
@@ -415,6 +451,16 @@ export default function DiscussionDisplay({
                                             {discussion._count.comments || 0}
                                         </span>
                                     </div>
+                                    {user && user.id === discussion.user.id && (
+                                        <button
+                                            onClick={handleDeleteClick}
+                                            className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
+                                            title="Delete discussion"
+                                        >
+                                            <FiTrash2 className="w-4 h-4" />
+                                            <span>Delete</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -528,6 +574,16 @@ export default function DiscussionDisplay({
                                             {discussion._count.comments || 0}
                                         </span>
                                     </div>
+                                    {user && user.id === discussion.user.id && (
+                                        <button
+                                            onClick={handleDeleteClick}
+                                            className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
+                                            title="Delete discussion"
+                                        >
+                                            <FiTrash2 className="w-4 h-4" />
+                                            <span>Delete</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -653,6 +709,15 @@ export default function DiscussionDisplay({
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteEntityModal
+                isOpen={showDeleteModal}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                isDeleting={isDeleting}
+                entityType="discussion"
+            />
         </div>
     );
 }

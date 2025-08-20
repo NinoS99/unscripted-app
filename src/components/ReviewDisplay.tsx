@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { format } from "date-fns";
-import { FiTag, FiUser, FiStar, FiMessageCircle } from "react-icons/fi";
+import { FiTag, FiUser, FiStar, FiMessageCircle, FiTrash2 } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import LikeButton from "./LikeButton";
 import Comments from "./Comments";
+import DeleteEntityModal from "./DeleteEntityModal";
 
 interface ReviewDisplayProps {
     review: {
@@ -101,8 +104,12 @@ export default function ReviewDisplay({
     entity,
     availableImages = {},
 }: ReviewDisplayProps) {
+    const { user } = useUser();
+    const router = useRouter();
     const [comments, setComments] = useState(review.comments || []);
     const [likeCount, setLikeCount] = useState(review._count.likes || 0);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const getEntityName = () => {
         switch (reviewType) {
             case "show":
@@ -188,6 +195,35 @@ export default function ReviewDisplay({
     const getFavouriteCharacters = () => {
         if (reviewType === "episode") return null;
         return review.favouriteCharacters?.map((fc) => fc.character) || [];
+    };
+
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        setIsDeleting(true);
+        try {
+            const response = await fetch(`/api/reviews/${reviewType}/${review.id}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                // Redirect to the entity page
+                router.push(getEntityLink());
+            } else {
+                const error = await response.json();
+                console.error("Failed to delete review:", error);
+                setIsDeleting(false);
+            }
+        } catch (error) {
+            console.error("Error deleting review:", error);
+            setIsDeleting(false);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setShowDeleteModal(false);
     };
 
     return (
@@ -374,6 +410,16 @@ export default function ReviewDisplay({
                                             {review._count.comments || 0}
                                         </span>
                                     </div>
+                                    {user && user.id === review.user.id && (
+                                        <button
+                                            onClick={handleDeleteClick}
+                                            className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
+                                            title="Delete review"
+                                        >
+                                            <FiTrash2 className="w-4 h-4" />
+                                            <span>Delete</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -524,6 +570,16 @@ export default function ReviewDisplay({
                                             {review._count.comments || 0}
                                         </span>
                                     </div>
+                                    {user && user.id === review.user.id && (
+                                        <button
+                                            onClick={handleDeleteClick}
+                                            className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
+                                            title="Delete review"
+                                        >
+                                            <FiTrash2 className="w-4 h-4" />
+                                            <span>Delete</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -655,6 +711,15 @@ export default function ReviewDisplay({
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteEntityModal
+                isOpen={showDeleteModal}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                isDeleting={isDeleting}
+                entityType="review"
+            />
         </div>
     );
 }

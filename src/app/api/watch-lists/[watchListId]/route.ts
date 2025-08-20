@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/client";
 
 export async function PUT(
     request: NextRequest,
@@ -137,43 +135,37 @@ export async function DELETE(
 ) {
     try {
         const { userId } = await auth();
-        
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { watchListId: watchListIdStr } = await params;
-        const watchListId = parseInt(watchListIdStr);
-        if (isNaN(watchListId)) {
+        const { watchListId } = await params;
+        const watchListIdNum = parseInt(watchListId);
+
+        if (isNaN(watchListIdNum)) {
             return NextResponse.json({ error: "Invalid watch list ID" }, { status: 400 });
         }
 
-        // Check if the watch list exists and belongs to the user
-        const existingWatchList = await prisma.watchList.findFirst({
+        // Verify the watch list exists and belongs to the user
+        const watchList = await prisma.watchList.findFirst({
             where: {
-                id: watchListId,
+                id: watchListIdNum,
                 userId: userId
             }
         });
 
-        if (!existingWatchList) {
-            return NextResponse.json({ error: "Watch list not found" }, { status: 404 });
+        if (!watchList) {
+            return NextResponse.json({ error: "Watch list not found or unauthorized" }, { status: 404 });
         }
 
         // Delete the watch list (cascade will handle related records)
         await prisma.watchList.delete({
-            where: { id: watchListId }
+            where: { id: watchListIdNum }
         });
 
-        return NextResponse.json({
-            message: "Watch list deleted successfully"
-        });
-
+        return NextResponse.json({ message: "Watch list deleted successfully" });
     } catch (error) {
         console.error("Error deleting watch list:", error);
-        return NextResponse.json(
-            { error: "Failed to delete watch list" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 } 
