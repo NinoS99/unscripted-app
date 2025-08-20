@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FiX, FiTag, FiTrash2, FiMove, FiLoader, FiChevronUp, FiChevronDown } from "react-icons/fi";
+import DeleteEntityModal from "./DeleteEntityModal";
 
 interface Show {
     id: number;
@@ -135,7 +136,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     // Form submission
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [showDeleteNotification, setShowDeleteNotification] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // Create a stable reference for the shows data
     const showsData = useMemo(() => watchList.shows, [watchList.shows]);
@@ -303,8 +304,8 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     };
 
     const handleRemoveShow = (showId: number) => {
-        // Prevent removal during submission
-        if (isSubmitting) return;
+        // Prevent removal during submission or deletion
+        if (isFormDisabled) return;
         
         setSelectedShows(prev => {
             const filteredShows = prev.filter(s => s.id !== showId);
@@ -320,8 +321,8 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     };
 
     const handleDragStart = (e: React.DragEvent, index: number) => {
-        // Prevent drag start during submission
-        if (isSubmitting) {
+        // Prevent drag start during submission or deletion
+        if (isFormDisabled) {
             e.preventDefault();
             return;
         }
@@ -345,8 +346,8 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
         
-        // Prevent reordering during submission
-        if (isSubmitting) {
+        // Prevent reordering during submission or deletion
+        if (isFormDisabled) {
             setDraggedIndex(null);
             setDragOverIndex(null);
             return;
@@ -388,7 +389,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
 
     // Arrow button handlers for mobile reordering
     const moveShowUp = (index: number) => {
-        if (index === 0 || isSubmitting) return; // Can't move first item up or during submission
+        if (index === 0 || isFormDisabled) return; // Can't move first item up or during submission/deletion
         
         setSelectedShows(prev => {
             const newShows = [...prev];
@@ -408,7 +409,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
     };
 
     const moveShowDown = (index: number) => {
-        if (index === selectedShows.length - 1 || isSubmitting) return; // Can't move last item down or during submission
+        if (index === selectedShows.length - 1 || isFormDisabled) return; // Can't move last item down or during submission/deletion
         
         setSelectedShows(prev => {
             const newShows = [...prev];
@@ -446,7 +447,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                     isRanked,
                     shows: selectedShows.map(show => ({
                         showId: show.id,
-                        ranking: show.ranking,
+                        ranking: isRanked ? show.ranking : null,
                         note: show.note,
                         spoiler: show.spoiler,
                         muchWatchSeasons: show.muchWatchSeasons
@@ -468,7 +469,11 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
         }
     };
 
-    const handleDelete = async () => {
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
         if (!user) return;
 
         setIsDeleting(true);
@@ -478,22 +483,24 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
             });
 
             if (response.ok) {
-                setShowDeleteNotification(true);
-                setTimeout(() => {
-                    router.push("/watch-lists");
-                }, 3000);
+                router.push("/watch-lists");
             } else {
                 const error = await response.json();
                 console.error("Failed to delete watch list:", error);
+                setIsDeleting(false);
             }
         } catch (error) {
             console.error("Error deleting watch list:", error);
-        } finally {
             setIsDeleting(false);
         }
     };
 
+    const handleDeleteCancel = () => {
+        setShowDeleteModal(false);
+    };
+
     const isFormValid = name.trim() && selectedShows.length > 0;
+    const isFormDisabled = isSubmitting || isDeleting;
 
     // Note modal handlers
     const openNoteModal = async (showIndex: number) => {
@@ -550,28 +557,6 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
 
     return (
         <div className="min-h-screen bg-gray-900 text-white">
-            {/* Delete Notification */}
-            {showDeleteNotification && (
-                <div className="fixed top-4 right-4 left-4 md:left-auto md:max-w-sm bg-gradient-to-r from-red-600 to-red-700 text-white p-4 md:p-6 rounded-lg shadow-lg z-50">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2 md:mb-3">
-                                <div className="w-6 h-6 md:w-8 md:h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-sm md:text-lg">🗑️</span>
-                                </div>
-                                <h3 className="font-bold text-base md:text-lg truncate">
-                                    Watch List Deleted
-                                </h3>
-                            </div>
-                            
-                            <p className="text-xs md:text-sm text-red-100">
-                                Your watch list has been successfully deleted. Redirecting to watch lists...
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div className="container mx-auto px-4 py-4">
                 {/* Header */}
                 <div className="mb-8">
@@ -593,7 +578,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Enter a name for your watch list..."
-                                disabled={isSubmitting}
+                                disabled={isFormDisabled}
                                 className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
@@ -612,7 +597,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         {tag}
                                         <button
                                             onClick={() => handleRemoveTag(tag)}
-                                            disabled={isSubmitting}
+                                            disabled={isFormDisabled}
                                             className="hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <FiX className="w-3 h-3" />
@@ -627,12 +612,12 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                     onChange={(e) => setNewTag(e.target.value)}
                                     onKeyPress={handleKeyPress}
                                     placeholder="Add a tag..."
-                                    disabled={isSubmitting}
+                                    disabled={isFormDisabled}
                                     className="flex-grow px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <button
                                     onClick={handleAddTag}
-                                    disabled={isSubmitting}
+                                    disabled={isFormDisabled}
                                     className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FiTag className="w-4 h-4" />
@@ -652,7 +637,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         value="public"
                                         checked={privacy === "public"}
                                         onChange={(e) => setPrivacy(e.target.value as "public")}
-                                        disabled={isSubmitting}
+                                        disabled={isFormDisabled}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
@@ -664,7 +649,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         value="friends"
                                         checked={privacy === "friends"}
                                         onChange={(e) => setPrivacy(e.target.value as "friends")}
-                                        disabled={isSubmitting}
+                                        disabled={isFormDisabled}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
@@ -676,7 +661,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         value="private"
                                         checked={privacy === "private"}
                                         onChange={(e) => setPrivacy(e.target.value as "private")}
-                                        disabled={isSubmitting}
+                                        disabled={isFormDisabled}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
@@ -691,8 +676,17 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                 <input
                                     type="checkbox"
                                     checked={isRanked}
-                                    disabled={isSubmitting}
-                                    onChange={(e) => setIsRanked(e.target.checked)}
+                                    disabled={isFormDisabled}
+                                    onChange={(e) => {
+                                        const newIsRanked = e.target.checked;
+                                        setIsRanked(newIsRanked);
+                                        
+                                        // Update show rankings based on checkbox state
+                                        setSelectedShows(prev => prev.map((show, index) => ({
+                                            ...show,
+                                            ranking: newIsRanked ? index + 1 : undefined
+                                        })));
+                                    }}
                                     className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
                                     style={{ accentColor: '#16a34a' }}
                                 />
@@ -712,7 +706,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Describe your watch list..."
                                 rows={12}
-                                disabled={isSubmitting}
+                                disabled={isFormDisabled}
                                 className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
@@ -724,7 +718,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => document.getElementById('show-search')?.focus()}
-                            disabled={isSubmitting}
+                            disabled={isFormDisabled}
                             className="px-2 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Add Show
@@ -736,7 +730,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search for shows..."
-                                disabled={isSubmitting}
+                                disabled={isFormDisabled}
                                 className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onFocus={() => setShowDropdown(true)}
                             />
@@ -788,16 +782,16 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                 {selectedShows.map((show, index) => (
                                     <div
                                         key={show.id}
-                                        draggable={isRanked && !isSubmitting}
+                                        draggable={isRanked && !isFormDisabled}
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={(e) => handleDragOver(e, index)}
                                         onDragLeave={handleDragLeave}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                         className={`flex items-center gap-3 p-3 rounded-md transition-all duration-200 ${
-                                            isRanked && !isSubmitting ? 'cursor-move' : 'cursor-default'
+                                            isRanked && !isFormDisabled ? 'cursor-move' : 'cursor-default'
                                         } ${
-                                            isSubmitting 
+                                            isFormDisabled 
                                                 ? 'opacity-60 bg-gray-600' 
                                                 : draggedIndex === index 
                                                 ? 'opacity-50 bg-gray-400' 
@@ -807,7 +801,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         }`}
                                     >
                                         {isRanked && (
-                                            isSubmitting ? (
+                                            isFormDisabled ? (
                                                 <FiLoader className="w-4 h-4 text-gray-400 flex-shrink-0 animate-spin" />
                                             ) : (
                                                 <FiMove className="hidden md:block w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -837,7 +831,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                             )}
                                             <button
                                                 onClick={() => openNoteModal(index)}
-                                                disabled={isSubmitting}
+                                                disabled={isFormDisabled}
                                                 className="text-green-400 hover:text-green-300 text-xs mt-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {show.note ? "Edit note" : "Add note"}
@@ -860,14 +854,14 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                                 <div className="flex flex-col">
                                                     <button
                                                         onClick={() => moveShowUp(index)}
-                                                        disabled={index === 0 || isSubmitting}
+                                                        disabled={index === 0 || isFormDisabled}
                                                         className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <FiChevronUp className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => moveShowDown(index)}
-                                                        disabled={index === selectedShows.length - 1 || isSubmitting}
+                                                        disabled={index === selectedShows.length - 1 || isFormDisabled}
                                                         className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <FiChevronDown className="w-4 h-4" />
@@ -876,7 +870,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                             )}
                                             <button
                                                 onClick={() => handleRemoveShow(show.id)}
-                                                disabled={isSubmitting}
+                                                disabled={isFormDisabled}
                                                 className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <FiTrash2 className="w-4 h-4" />
@@ -892,34 +886,25 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                 {/* Submit and Cancel Buttons */}
                 <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 pb-2 border-t border-gray-600 mt-8">
                     <button
-                        onClick={handleDelete}
-                        disabled={isDeleting || isSubmitting}
+                        onClick={handleDeleteClick}
+                        disabled={isFormDisabled}
                         className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        {isDeleting ? (
-                            <>
-                                <FiLoader className="w-4 h-4 animate-spin" />
-                                Deleting...
-                            </>
-                        ) : (
-                            <>
-                                <FiTrash2 className="w-4 h-4" />
-                                Delete Watch List
-                            </>
-                        )}
+                        <FiTrash2 className="w-4 h-4" />
+                        Delete Watch List
                     </button>
                     
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={() => router.back()}
-                            disabled={isSubmitting}
+                            disabled={isFormDisabled}
                             className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleUpdate}
-                            disabled={isSubmitting || !isFormValid || !hasChanges()}
+                            disabled={isFormDisabled || !isFormValid || !hasChanges()}
                             className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isSubmitting ? (
@@ -944,7 +929,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                             <h2 className="text-xl font-bold text-white">Add Note</h2>
                             <button
                                 onClick={closeNoteModal}
-                                disabled={isSubmitting}
+                                disabled={isFormDisabled}
                                 className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <FiX className="w-6 h-6" />
@@ -962,7 +947,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                     onChange={(e) => setNoteText(e.target.value)}
                                     placeholder="Add any notes about this show..."
                                     rows={4}
-                                    disabled={isSubmitting}
+                                    disabled={isFormDisabled}
                                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-green-400 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
@@ -974,7 +959,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                         type="checkbox"
                                         checked={noteSpoiler}
                                         onChange={(e) => setNoteSpoiler(e.target.checked)}
-                                        disabled={isSubmitting}
+                                        disabled={isFormDisabled}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                         style={{ accentColor: '#16a34a' }}
                                     />
@@ -1003,7 +988,7 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                                                     checked={selectedSeasons.includes(season.id)}
                                                     onChange={() => toggleSeasonSelection(season.id)}
                                                     className="w-4 h-4 mr-2"
-                                                    disabled={(!selectedSeasons.includes(season.id) && selectedSeasons.length >= 5) || isSubmitting}
+                                                    disabled={(!selectedSeasons.includes(season.id) && selectedSeasons.length >= 5) || isFormDisabled}
                                                 />
                                                 <span className="text-sm">
                                                     {season.seasonNumber === 0 ? 'Specials' : `Season ${season.seasonNumber}`}
@@ -1023,14 +1008,14 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                             <div className="flex justify-end gap-3 pt-4 border-t border-gray-600">
                                 <button
                                     onClick={closeNoteModal}
-                                    disabled={isSubmitting}
+                                    disabled={isFormDisabled}
                                     className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={saveNote}
-                                    disabled={isSubmitting}
+                                    disabled={isFormDisabled}
                                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Save Note
@@ -1040,6 +1025,15 @@ export default function EditWatchListForm({ watchList }: EditWatchListFormProps)
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteEntityModal
+                isOpen={showDeleteModal}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                isDeleting={isDeleting}
+                entityType="watchList"
+            />
         </div>
     );
 } 

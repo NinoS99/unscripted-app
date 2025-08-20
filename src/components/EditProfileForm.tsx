@@ -2,6 +2,8 @@
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { updateUserProfile } from "@/lib/actions";
+import Image from "next/image";
+import { FiX } from "react-icons/fi";
 
 export default function EditProfileForm({ onClose }: { onClose: () => void }) {
     const { user } = useUser();
@@ -15,29 +17,75 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
         twitter: "",
         instagram: "",
     });
+    const [topFourShows, setTopFourShows] = useState<
+        Array<{
+            id: number;
+            position: number;
+            show: {
+                id: number;
+                name: string;
+                posterPath: string | null;
+                tmdbId: number;
+            };
+        }>
+    >([]);
+    const [originalTopFourShows, setOriginalTopFourShows] = useState<
+        Array<{
+            id: number;
+            position: number;
+            show: {
+                id: number;
+                name: string;
+                posterPath: string | null;
+                tmdbId: number;
+            };
+        }>
+    >([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSaveTooltip, setShowSaveTooltip] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<
+        Array<{
+            id: number;
+            name: string;
+            posterPath: string | null;
+            tmdbId: number;
+        }>
+    >([]);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isDesktop, setIsDesktop] = useState(false);
 
     // Check if form has changes
     const hasChanges =
         formData.bio !== originalData.bio ||
         formData.twitter !== originalData.twitter ||
-        formData.instagram !== originalData.instagram;
+        formData.instagram !== originalData.instagram ||
+        JSON.stringify(topFourShows) !== JSON.stringify(originalTopFourShows);
 
     useEffect(() => {
         const fetchProfile = async () => {
             if (!user) return;
             try {
-                const response = await fetch(`/api/profile/${user.id}`);
-                const data = await response.json();
+                const [profileResponse, topFourResponse] = await Promise.all([
+                    fetch(`/api/profile/${user.id}`),
+                    fetch(`/api/users/top-four-shows?userId=${user.id}`),
+                ]);
+
+                const profileData = await profileResponse.json();
+                const topFourData = await topFourResponse.json();
+
                 const defaultData = {
-                    bio: data.bio || "",
-                    twitter: data.twitter || "",
-                    instagram: data.instagram || "",
+                    bio: profileData.bio || "",
+                    twitter: profileData.twitter || "",
+                    instagram: profileData.instagram || "",
                 };
+
                 setFormData(defaultData);
                 setOriginalData(defaultData);
+                setTopFourShows(topFourData.topFourShows || []);
+                setOriginalTopFourShows(topFourData.topFourShows || []);
             } finally {
                 setIsLoading(false);
             }
@@ -51,14 +99,33 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
 
         setIsSubmitting(true);
         try {
-                    // Transform empty strings to null before sending
-        const dataToSend = {
-            bio: formData.bio.trim() || null,
-            twitter: formData.twitter.trim() || null,
-            instagram: formData.instagram.trim() || null,
-        };
-        
-        await updateUserProfile(user.id, dataToSend);
+            // Transform empty strings to null before sending
+            const dataToSend = {
+                bio: formData.bio.trim() || null,
+                twitter: formData.twitter.trim() || null,
+                instagram: formData.instagram.trim() || null,
+            };
+
+            // Save profile and top four shows in parallel
+            const [, topFourResponse] = await Promise.all([
+                updateUserProfile(user.id, dataToSend),
+                fetch("/api/users/top-four-shows", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        showIds: topFourShows.map((show) => show.show.id),
+                    }),
+                }),
+            ]);
+
+            if (topFourResponse.ok) {
+                const topFourData = await topFourResponse.json();
+                setTopFourShows(topFourData.topFourShows);
+                setOriginalTopFourShows(topFourData.topFourShows);
+            }
+
             // Update original data to current values after successful save
             setOriginalData(formData);
             setShowSaveTooltip(true);
@@ -72,6 +139,9 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
 
     const handleCancel = () => {
         setFormData(originalData); // Revert to original values
+        setTopFourShows(originalTopFourShows); // Revert top four shows
+        setSearchQuery(""); // Clear search
+        setSearchResults([]); // Clear search results
     };
 
     // Construct social media URLs
@@ -83,6 +153,134 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
         ? `https://instagram.com/${formData.instagram.replace("@", "")}`
         : null;
 
+    // Search shows
+    const searchShows = async (query: string) => {
+        if (!query.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `/api/search?q=${encodeURIComponent(query)}&type=show&limit=10`
+            );
+            if (response.ok) {
+                const data = await response.json();
+                setSearchResults(data.shows || []);
+            }
+        } catch (error) {
+            console.error("Error searching shows:", error);
+        }
+    };
+
+    // Add show to top four
+    const addShow = (show: {
+        id: number;
+        name: string;
+        posterPath: string | null;
+        tmdbId: number;
+    }) => {
+        if (topFourShows.length >= 4) return;
+
+        const newShow = {
+            id: Date.now(), // Temporary ID
+            position: topFourShows.length + 1,
+            show: {
+                id: show.id,
+                name: show.name,
+                posterPath: show.posterPath,
+                tmdbId: show.tmdbId,
+            },
+        };
+
+        setTopFourShows([...topFourShows, newShow]);
+        setSearchQuery("");
+        setSearchResults([]);
+    };
+
+    // Remove show from top four
+    const removeShow = (position: number) => {
+        setTopFourShows((prev) =>
+            prev
+                .filter((show) => show.position !== position)
+                .map((show, index) => ({ ...show, position: index + 1 }))
+        );
+    };
+
+    // Drag and drop handlers
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        setDraggedIndex(index);
+        setIsDragging(true);
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+        setTopFourShows((prev) => {
+            const newShows = [...prev];
+            const draggedShow = newShows[draggedIndex];
+
+            // Remove dragged item
+            newShows.splice(draggedIndex, 1);
+
+            // Insert at new position
+            newShows.splice(dropIndex, 0, draggedShow);
+
+            // Update positions
+            newShows.forEach((show, index) => {
+                show.position = index + 1;
+            });
+
+            return newShows;
+        });
+
+        setDraggedIndex(null);
+        setIsDragging(false);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
+        setIsDragging(false);
+    };
+
+    // Handle search input change
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            searchShows(searchQuery);
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
+
+    // Detect screen size for drag functionality
+    useEffect(() => {
+        const checkScreenSize = () => {
+            setIsDesktop(window.innerWidth > 768);
+        };
+
+        checkScreenSize();
+        window.addEventListener("resize", checkScreenSize);
+
+        return () => window.removeEventListener("resize", checkScreenSize);
+    }, []);
+
+    // Prevent body scroll when modal is open
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     if (isLoading)
         return (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -93,10 +291,10 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
         );
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-gray-900 rounded-lg w-full max-w-2xl relative">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col my-8 sm:my-4">
                 {/* Header with close button */}
-                <div className="border-b border-gray-600 px-6 py-4 flex justify-between items-center">
+                <div className="border-b border-gray-600 px-6 py-4 flex justify-between items-center flex-shrink-0">
                     <div>
                         <h2 className="text-lg font-semibold text-white">
                             Edit Profile
@@ -125,7 +323,7 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                 </div>
 
                 {/* Form Content */}
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto flex-1">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Bio Section */}
                         <div className="space-y-2">
@@ -151,6 +349,145 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                 maxLength={150}
                                 placeholder="Tell us about yourself"
                             />
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-b border-gray-600"></div>
+
+                        {/* Top Four Shows Section */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <h3 className="font-medium text-white text-sm">
+                                    Top 4 Shows
+                                </h3>
+                                <span className="text-xs text-gray-400">
+                                    Your all-time favorites
+                                </span>
+                            </div>
+                            <div className="bg-gray-800 border border-gray-600 rounded-md p-4">
+                                {/* Search Input - Only show when less than 4 shows are selected */}
+                                {topFourShows.length < 4 && (
+                                    <div className="relative mb-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Search for shows to add..."
+                                            value={searchQuery}
+                                            onChange={(e) =>
+                                                setSearchQuery(e.target.value)
+                                            }
+                                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-green-400 text-sm"
+                                        />
+                                        {searchResults.length > 0 && (
+                                            <div className="absolute top-full left-0 right-0 bg-gray-700 border border-gray-600 rounded mt-1 max-h-60 overflow-y-auto z-10">
+                                                {searchResults.map((show) => (
+                                                    <button
+                                                        key={show.id}
+                                                        onClick={() =>
+                                                            addShow(show)
+                                                        }
+                                                        disabled={topFourShows.some(
+                                                            (tfs) =>
+                                                                tfs.show.id ===
+                                                                show.id
+                                                        )}
+                                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <Image
+                                                            src={
+                                                                show.posterPath
+                                                                    ? `https://image.tmdb.org/t/p/w154${show.posterPath}`
+                                                                    : "/noPoster.jpg"
+                                                            }
+                                                            alt={show.name}
+                                                            width={32}
+                                                            height={48}
+                                                            className="rounded object-cover"
+                                                        />
+                                                        <span className="text-white text-left text-sm">
+                                                            {show.name}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Top Four Shows Grid */}
+                                {topFourShows.length === 0 ? (
+                                    <div className="text-center py-4">
+                                        <p className="text-gray-400 text-sm">
+                                            Click the search above to select
+                                            your top 4 shows
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {topFourShows.map((topShow, index) => (
+                                            <div
+                                                key={topShow.id}
+                                                className={`relative group ${
+                                                    isDragging &&
+                                                    draggedIndex === index
+                                                        ? "opacity-50"
+                                                        : ""
+                                                }`}
+                                                draggable={isDesktop}
+                                                onDragStart={(e) =>
+                                                    handleDragStart(e, index)
+                                                }
+                                                onDragOver={handleDragOver}
+                                                onDrop={(e) =>
+                                                    handleDrop(e, index)
+                                                }
+                                                onDragEnd={handleDragEnd}
+                                            >
+                                                <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden hover:opacity-80 transition-opacity">
+                                                    <Image
+                                                        src={
+                                                            topShow.show
+                                                                .posterPath
+                                                                ? `https://image.tmdb.org/t/p/w342${topShow.show.posterPath}`
+                                                                : "/noPoster.jpg"
+                                                        }
+                                                        alt={topShow.show.name}
+                                                        fill
+                                                        className="object-cover"
+                                                        sizes="(max-width: 640px) 25vw, (max-width: 768px) 20vw, 15vw"
+                                                    />
+                                                    <div className="absolute top-0.5 left-0.5 bg-black bg-opacity-70 text-white text-xs px-0.5 py-0 rounded">
+                                                        #{topShow.position}
+                                                    </div>
+
+                                                    {/* Drag handle - Desktop only */}
+                                                    {isDesktop && (
+                                                        <div className="absolute top-0.5 right-0.5 bg-gray-800 bg-opacity-70 text-white text-xs px-1 py-0.5 rounded cursor-move">
+                                                            ⋮⋮
+                                                        </div>
+                                                    )}
+
+                                                    <button
+                                                        onClick={() =>
+                                                            removeShow(
+                                                                topShow.position
+                                                            )
+                                                        }
+                                                        className="absolute bottom-0.5 right-0.5 bg-red-600 text-white rounded-full md:p-1 p-1 hover:bg-red-700 transition-colors"
+                                                    >
+                                                        <FiX className="w-2 h-2 md:w-2 md:h-2" />
+                                                    </button>
+                                                </div>
+
+                                                <div className="mt-1">
+                                                    <h4 className="text-white text-xs font-medium leading-tight break-words">
+                                                        {topShow.show.name}
+                                                    </h4>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Divider */}
@@ -259,7 +596,8 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
                                                 onChange={(e) =>
                                                     setFormData({
                                                         ...formData,
-                                                        instagram: e.target.value,
+                                                        instagram:
+                                                            e.target.value,
                                                     })
                                                 }
                                                 className="flex-1 p-2 bg-gray-800 border border-gray-600 rounded-r-md focus:outline-none focus:border-green-400 text-white text-sm"
