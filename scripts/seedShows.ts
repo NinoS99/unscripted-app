@@ -103,6 +103,57 @@ interface DiscoverResponse {
   }>;
 }
 
+interface KeywordResponse {
+  results: Array<{
+    id: number;
+    name: string;
+  }>;
+}
+
+// Competition-related keywords to search for
+const COMPETITION_KEYWORDS = [
+  'competition',
+  'contest',
+  'voting',
+  'elimination',
+  'reality competition',
+  'game show',
+  'talent show',
+  'singing competition',
+  'cooking competition',
+  'dating show',
+  'reality tv',
+  'elimination challenge',
+  'immunity challenge',
+  'finale',
+  'winner',
+  'prize',
+  'judges',
+  'audition',
+  'battle',
+  'challenge',
+  'tournament',
+  'race',
+  'public vote',
+  'viewer voting',
+  'dance competition',
+  'performance',
+  'talent competition',
+  'skill competition',
+  'business competition',
+  'design competition',
+  'fashion competition',
+  'pageant',
+  'beauty contest',
+  'sports competition',
+  'athletic competition',
+  'physical challenge',
+  'tribal council',
+  'rose ceremony',
+  'elimination ceremony'
+];
+
+
 function safePath(path: string | null | undefined): string | null {
   if (typeof path !== "string") return null;
   const trimmed = path.trim().toLowerCase();
@@ -117,6 +168,39 @@ async function getShowDetails(tmdbId: number): Promise<ShowDetails> {
   );
   const data = await response.json();
   return data as ShowDetails;
+}
+
+/**
+ * Fetches keywords for a show from TMDB API
+ */
+async function getShowKeywords(tmdbId: number): Promise<string[]> {
+  try {
+    const response = await fetch(
+      `https://api.themoviedb.org/3/tv/${tmdbId}/keywords?api_key=${API_KEY}`
+    );
+    
+    if (!response.ok) {
+      console.warn(`Failed to fetch keywords for show ${tmdbId}: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json() as KeywordResponse;
+    return data.results?.map(keyword => keyword.name.toLowerCase()) || [];
+  } catch (error) {
+    console.error(`Error fetching keywords for show ${tmdbId}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Determines if a show is a competition show based on its keywords
+ */
+function isCompetitionShow(keywords: string[]): boolean {
+  const keywordString = keywords.join(' ').toLowerCase();
+  
+  return COMPETITION_KEYWORDS.some(competitionKeyword => 
+    keywordString.includes(competitionKeyword.toLowerCase())
+  );
 }
 
 async function getSeasonCredits(
@@ -136,6 +220,15 @@ async function createShow(showData: ShowDetails) {
     ? showData.original_language
     : [showData.original_language];
 
+  // Get keywords to determine if it's a competition show
+  console.log(`  Checking if ${showData.name} is a competition show...`);
+  const keywords = await getShowKeywords(showData.id);
+  const isCompetition = isCompetitionShow(keywords);
+  
+  if (isCompetition && keywords.length > 0) {
+    console.log(`    ✓ Detected as competition show. Keywords: ${keywords.slice(0, 3).join(', ')}${keywords.length > 3 ? '...' : ''}`);
+  }
+
   const show = await prisma.show.create({
     data: {
       tmdbId: showData.id,
@@ -152,6 +245,7 @@ async function createShow(showData: ShowDetails) {
       tagline: showData.tagline || null,
       tmdbRating: showData.vote_average,
       isRunning: showData.next_episode_to_air !== null,
+      isCompetition: isCompetition,
     },
   });
 
@@ -328,7 +422,7 @@ async function seedShows() {
 
   while (showsInserted < 20) {
     const response = await fetch(
-      `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=en-US&first_air_date.gte=2010-01-01&with_origin_country=CA&original_language='en'&with_genres=10764&sort_by=popularity.desc&page=${page}`
+      `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=en-US&first_air_date.gte=2010-01-01&with_origin_country=US&original_language='en'&with_genres=10764&sort_by=popularity.desc&page=${page}`
     );
     const data = (await response.json()) as DiscoverResponse;
 
@@ -338,8 +432,12 @@ async function seedShows() {
       const exists = await prisma.show.findUnique({ where: { tmdbId: show.id } });
       if (exists) continue;
 
+      console.log(`Processing ${show.name}...`);
       const showDetails = await getShowDetails(show.id);
       const createdShow = await createShow(showDetails);
+      
+      // Small delay after keywords API call
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const connectedNetworks = await Promise.all(
         showDetails.networks.map(findOrCreateNetwork)

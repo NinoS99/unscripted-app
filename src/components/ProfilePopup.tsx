@@ -128,6 +128,7 @@ export default function ProfilePopup() {
             {/* Edit form */}
             {showEditForm && (
                 <EditProfileForm
+                    isOpen={showEditForm}
                     onClose={() => {
                         setShowEditForm(false);
                     }}

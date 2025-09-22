@@ -695,7 +695,7 @@ export default function DiscussionDisplay({
                                                  )}`}
                                                  className="text-green-400 hover:text-green-300"
                                              >
-                                                Log in
+                                                Sign in
                                             </Link>{" "}
                                             to vote in this poll
                                         </div>

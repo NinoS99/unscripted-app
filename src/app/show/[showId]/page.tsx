@@ -331,7 +331,9 @@ export default async function ShowPage({
                             />
                         </div>
 
-                        <ShowActionButtons
+                        {/* Mobile: Add padding to match ratings section */}
+                        <div className="md:p-0 p-6">
+                            <ShowActionButtons
                             showId={show.id}
                             entityType="show"
                             entityId={show.id}
@@ -350,7 +352,7 @@ export default async function ShowPage({
                                     id: show.id,
                                     name: show.name,
                                     posterPath: show.posterPath,
-                                    firstAirDate: show.firstAirDate,
+                                    firstAirDate: show.firstAirDate ? new Date(show.firstAirDate.toISOString().split('T')[0] + 'T00:00:00.000Z') : null,
                                     characters: show.seasons.flatMap((season) =>
                                         season.characters.map((character) => ({
                                             id: character.id,
@@ -441,6 +443,7 @@ export default async function ShowPage({
                                 </div>
                             </div>
                         )}
+                        </div>
 
                         {/* Included in Watch Lists Section - Desktop Only */}
                         <div className="hidden md:block mt-3">
