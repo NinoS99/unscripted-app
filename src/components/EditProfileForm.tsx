@@ -4,9 +4,17 @@ import { useState, useEffect } from "react";
 import { updateUserProfile } from "@/lib/actions";
 import Image from "next/image";
 import { FiX } from "react-icons/fi";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
-export default function EditProfileForm({ onClose }: { onClose: () => void }) {
+export default function EditProfileForm({ onClose, isOpen = true }: { onClose: () => void; isOpen?: boolean }) {
     const { user } = useUser();
+    
+    // Prevent background scrolling when modal is open
+    useModalScrollPrevention(isOpen);
+    
+    // Handle escape key to close modal
+    useEscapeKey(isOpen, onClose);
     const [formData, setFormData] = useState({
         bio: "",
         twitter: "",
@@ -271,59 +279,34 @@ export default function EditProfileForm({ onClose }: { onClose: () => void }) {
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
 
-    // Prevent body scroll when modal is open
-    useEffect(() => {
-        const originalStyle = window.getComputedStyle(document.body).overflow;
-        document.body.style.overflow = "hidden";
-
-        return () => {
-            document.body.style.overflow = originalStyle;
-        };
-    }, []);
 
     if (isLoading)
         return (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className="bg-gray-600 rounded-lg p-6 w-full max-w-md">
-                    <p>Loading profile data...</p>
+            <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md">
+                    <p className="text-white">Loading profile data...</p>
                 </div>
             </div>
         );
 
+    if (!isOpen) return null;
+
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col my-8 sm:my-4">
+        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header with close button */}
-                <div className="border-b border-gray-600 px-6 py-4 flex justify-between items-center flex-shrink-0">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white">
-                            Edit Profile
-                        </h2>
-                    </div>
+                <div className="flex items-center justify-between p-4 border-b border-gray-600">
+                    <h2 className="text-xl font-bold text-white">Edit Profile</h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-white p-1 -mr-2 cursor-pointer transition-colors"
-                        aria-label="Close"
+                        className="text-gray-400 hover:text-white transition-colors"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
+                        <FiX className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Form Content */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="modal-content p-6 md:p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Bio Section */}
                         <div className="space-y-2">

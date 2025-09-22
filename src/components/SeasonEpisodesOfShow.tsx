@@ -157,7 +157,7 @@ export default function SeasonEpisodesOfShow({
                         className={`px-4 py-2 rounded-md whitespace-nowrap flex-shrink-0 flex items-center gap-2 ${
                             season.id === selectedSeason.id
                                 ? "bg-gray-800 text-green-600"
-                                : "bg-gray-100 text-black hover:bg-gray-200"
+                                : "bg-gray-500 text-black hover:bg-gray-200"
                         }`}
                     >
                         <span>

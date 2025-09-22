@@ -299,7 +299,9 @@ export default async function SeasonPage({
                             />
                         </div>
 
-                        <ShowActionButtons
+                        {/* Mobile: Add padding to match ratings section */}
+                        <div className="md:p-0 p-6">
+                            <ShowActionButtons
                             showId={showId}
                             entityType="season"
                             entityId={season.id}
@@ -359,6 +361,7 @@ export default async function SeasonPage({
                                 entityType="season"
                                 entityId={season.id}
                             />
+                        </div>
                         </div>
                     </div>
 

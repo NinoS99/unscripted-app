@@ -136,7 +136,7 @@ export default function EntityReviews({
                                 href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`}
                                 className="text-green-400 hover:text-green-300 transition-colors font-medium"
                             >
-                                Log in
+                                Sign in
                             </Link>{" "}
                             to be the first to review this {entityType}!
                         </>

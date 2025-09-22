@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import RatingComponent from "./RatingComponent";
 import { FiX, FiTag, FiUser, FiLoader, FiChevronRight } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface ShowReviewProps {
     show: {
@@ -29,6 +31,12 @@ interface ShowReviewProps {
 
 export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
     const { user } = useUser();
+    
+    // Prevent background scrolling when modal is open
+    useModalScrollPrevention(isOpen);
+    
+    // Handle escape key to close modal
+    useEscapeKey(isOpen, onClose);
     const [startedOn, setStartedOn] = useState<string>("");
     const [endedOn, setEndedOn] = useState<string>("");
     const [reviewContent, setReviewContent] = useState("");
@@ -184,30 +192,12 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
         checkFavoriteStatus();
     }, [isOpen, user, show.id]);
 
-    // Close modal when clicking outside
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                onClose();
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener("keydown", handleEscape);
-            document.body.style.overflow = "hidden";
-        }
-
-        return () => {
-            document.removeEventListener("keydown", handleEscape);
-            document.body.style.overflow = "unset";
-        };
-    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-700 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-600">
                     <h2 className="text-xl font-bold text-white">
@@ -221,7 +211,7 @@ export default function ShowReview({ show, isOpen, onClose }: ShowReviewProps) {
                     </button>
                 </div>
 
-                <div className="p-6 md:p-6">
+                <div className="modal-content p-6 md:p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                     <div className="flex flex-col lg:flex-row gap-6">
                         {/* Left Side - Show Info */}
                         <div className="flex-shrink-0 flex flex-col items-center">

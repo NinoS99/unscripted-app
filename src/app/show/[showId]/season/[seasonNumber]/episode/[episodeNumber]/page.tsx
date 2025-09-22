@@ -284,7 +284,9 @@ export default async function EpisodePage({
                             />
                         </div>
 
-                        <ShowActionButtons
+                        {/* Mobile: Add padding to match ratings section */}
+                        <div className="md:p-0 p-6">
+                            <ShowActionButtons
                             showId={Number(showId)}
                             entityType="episode"
                             entityId={episode.id}
@@ -337,6 +339,7 @@ export default async function EpisodePage({
                         {/* Discussions Section - Desktop Only */}
                         <div className="hidden md:block">
                             <EntityDiscussions entityType="episode" entityId={episode.id} />
+                        </div>
                         </div>
                     </div>
 

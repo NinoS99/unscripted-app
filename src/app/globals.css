@@ -107,6 +107,25 @@ body {
   background: #22c55e;
 }
 
+/* Custom scrollbar for card overlays */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 /* For screens larger than 1536px (2xl breakpoint) */
 @media (min-width: 1536px) {
   .aspect-\[2\/3\] {
@@ -160,7 +179,7 @@ body {
 
 @media (min-width: 1280px) {
   .responsive-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Auto-adjust on xl+ */
+    grid-template-columns: repeat(6, 1fr); /* 6 columns on xl+ */
   }
 }
 
@@ -201,18 +220,6 @@ body {
   pointer-events: none;
 }
 
-/* Add to your global CSS */
-.responsive-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-@media (min-width: 768px) {
-  .responsive-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
-}
 
 /* Ensure proper height management */
 .h-full {

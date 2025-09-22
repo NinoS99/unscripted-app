@@ -1,6 +1,8 @@
 "use client";
 
 import { FiTrash2, FiX } from "react-icons/fi";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface DeleteEntityModalProps {
     isOpen: boolean;
@@ -17,6 +19,12 @@ export default function DeleteEntityModal({
     isDeleting,
     entityType
 }: DeleteEntityModalProps) {
+    // Prevent background scrolling when modal is open
+    useModalScrollPrevention(isOpen);
+    
+    // Handle escape key to close modal
+    useEscapeKey(isOpen, onClose);
+
     if (!isOpen) return null;
 
     const getEntityTypeText = () => {
@@ -33,8 +41,8 @@ export default function DeleteEntityModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="modal-content bg-gray-900 rounded-lg p-6 max-w-md w-full">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white">
                         Delete {getEntityTypeText().charAt(0).toUpperCase() + getEntityTypeText().slice(1)}

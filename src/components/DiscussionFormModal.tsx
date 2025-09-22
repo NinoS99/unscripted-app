@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { FiX, FiPlus, FiTrash2, FiStar } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface DiscussionFormModalProps {
     isOpen: boolean;
@@ -47,6 +49,12 @@ export default function DiscussionFormModal({
     ]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // Prevent background scrolling when modal is open
+    useModalScrollPrevention(isOpen);
+    
+    // Handle escape key to close modal
+    useEscapeKey(isOpen, onClose);
 
     // Reset form when modal opens/closes
     useEffect(() => {
@@ -162,8 +170,8 @@ export default function DiscussionFormModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-600">
                     <h2 className="text-xl font-bold text-white">
@@ -177,7 +185,7 @@ export default function DiscussionFormModal({
                     </button>
                 </div>
 
-                <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="modal-content p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
                     {/* Error Message */}
                     {errorMessage && (
                         <div className="mb-4 p-3 bg-red-600 text-white rounded-md text-sm">
@@ -283,6 +291,7 @@ export default function DiscussionFormModal({
                                 checked={spoiler}
                                 onChange={(e) => setSpoiler(e.target.checked)}
                                 className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                style={{ accentColor: "#16a34a" }}
                             />
                             <span>Contains spoilers</span>
                         </label>
@@ -296,6 +305,7 @@ export default function DiscussionFormModal({
                                 checked={includePoll}
                                 onChange={(e) => setIncludePoll(e.target.checked)}
                                 className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2"
+                                style={{ accentColor: "#16a34a" }}
                             />
                             <span className="font-medium">Include a poll</span>
                         </label>

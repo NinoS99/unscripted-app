@@ -4,7 +4,15 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { FiX, FiTag, FiTrash2, FiMove, FiLoader, FiChevronUp, FiChevronDown } from "react-icons/fi";
+import {
+    FiX,
+    FiTag,
+    FiTrash2,
+    FiMove,
+    FiLoader,
+    FiChevronUp,
+    FiChevronDown,
+} from "react-icons/fi";
 
 interface Show {
     id: number;
@@ -25,28 +33,30 @@ interface SelectedShow extends Show {
 export default function CreateWatchListForm() {
     const { user } = useUser();
     const router = useRouter();
-    
+
     // Form state
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [tags, setTags] = useState<string[]>([]);
     const [newTag, setNewTag] = useState("");
-    const [privacy, setPrivacy] = useState<"public" | "private" | "friends">("public");
+    const [privacy, setPrivacy] = useState<"public" | "private" | "friends">(
+        "public"
+    );
     const [isRanked, setIsRanked] = useState(false);
-    
+
     // Search state
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<Show[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
-    
+
     // Selected shows
     const [selectedShows, setSelectedShows] = useState<SelectedShow[]>([]);
 
     // Check for showId in URL query params
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const showId = urlParams.get('showId');
+        const showId = urlParams.get("showId");
 
         const fetchShowAndAdd = async (showId: number) => {
             try {
@@ -55,11 +65,13 @@ export default function CreateWatchListForm() {
                     const data = await response.json();
                     if (data.shows && data.shows.length > 0) {
                         const show = data.shows[0];
-                        
+
                         // Fetch user's rating for this show
                         let userRating = null;
                         try {
-                            const ratingResponse = await fetch(`/api/ratings?showId=${show.id}`);
+                            const ratingResponse = await fetch(
+                                `/api/ratings?showId=${show.id}`
+                            );
                             if (ratingResponse.ok) {
                                 const ratingData = await ratingResponse.json();
                                 userRating = ratingData.showRating;
@@ -67,11 +79,11 @@ export default function CreateWatchListForm() {
                         } catch (error) {
                             console.error("Error fetching rating:", error);
                         }
-                        
+
                         const newShow: SelectedShow = {
                             ...show,
                             ranking: isRanked ? 1 : undefined,
-                            userRating
+                            userRating,
                         };
                         setSelectedShows([newShow]);
                     }
@@ -80,35 +92,38 @@ export default function CreateWatchListForm() {
                 console.error("Error fetching show:", error);
             }
         };
-        
+
         if (showId) {
             // Fetch show details and add to selected shows
             fetchShowAndAdd(parseInt(showId));
         }
     }, [isRanked]);
 
-    
     // Drag and drop state
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-    
+
     // Note modal state
     const [noteModalOpen, setNoteModalOpen] = useState(false);
-    const [editingShowIndex, setEditingShowIndex] = useState<number | null>(null);
+    const [editingShowIndex, setEditingShowIndex] = useState<number | null>(
+        null
+    );
     const [noteText, setNoteText] = useState("");
     const [noteSpoiler, setNoteSpoiler] = useState(false);
     const [selectedSeasons, setSelectedSeasons] = useState<number[]>([]);
-    const [showSeasons, setShowSeasons] = useState<{id: number, seasonNumber: number}[]>([]);
-    
+    const [showSeasons, setShowSeasons] = useState<
+        { id: number; seasonNumber: number }[]
+    >([]);
+
     // Form submission
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const formatDateShort = (date: Date | null) => {
         if (!date) return null;
-        return new Date(date).toLocaleDateString('en-US', { 
-            year: '2-digit', 
-            month: '2-digit', 
-            day: '2-digit' 
+        return new Date(date).toLocaleDateString("en-US", {
+            year: "2-digit",
+            month: "2-digit",
+            day: "2-digit",
         });
     };
 
@@ -120,7 +135,7 @@ export default function CreateWatchListForm() {
     };
 
     const handleRemoveTag = (tagToRemove: string) => {
-        setTags(tags.filter(tag => tag !== tagToRemove));
+        setTags(tags.filter((tag) => tag !== tagToRemove));
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -140,7 +155,9 @@ export default function CreateWatchListForm() {
 
         setIsSearching(true);
         try {
-            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const response = await fetch(
+                `/api/search?q=${encodeURIComponent(query)}`
+            );
             if (response.ok) {
                 const data = await response.json();
                 setSearchResults(data.shows || []);
@@ -162,7 +179,7 @@ export default function CreateWatchListForm() {
     }, [searchQuery]);
 
     const handleShowSelect = async (show: Show) => {
-        if (!selectedShows.find(s => s.id === show.id)) {
+        if (!selectedShows.find((s) => s.id === show.id)) {
             // Fetch user's rating for this show
             let userRating = null;
             try {
@@ -178,7 +195,7 @@ export default function CreateWatchListForm() {
             const newShow: SelectedShow = {
                 ...show,
                 ranking: isRanked ? selectedShows.length + 1 : undefined,
-                userRating
+                userRating,
             };
             setSelectedShows([...selectedShows, newShow]);
         }
@@ -187,14 +204,16 @@ export default function CreateWatchListForm() {
     };
 
     const handleRemoveShow = (showId: number) => {
-        setSelectedShows(selectedShows.filter(s => s.id !== showId));
+        setSelectedShows(selectedShows.filter((s) => s.id !== showId));
         // Reorder rankings if needed
         if (isRanked) {
-            setSelectedShows(prev => 
-                prev.filter(s => s.id !== showId).map((s, index) => ({
-                    ...s,
-                    ranking: index + 1
-                }))
+            setSelectedShows((prev) =>
+                prev
+                    .filter((s) => s.id !== showId)
+                    .map((s, index) => ({
+                        ...s,
+                        ranking: index + 1,
+                    }))
             );
         }
     };
@@ -219,30 +238,30 @@ export default function CreateWatchListForm() {
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
         e.preventDefault();
         const dragIndex = parseInt(e.dataTransfer.getData("text/plain"));
-        
+
         if (dragIndex === dropIndex) {
             setDraggedIndex(null);
             setDragOverIndex(null);
             return;
         }
 
-        setSelectedShows(prev => {
+        setSelectedShows((prev) => {
             const newShows = [...prev];
             const draggedShow = newShows[dragIndex];
             newShows.splice(dragIndex, 1);
             newShows.splice(dropIndex, 0, draggedShow);
-            
+
             // Update rankings if needed
             if (isRanked) {
                 return newShows.map((show, index) => ({
                     ...show,
-                    ranking: index + 1
+                    ranking: index + 1,
                 }));
             }
-            
+
             return newShows;
         });
-        
+
         setDraggedIndex(null);
         setDragOverIndex(null);
     };
@@ -255,40 +274,40 @@ export default function CreateWatchListForm() {
     // Arrow button handlers for mobile reordering
     const moveShowUp = (index: number) => {
         if (index === 0) return; // Can't move first item up
-        
-        setSelectedShows(prev => {
+
+        setSelectedShows((prev) => {
             const newShows = [...prev];
             const show = newShows[index];
             newShows.splice(index, 1);
             newShows.splice(index - 1, 0, show);
-            
+
             if (isRanked) {
                 return newShows.map((show, index) => ({
                     ...show,
-                    ranking: index + 1
+                    ranking: index + 1,
                 }));
             }
-            
+
             return newShows;
         });
     };
 
     const moveShowDown = (index: number) => {
         if (index === selectedShows.length - 1) return; // Can't move last item down
-        
-        setSelectedShows(prev => {
+
+        setSelectedShows((prev) => {
             const newShows = [...prev];
             const show = newShows[index];
             newShows.splice(index, 1);
             newShows.splice(index + 1, 0, show);
-            
+
             if (isRanked) {
                 return newShows.map((show, index) => ({
                     ...show,
-                    ranking: index + 1
+                    ranking: index + 1,
                 }));
             }
-            
+
             return newShows;
         });
     };
@@ -310,20 +329,22 @@ export default function CreateWatchListForm() {
                     isPublic: privacy === "public",
                     friendsOnly: privacy === "friends",
                     isRanked,
-                    shows: selectedShows.map(show => ({
+                    shows: selectedShows.map((show) => ({
                         showId: show.id,
                         ranking: show.ranking,
                         note: show.note,
                         spoiler: show.spoiler,
-                        muchWatchSeasons: show.muchWatchSeasons
-                    }))
+                        muchWatchSeasons: show.muchWatchSeasons,
+                    })),
                 }),
             });
 
             if (response.ok) {
                 const data = await response.json();
                 // Don't set isSubmitting to false here - let the navigation happen while form is still disabled
-                router.push(`/${user?.username}/watch-list/${data.watchListId}`);
+                router.push(
+                    `/${user?.username}/watch-list/${data.watchListId}`
+                );
             } else {
                 const error = await response.json();
                 console.error("Failed to create watch list:", error);
@@ -344,7 +365,7 @@ export default function CreateWatchListForm() {
         setNoteText(show.note || "");
         setNoteSpoiler(show.spoiler || false);
         setSelectedSeasons(show.muchWatchSeasons || []);
-        
+
         // Fetch seasons for this show
         try {
             const response = await fetch(`/api/shows/${show.id}/seasons`);
@@ -355,7 +376,7 @@ export default function CreateWatchListForm() {
         } catch (error) {
             console.error("Error fetching seasons:", error);
         }
-        
+
         setNoteModalOpen(true);
     };
 
@@ -370,19 +391,26 @@ export default function CreateWatchListForm() {
 
     const saveNote = () => {
         if (editingShowIndex !== null) {
-            setSelectedShows(prev => prev.map((show, index) => 
-                index === editingShowIndex 
-                    ? { ...show, note: noteText, spoiler: noteSpoiler, muchWatchSeasons: selectedSeasons }
-                    : show
-            ));
+            setSelectedShows((prev) =>
+                prev.map((show, index) =>
+                    index === editingShowIndex
+                        ? {
+                              ...show,
+                              note: noteText,
+                              spoiler: noteSpoiler,
+                              muchWatchSeasons: selectedSeasons,
+                          }
+                        : show
+                )
+            );
         }
         closeNoteModal();
     };
 
     const toggleSeasonSelection = (seasonId: number) => {
-        setSelectedSeasons(prev => {
+        setSelectedSeasons((prev) => {
             if (prev.includes(seasonId)) {
-                return prev.filter(id => id !== seasonId);
+                return prev.filter((id) => id !== seasonId);
             } else if (prev.length < 5) {
                 return [...prev, seasonId];
             }
@@ -464,53 +492,76 @@ export default function CreateWatchListForm() {
                                         type="radio"
                                         value="public"
                                         checked={privacy === "public"}
-                                        onChange={(e) => setPrivacy(e.target.value as "public")}
+                                        onChange={(e) =>
+                                            setPrivacy(
+                                                e.target.value as "public"
+                                            )
+                                        }
                                         disabled={isSubmitting}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{ accentColor: '#16a34a' }}
+                                        style={{ accentColor: "#16a34a" }}
                                     />
-                                    <span className="ml-2 text-white">Public - Anyone can view</span>
+                                    <span className="ml-2 text-white">
+                                        Public - Anyone can view
+                                    </span>
                                 </label>
                                 <label className="flex items-center">
                                     <input
                                         type="radio"
                                         value="friends"
                                         checked={privacy === "friends"}
-                                        onChange={(e) => setPrivacy(e.target.value as "friends")}
+                                        onChange={(e) =>
+                                            setPrivacy(
+                                                e.target.value as "friends"
+                                            )
+                                        }
                                         disabled={isSubmitting}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{ accentColor: '#16a34a' }}
+                                        style={{ accentColor: "#16a34a" }}
                                     />
-                                    <span className="ml-2 text-white">Friends Only - Only your friends can view</span>
+                                    <span className="ml-2 text-white">
+                                        Friends Only - Only your friends can
+                                        view
+                                    </span>
                                 </label>
                                 <label className="flex items-center">
                                     <input
                                         type="radio"
                                         value="private"
                                         checked={privacy === "private"}
-                                        onChange={(e) => setPrivacy(e.target.value as "private")}
+                                        onChange={(e) =>
+                                            setPrivacy(
+                                                e.target.value as "private"
+                                            )
+                                        }
                                         disabled={isSubmitting}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{ accentColor: '#16a34a' }}
+                                        style={{ accentColor: "#16a34a" }}
                                     />
-                                    <span className="ml-2 text-white">Private - Only you can view</span>
+                                    <span className="ml-2 text-white">
+                                        Private - Only you can view
+                                    </span>
                                 </label>
                             </div>
                         </div>
 
                         {/* Ranked List Checkbox */}
                         <div>
-                                                            <label className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={isRanked}
-                                        onChange={(e) => setIsRanked(e.target.checked)}
-                                        disabled={isSubmitting}
-                                        className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{ accentColor: '#16a34a' }}
-                                    />
-                                    <span className="ml-2 text-white">This is a ranked list</span>
-                                </label>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={isRanked}
+                                    onChange={(e) =>
+                                        setIsRanked(e.target.checked)
+                                    }
+                                    disabled={isSubmitting}
+                                    className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ accentColor: "#16a34a" }}
+                                />
+                                <span className="ml-2 text-white">
+                                    This is a ranked list
+                                </span>
+                            </label>
                         </div>
                     </div>
 
@@ -536,7 +587,9 @@ export default function CreateWatchListForm() {
                 <div className="mt-8 space-y-4">
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => document.getElementById('show-search')?.focus()}
+                            onClick={() =>
+                                document.getElementById("show-search")?.focus()
+                            }
                             disabled={isSubmitting}
                             className="px-2 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -556,34 +609,46 @@ export default function CreateWatchListForm() {
                             {isSearching && (
                                 <FiLoader className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
                             )}
-                            
+
                             {/* Search Results Dropdown */}
                             {showDropdown && searchResults.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-60 overflow-y-auto z-10">
                                     {searchResults.map((show) => (
                                         <div
                                             key={show.id}
-                                            onClick={() => handleShowSelect(show)}
+                                            onClick={() =>
+                                                handleShowSelect(show)
+                                            }
                                             className="flex items-center gap-3 p-3 hover:bg-gray-500 cursor-pointer border-b border-gray-500 last:border-b-0"
                                         >
                                             <div className="flex-shrink-0 w-12 h-18">
                                                 <Image
-                                                    src={show.posterPath ? `https://image.tmdb.org/t/p/w92${show.posterPath}` : "/noPoster.jpg"}
+                                                    src={
+                                                        show.posterPath
+                                                            ? `https://image.tmdb.org/t/p/w92${show.posterPath}`
+                                                            : "/noPoster.jpg"
+                                                    }
                                                     alt={show.name}
                                                     width={48}
                                                     height={72}
                                                     className="w-full h-full object-cover rounded"
                                                 />
                                             </div>
-                                                                                    <div className="flex-grow min-w-0">
-                                            <h4 className="text-white font-medium truncate text-sm md:text-base">{show.name}</h4>
-                                            {show.firstAirDate && (
-                                                <p className="text-gray-300 text-xs md:text-sm">
-                                                    <span className="hidden md:inline">First aired </span>
-                                                    {formatDateShort(show.firstAirDate)}
-                                                </p>
-                                            )}
-                                        </div>
+                                            <div className="flex-grow min-w-0">
+                                                <h4 className="text-white font-medium truncate text-sm md:text-base">
+                                                    {show.name}
+                                                </h4>
+                                                {show.firstAirDate && (
+                                                    <p className="text-gray-300 text-xs md:text-sm">
+                                                        <span className="hidden md:inline">
+                                                            First aired{" "}
+                                                        </span>
+                                                        {formatDateShort(
+                                                            show.firstAirDate
+                                                        )}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -602,19 +667,25 @@ export default function CreateWatchListForm() {
                                     <div
                                         key={show.id}
                                         draggable={isRanked && !isSubmitting}
-                                        onDragStart={(e) => handleDragStart(e, index)}
-                                        onDragOver={(e) => handleDragOver(e, index)}
+                                        onDragStart={(e) =>
+                                            handleDragStart(e, index)
+                                        }
+                                        onDragOver={(e) =>
+                                            handleDragOver(e, index)
+                                        }
                                         onDragLeave={handleDragLeave}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                         className={`flex items-center gap-3 p-3 rounded-md transition-all duration-200 ${
-                                            isRanked && !isSubmitting ? 'cursor-move' : ''
+                                            isRanked && !isSubmitting
+                                                ? "cursor-move"
+                                                : ""
                                         } ${
-                                            draggedIndex === index 
-                                                ? 'opacity-50 bg-gray-400' 
-                                                : dragOverIndex === index 
-                                                ? 'bg-green-600 border-2 border-green-400' 
-                                                : 'bg-gray-500'
+                                            draggedIndex === index
+                                                ? "opacity-50 bg-gray-400"
+                                                : dragOverIndex === index
+                                                ? "bg-green-600 border-2 border-green-400"
+                                                : "bg-gray-500"
                                         }`}
                                     >
                                         {isRanked && (
@@ -627,7 +698,11 @@ export default function CreateWatchListForm() {
                                         )}
                                         <div className="flex-shrink-0 w-12 h-18">
                                             <Image
-                                                src={show.posterPath ? `https://image.tmdb.org/t/p/w92${show.posterPath}` : "/noPoster.jpg"}
+                                                src={
+                                                    show.posterPath
+                                                        ? `https://image.tmdb.org/t/p/w92${show.posterPath}`
+                                                        : "/noPoster.jpg"
+                                                }
                                                 alt={show.name}
                                                 width={48}
                                                 height={72}
@@ -635,46 +710,85 @@ export default function CreateWatchListForm() {
                                             />
                                         </div>
                                         <div className="flex-grow min-w-0">
-                                            <h4 className="text-white font-medium truncate text-sm md:text-base">{show.name}</h4>
+                                            <h4 className="text-white font-medium truncate text-sm md:text-base">
+                                                {show.name}
+                                            </h4>
                                             {show.firstAirDate && (
                                                 <p className="text-gray-300 text-xs md:text-sm">
-                                                    <span className="hidden md:inline">First aired </span>
-                                                    {formatDateShort(show.firstAirDate)}
+                                                    <span className="hidden md:inline">
+                                                        First aired{" "}
+                                                    </span>
+                                                    {formatDateShort(
+                                                        show.firstAirDate
+                                                    )}
                                                 </p>
                                             )}
                                             <button
-                                                onClick={() => openNoteModal(index)}
+                                                onClick={() =>
+                                                    openNoteModal(index)
+                                                }
                                                 disabled={isSubmitting}
                                                 className="text-green-400 hover:text-green-300 text-xs mt-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
-                                                {show.note ? "Edit note" : "Add note"}
+                                                {show.note
+                                                    ? "Edit note"
+                                                    : "Add note"}
                                             </button>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="hidden md:flex text-yellow-400 text-sm">
                                                 {show.userRating ? (
-                                                    Array.from({ length: 5 }, (_, i) => (
-                                                        <span key={i}>
-                                                            {i < Math.floor(show.userRating!) ? '★' : 
-                                                             i === Math.floor(show.userRating!) && show.userRating! % 1 !== 0 ? '☆' : '☆'}
-                                                        </span>
-                                                    ))
+                                                    Array.from(
+                                                        { length: 5 },
+                                                        (_, i) => (
+                                                            <span key={i}>
+                                                                {i <
+                                                                Math.floor(
+                                                                    show.userRating!
+                                                                )
+                                                                    ? "★"
+                                                                    : i ===
+                                                                          Math.floor(
+                                                                              show.userRating!
+                                                                          ) &&
+                                                                      show.userRating! %
+                                                                          1 !==
+                                                                          0
+                                                                    ? "☆"
+                                                                    : "☆"}
+                                                            </span>
+                                                        )
+                                                    )
                                                 ) : (
-                                                    <span className="text-gray-400">Not rated by you</span>
+                                                    <span className="text-gray-400">
+                                                        Not rated by you
+                                                    </span>
                                                 )}
                                             </div>
                                             {isRanked && (
                                                 <div className="flex flex-col">
                                                     <button
-                                                        onClick={() => moveShowUp(index)}
-                                                        disabled={index === 0 || isSubmitting}
+                                                        onClick={() =>
+                                                            moveShowUp(index)
+                                                        }
+                                                        disabled={
+                                                            index === 0 ||
+                                                            isSubmitting
+                                                        }
                                                         className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <FiChevronUp className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => moveShowDown(index)}
-                                                        disabled={index === selectedShows.length - 1 || isSubmitting}
+                                                        onClick={() =>
+                                                            moveShowDown(index)
+                                                        }
+                                                        disabled={
+                                                            index ===
+                                                                selectedShows.length -
+                                                                    1 ||
+                                                            isSubmitting
+                                                        }
                                                         className="text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                                     >
                                                         <FiChevronDown className="w-4 h-4" />
@@ -682,7 +796,9 @@ export default function CreateWatchListForm() {
                                                 </div>
                                             )}
                                             <button
-                                                onClick={() => handleRemoveShow(show.id)}
+                                                onClick={() =>
+                                                    handleRemoveShow(show.id)
+                                                }
                                                 disabled={isSubmitting}
                                                 className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
@@ -728,7 +844,9 @@ export default function CreateWatchListForm() {
                     <div className="bg-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-gray-600">
-                            <h2 className="text-xl font-bold text-white">Add Note</h2>
+                            <h2 className="text-xl font-bold text-white">
+                                Add Note
+                            </h2>
                             <button
                                 onClick={closeNoteModal}
                                 disabled={isSubmitting}
@@ -746,7 +864,9 @@ export default function CreateWatchListForm() {
                                 </label>
                                 <textarea
                                     value={noteText}
-                                    onChange={(e) => setNoteText(e.target.value)}
+                                    onChange={(e) =>
+                                        setNoteText(e.target.value)
+                                    }
                                     placeholder="Add any notes about this show..."
                                     rows={4}
                                     disabled={isSubmitting}
@@ -760,12 +880,16 @@ export default function CreateWatchListForm() {
                                     <input
                                         type="checkbox"
                                         checked={noteSpoiler}
-                                        onChange={(e) => setNoteSpoiler(e.target.checked)}
+                                        onChange={(e) =>
+                                            setNoteSpoiler(e.target.checked)
+                                        }
                                         disabled={isSubmitting}
                                         className="w-4 h-4 text-green-600 bg-gray-600 border-gray-500 rounded focus:ring-green-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{ accentColor: '#16a34a' }}
+                                        style={{ accentColor: "#16a34a" }}
                                     />
-                                    <span className="ml-2 text-white">Contains spoilers</span>
+                                    <span className="ml-2 text-white">
+                                        Contains spoilers
+                                    </span>
                                 </label>
                             </div>
 
@@ -780,20 +904,37 @@ export default function CreateWatchListForm() {
                                             <label
                                                 key={season.id}
                                                 className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${
-                                                    selectedSeasons.includes(season.id)
-                                                        ? 'bg-green-600 text-white'
-                                                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                                                    selectedSeasons.includes(
+                                                        season.id
+                                                    )
+                                                        ? "bg-green-600 text-white"
+                                                        : "bg-gray-600 text-gray-300 hover:bg-gray-500"
                                                 }`}
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedSeasons.includes(season.id)}
-                                                    onChange={() => toggleSeasonSelection(season.id)}
+                                                    checked={selectedSeasons.includes(
+                                                        season.id
+                                                    )}
+                                                    onChange={() =>
+                                                        toggleSeasonSelection(
+                                                            season.id
+                                                        )
+                                                    }
                                                     className="w-4 h-4 mr-2"
-                                                    disabled={(!selectedSeasons.includes(season.id) && selectedSeasons.length >= 5) || isSubmitting}
+                                                    disabled={
+                                                        (!selectedSeasons.includes(
+                                                            season.id
+                                                        ) &&
+                                                            selectedSeasons.length >=
+                                                                5) ||
+                                                        isSubmitting
+                                                    }
                                                 />
                                                 <span className="text-sm">
-                                                    {season.seasonNumber === 0 ? 'Specials' : `Season ${season.seasonNumber}`}
+                                                    {season.seasonNumber === 0
+                                                        ? "Specials"
+                                                        : `Season ${season.seasonNumber}`}
                                                 </span>
                                             </label>
                                         ))}
@@ -829,4 +970,4 @@ export default function CreateWatchListForm() {
             )}
         </div>
     );
-} 
+}

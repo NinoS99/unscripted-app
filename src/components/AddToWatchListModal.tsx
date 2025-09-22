@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { FiX, FiPlus, FiSearch } from "react-icons/fi";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface WatchList {
     id: number;
@@ -35,6 +37,12 @@ export default function AddToWatchListModal({
     const [isSearching, setIsSearching] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // Prevent background scrolling when modal is open
+    useModalScrollPrevention(isOpen);
+    
+    // Handle escape key to close modal
+    useEscapeKey(isOpen, onClose);
 
     // Fetch user's watch lists
     useEffect(() => {
@@ -167,8 +175,8 @@ export default function AddToWatchListModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-gray-700 rounded-lg max-w-md w-full max-h-[90vh] sm:max-h-[80vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-900 rounded-lg max-w-md w-full max-h-[90vh] sm:max-h-[80vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-600">
                     <h2 className="text-lg sm:text-xl font-bold text-white break-words pr-2">
@@ -211,7 +219,7 @@ export default function AddToWatchListModal({
                     </div>
 
                     {/* Watch Lists */}
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                    <div className="modal-content space-y-2 max-h-60 overflow-y-auto">
                         {/* Add to New Watch List */}
                         <button
                             onClick={handleCreateNewWatchList}
