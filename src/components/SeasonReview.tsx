@@ -162,8 +162,8 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-600">
                     <h2 className="text-xl font-bold text-white">Write a Season Review</h2>
@@ -356,10 +356,12 @@ export default function SeasonReview({ season, isOpen, onClose }: SeasonReviewPr
                                 {/* Favourite Characters */}
                                 {season.characters && season.characters.length > 0 && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                                            Favourite &apos;Characters&apos;
-                                        </label>
-                                        <div className="max-h-32 overflow-y-auto space-y-2">
+                                        <div className="sticky top-0 bg-gray-800 z-10 pb-2">
+                                            <label className="block text-sm font-medium text-gray-300">
+                                                Favourite &apos;Characters&apos;
+                                            </label>
+                                        </div>
+                                        <div className="max-h-32 overflow-y-auto space-y-2 relative">
                                             {season.characters.map((character) => (
                                                 <div
                                                     key={character.id}

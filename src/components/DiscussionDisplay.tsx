@@ -210,26 +210,25 @@ export default function DiscussionDisplay({
     // Fetch user's vote and creator's vote from database
     useEffect(() => {
         const fetchVotes = async () => {
-            if (!user?.id || !discussion.polls || discussion.polls.length === 0) return;
-            
+            if (!user?.id || !discussion.polls || discussion.polls.length === 0)
+                return;
+
             try {
-                const response = await fetch(`/api/polls/user-vote?pollId=${discussion.polls[0].id}&creatorId=${discussion.user.id}`);
+                const response = await fetch(
+                    `/api/polls/user-vote?pollId=${discussion.polls[0].id}&creatorId=${discussion.user.id}`
+                );
                 if (response.ok) {
                     const data = await response.json();
                     if (data.optionId) {
                         setUserVote(data.optionId);
-                        console.log("User vote fetched:", data.optionId);
                     } else {
                         setUserVote(null);
-                        console.log("No user vote found");
                     }
-                    
+
                     if (data.creatorOptionId) {
                         setCreatorVote(data.creatorOptionId);
-                        console.log("Creator vote fetched:", data.creatorOptionId);
                     } else {
                         setCreatorVote(null);
-                        console.log("No creator vote found");
                     }
                 }
             } catch (error) {
@@ -260,13 +259,18 @@ export default function DiscussionDisplay({
                 const data = await response.json();
                 setPollVotes(data.updatedVotes);
                 setUserVote(optionId);
-                
+
                 // If the current user is the creator, also update creatorVote
                 if (user.id === discussion.user.id) {
                     setCreatorVote(optionId);
                 }
-                
-                console.log("Vote updated:", optionId, "User vote set to:", optionId);
+
+                console.log(
+                    "Vote updated:",
+                    optionId,
+                    "User vote set to:",
+                    optionId
+                );
             }
         } catch (error) {
             console.error("Error voting:", error);
@@ -284,9 +288,12 @@ export default function DiscussionDisplay({
 
         setIsDeleting(true);
         try {
-            const response = await fetch(`/api/discussions/delete/${discussion.id}`, {
-                method: "DELETE",
-            });
+            const response = await fetch(
+                `/api/discussions/delete/${discussion.id}`,
+                {
+                    method: "DELETE",
+                }
+            );
 
             if (response.ok) {
                 // Navigate back to the entity page
@@ -370,30 +377,33 @@ export default function DiscussionDisplay({
                                     {/* Discussion by */}
                                     <div>
                                         <div className="flex items-center gap-2 mt-2">
-                                        <Image
-                                            src={discussion.user.profilePicture || "/noAvatar.png"}
-                                            alt={discussion.user.username}
-                                            width={24}
-                                            height={24}
-                                            className="w-6 h-6 rounded-full object-cover"
-                                        />
-                                        <p className="text-gray-400 text-sm">
-                                            Discussion by{" "}
-                                            <Link
-                                                href={`/${discussion.user.username}`}
-                                                className="font-semibold text-white hover:text-green-400 transition-colors"
-                                            >
-                                                {discussion.user.username}
-                                            </Link>
-                                        </p>
+                                            <Image
+                                                src={
+                                                    discussion.user
+                                                        .profilePicture ||
+                                                    "/noAvatar.png"
+                                                }
+                                                alt={discussion.user.username}
+                                                width={24}
+                                                height={24}
+                                                className="w-6 h-6 rounded-full object-cover"
+                                            />
+                                            <p className="text-gray-400 text-sm">
+                                                Discussion by{" "}
+                                                <Link
+                                                    href={`/${discussion.user.username}`}
+                                                    className="font-semibold text-white hover:text-green-400 transition-colors"
+                                                >
+                                                    {discussion.user.username}
+                                                </Link>
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
                                 </div>
                             </div>
 
                             {/* Mobile info below poster */}
                             <div className="mt-4 space-y-4 px-4">
-
                                 {/* Discussion Title */}
                                 <div>
                                     <h2 className="text-xl font-bold text-white mb-2">
@@ -404,7 +414,8 @@ export default function DiscussionDisplay({
                                 {/* User's Rating and Favorite Status */}
                                 <div className="space-y-2">
                                     {/* First row: Rating and Rose (if both exist) */}
-                                    {(discussion.userRating || discussion.userFavorite) && (
+                                    {(discussion.userRating ||
+                                        discussion.userFavorite) && (
                                         <div className="flex items-center gap-4">
                                             {discussion.userRating && (
                                                 <div className="flex items-center gap-1">
@@ -421,14 +432,15 @@ export default function DiscussionDisplay({
                                                 <div className="flex items-center gap-1">
                                                     <GiRose className="w-5 h-5 text-red-400 fill-current" />
                                                     <span className="text-sm text-red-400 font-medium pl-1">
-                                                        Discussion creator gave this{" "}
-                                                        {discussionType} a rose
+                                                        Discussion creator gave
+                                                        this {discussionType} a
+                                                        rose
                                                     </span>
                                                 </div>
                                             )}
                                         </div>
                                     )}
-                                    
+
                                     {/* Second row: Spoiler (if exists) */}
                                     {discussion.spoiler && (
                                         <div className="flex items-center gap-1">
@@ -489,7 +501,11 @@ export default function DiscussionDisplay({
                                 <div className="mb-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Image
-                                            src={discussion.user.profilePicture || "/noAvatar.png"}
+                                            src={
+                                                discussion.user
+                                                    .profilePicture ||
+                                                "/noAvatar.png"
+                                            }
                                             alt={discussion.user.username}
                                             width={24}
                                             height={24}
@@ -643,20 +659,26 @@ export default function DiscussionDisplay({
                                     Poll
                                 </h3>
                                 <div className="border-b border-gray-600 mb-4"></div>
-                                                                 <div className="bg-gray-800 rounded-lg p-6">
-                                     <h4 className="text-lg font-semibold mb-4">
-                                         {discussion.polls[0].question}
-                                     </h4>
-                                     {creatorVote && (
-                                         <div className="mb-4 p-2 bg-green-600/20 border border-green-600/30 rounded text-green-400 text-sm">
-                                             {discussion.user.username} (discussion creator) voted for: {discussion.polls[0].options.find(opt => opt.id === creatorVote)?.text}
-                                         </div>
-                                     )}
-                                                                          <div className="space-y-3">
-                                         {discussion.polls[0].options
-                                             .sort((a, b) => a.id - b.id)
-                                             .map(
-                                             (option) => (
+                                <div className="bg-gray-800 rounded-lg p-6">
+                                    <h4 className="text-lg font-semibold mb-4">
+                                        {discussion.polls[0].question}
+                                    </h4>
+                                    {creatorVote && (
+                                        <div className="mb-4 p-2 bg-green-600/20 border border-green-600/30 rounded text-green-400 text-sm">
+                                            {discussion.user.username}{" "}
+                                            (discussion creator) voted for:{" "}
+                                            {
+                                                discussion.polls[0].options.find(
+                                                    (opt) =>
+                                                        opt.id === creatorVote
+                                                )?.text
+                                            }
+                                        </div>
+                                    )}
+                                    <div className="space-y-3">
+                                        {discussion.polls[0].options
+                                            .sort((a, b) => a.id - b.id)
+                                            .map((option) => (
                                                 <button
                                                     key={option.id}
                                                     onClick={() =>
@@ -684,17 +706,16 @@ export default function DiscussionDisplay({
                                                         votes
                                                     </div>
                                                 </button>
-                                            )
-                                        )}
+                                            ))}
                                     </div>
                                     {!user && (
                                         <div className="mt-4 text-center text-gray-400 text-sm">
-                                                                                         <Link
-                                                 href={`/sign-in?redirect_url=${encodeURIComponent(
-                                                     pathname
-                                                 )}`}
-                                                 className="text-green-400 hover:text-green-300"
-                                             >
+                                            <Link
+                                                href={`/sign-in?redirect_url=${encodeURIComponent(
+                                                    pathname
+                                                )}`}
+                                                className="text-green-400 hover:text-green-300"
+                                            >
                                                 Sign in
                                             </Link>{" "}
                                             to vote in this poll

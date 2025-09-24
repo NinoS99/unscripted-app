@@ -41,8 +41,8 @@ export default function DeleteEntityModal({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="modal-content bg-gray-900 rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="modal-content bg-gray-800 rounded-lg p-6 max-w-md w-full">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white">
                         Delete {getEntityTypeText().charAt(0).toUpperCase() + getEntityTypeText().slice(1)}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { FiSmile, FiChevronDown, FiChevronUp, FiX } from "react-icons/fi";
+import { useReactionTypes } from "@/hooks/useReactionTypes";
 
 interface ReactionType {
     id: number;
@@ -148,10 +149,7 @@ export default function CommentReactions({
     hideButtonText = false,
 }: CommentReactionsProps) {
     const { user } = useUser();
-    const [reactionTypes, setReactionTypes] = useState<
-        Record<string, ReactionType[]>
-    >({});
-    const [isLoading, setIsLoading] = useState(false);
+    const { reactionTypes, isLoading } = useReactionTypes();
     const [showReactionPicker, setShowReactionPicker] = useState(false);
 
     // Group reactions by type
@@ -174,22 +172,6 @@ export default function CommentReactions({
 
     // Check if current user has a reaction
     const userReaction = reactions.find((r) => r.userId === user?.id);
-
-    useEffect(() => {
-        fetchReactionTypes();
-    }, []);
-
-    const fetchReactionTypes = async () => {
-        try {
-            const response = await fetch("/api/reaction-types");
-            if (response.ok) {
-                const data = await response.json();
-                setReactionTypes(data.reactionTypes);
-            }
-        } catch (error) {
-            console.error("Error fetching reaction types:", error);
-        }
-    };
 
     const handleReaction = async (reactionTypeId: number) => {
         if (!user) return;
@@ -216,7 +198,6 @@ export default function CommentReactions({
         // Force re-render
         onReactionChange();
 
-        setIsLoading(true);
         try {
             const response = await fetch("/api/discussions/comments/reaction", {
                 method: "POST",
@@ -239,8 +220,6 @@ export default function CommentReactions({
             // Revert on error
             reactions.splice(0, reactions.length, ...previousReactions);
             onReactionChange();
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -257,7 +236,6 @@ export default function CommentReactions({
         // Force re-render
         onReactionChange();
 
-        setIsLoading(true);
         try {
             const response = await fetch(
                 `/api/discussions/comments/reaction?commentId=${commentId}`,
@@ -276,8 +254,6 @@ export default function CommentReactions({
             // Revert on error
             reactions.splice(0, reactions.length, ...previousReactions);
             onReactionChange();
-        } finally {
-            setIsLoading(false);
         }
     };
 

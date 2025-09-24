@@ -9,6 +9,8 @@ import {
     FaPlus,
     FaCheck,
 } from "react-icons/fa";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 type RatingComponentProps = {
     entityType: "show" | "season" | "episode";
@@ -181,11 +183,18 @@ export default function RatingComponent({
         }
     };
 
-    const MobileRatingModal = () => (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    const MobileRatingModal = () => {
+        useModalScrollPrevention(true);
+        useEscapeKey(true, () => {
+            setShowMobileRatingModal(false);
+            setTempRating(0);
+        });
+
+        return (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
             <div
                 ref={modalRef}
-                className="bg-gray-800 rounded-lg p-6 w-full max-w-md"
+                className="modal-content bg-gray-800 rounded-lg p-6 w-full max-w-md"
             >
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-medium text-white">
@@ -259,7 +268,8 @@ export default function RatingComponent({
                 </div>
             </div>
         </div>
-    );
+        );
+    };
 
     return (
         <div className="flex flex-col gap-1">

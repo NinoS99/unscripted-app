@@ -282,8 +282,8 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
 
     if (isLoading)
         return (
-            <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-                <div className="bg-gray-900 rounded-lg p-6 w-full max-w-md">
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+                <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
                     <p className="text-white">Loading profile data...</p>
                 </div>
             </div>
@@ -292,8 +292,8 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/20 md:bg-white/5 md:backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header with close button */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-600">
                     <h2 className="text-xl font-bold text-white">Edit Profile</h2>
@@ -311,11 +311,11 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                         {/* Bio Section */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <h3 className="font-medium text-white text-sm">
+                                <h3 className="font-medium text-white text-md">
                                     Bio
                                 </h3>
-                                <span className="text-xs text-gray-400">
-                                    Max 150 characters
+                                <span className="text-sm text-gray-400">
+                                    Max 500 characters  
                                 </span>
                             </div>
                             <textarea
@@ -329,7 +329,7 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                                 }
                                 className="w-full p-3 bg-gray-800 border border-gray-600 rounded-md focus:outline-none focus:border-green-400 text-white text-sm"
                                 rows={3}
-                                maxLength={150}
+                                maxLength={500}
                                 placeholder="Tell us about yourself"
                             />
                         </div>
@@ -340,10 +340,10 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                         {/* Top Four Shows Section */}
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <h3 className="font-medium text-white text-sm">
+                                <h3 className="font-medium text-white text-md">
                                     Top 4 Shows
                                 </h3>
-                                <span className="text-xs text-gray-400">
+                                <span className="text-sm text-gray-400">
                                     Your all-time favorites
                                 </span>
                             </div>
@@ -478,7 +478,7 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
 
                         {/* Social Media Section */}
                         <div className="space-y-4">
-                            <h3 className="font-medium text-white text-sm">
+                            <h3 className="font-medium text-white text-md">
                                 Social Media
                             </h3>
 
@@ -604,7 +604,7 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                                         : "text-gray-500 cursor-not-allowed"
                                 }`}
                             >
-                                Cancel
+                                Revert Changes
                             </button>
                             <div className="relative">
                                 <button

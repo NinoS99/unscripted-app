@@ -14,6 +14,8 @@ import {
 } from "react-icons/fi";
 import CommentReactions from "./CommentReactions";
 import { formatRelativeTime } from "@/lib/utils";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface CommentWithUser {
     id: number;
@@ -92,6 +94,10 @@ function ThreadModal({
     const [threadComments, setThreadComments] = useState<CommentTree[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Modal scroll prevention and escape key handling
+    useModalScrollPrevention(true);
+    useEscapeKey(true, onClose);
+
     // Load the full thread when modal opens
     useEffect(() => {
         const loadFullThread = async () => {
@@ -113,8 +119,8 @@ function ThreadModal({
     }, [comment.id, discussionId]);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="modal-content bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-700">
                     <div className="flex items-center gap-3">
@@ -217,12 +223,9 @@ export default function DiscussionComment({
         comment._count.replies > 0 && currentDepth >= maxDepth;
     const canShowReplies = currentDepth < maxDepth;
 
-    // Debug logging
-    if (comment._count.replies > 0) {
-        console.log(
-            `Comment ${comment.id}: currentDepth=${currentDepth}, maxDepth=${maxDepth}, shouldShowContinueThread=${shouldShowContinueThread}`
-        );
-    }
+
+
+
 
     // Calculate score from votes
     const upvotes = comment.votes.filter((v) => v.value === "UPVOTE").length;
@@ -376,8 +379,11 @@ export default function DiscussionComment({
 
             if (response.ok) {
                 const data = await response.json();
+                const newReplies = data.comments || [];
+                
+                
                 // Replace replies instead of appending to avoid duplicates
-                setReplies(data.comments || []);
+                setReplies(newReplies);
                 setShowReplies(true);
                 setIsCollapsed(false); // Show replies immediately when loaded
             }
@@ -572,7 +578,7 @@ export default function DiscussionComment({
                             ) : (
                                 <div
                                     className={`text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all ${
-                                        comment.spoiler && !showSpoiler
+                                        comment.spoiler && !showSpoiler && !comment.isDeleted
                                             ? "blur-sm select-none"
                                             : ""
                                     } ${
