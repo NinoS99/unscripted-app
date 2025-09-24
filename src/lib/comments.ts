@@ -51,6 +51,7 @@ export interface CommentWithUser extends PrismaComment {
 export interface CommentTree extends CommentWithUser {
     replies: CommentTree[];
     score: number;
+    wilsonScore: number;
     userVote?: "UPVOTE" | "DOWNVOTE";
 }
 
@@ -317,11 +318,13 @@ export async function getCommentsForDiscussion(
             orderBy = { createdAt: "desc" };
             break;
         case "top":
-            // For top sorting, we'll need to calculate scores in the application
+            // For top sorting, we need to use raw SQL or calculate in application
+            // For now, we'll fetch more and sort in application
             orderBy = { createdAt: "desc" };
             break;
         case "best":
-            // For best sorting, we'll need to calculate Wilson scores in the application
+            // For best sorting, we need to use raw SQL or calculate in application  
+            // For now, we'll fetch more and sort in application
             orderBy = { createdAt: "desc" };
             break;
         default:
@@ -330,11 +333,16 @@ export async function getCommentsForDiscussion(
 
 
 
+    // For top and best sorting, we need to fetch more comments to sort properly
+    const shouldFetchAll = sort === "top" || sort === "best";
+    const fetchLimit = shouldFetchAll ? 1000 : limit; // Fetch more for proper sorting
+    const fetchOffset = shouldFetchAll ? 0 : offset;
+
     const comments = await prisma.discussionComment.findMany({
         where,
         orderBy,
-        take: limit,
-        skip: offset,
+        take: fetchLimit,
+        skip: fetchOffset,
         select: {
             id: true,
             content: true,
@@ -422,27 +430,36 @@ export async function getCommentsForDiscussion(
 
 
 
-    // Calculate scores and apply sorting
-    const commentsWithScores = comments.map((comment) => {
+    // Helper function to process a comment and its nested replies
+    const processCommentWithReplies = (comment: PrismaComment): CommentTree => {
         const upvotes = comment.votes.filter(
-            (v) => v.value === "UPVOTE"
+            (v: { value: string }) => v.value === "UPVOTE"
         ).length;
         const downvotes = comment.votes.filter(
-            (v) => v.value === "DOWNVOTE"
+            (v: { value: string }) => v.value === "DOWNVOTE"
         ).length;
         const score = upvotes - downvotes;
         const wilsonScoreValue = wilsonScore(upvotes, downvotes);
         const userVote = currentUserId
-            ? comment.votes.find((v) => v.userId === currentUserId)?.value
+            ? comment.votes.find((v: { userId: string; value: string }) => v.userId === currentUserId)?.value
             : undefined;
+
+        // Process nested replies recursively
+        const processedReplies = comment.replies ? comment.replies.map(processCommentWithReplies) : [];
+
 
         return {
             ...comment,
             score,
             wilsonScore: wilsonScoreValue,
             userVote,
+            replies: processedReplies,
         };
-    });
+    };
+
+    // Calculate scores and apply sorting
+    const commentsWithScores = comments.map(processCommentWithReplies);
+    
 
     // Apply sorting based on calculated scores
     if (sort === "top") {
@@ -451,34 +468,43 @@ export async function getCommentsForDiscussion(
         commentsWithScores.sort((a, b) => b.wilsonScore - a.wilsonScore);
     }
 
+    // Apply pagination after sorting for top/best
+    let finalComments = commentsWithScores;
+    if (shouldFetchAll) {
+        finalComments = commentsWithScores.slice(offset, offset + limit);
+    }
+
     // Collect all user IDs to fetch image URLs
     const userIds: string[] = [];
-    collectUserIdsRecursive(commentsWithScores, userIds);
+    collectUserIdsRecursive(finalComments, userIds);
 
     // Fetch user image URLs
     const userImageUrls = await fetchUserImageUrls(userIds);
 
     // Add image URLs to comments recursively
-    return addImageUrlsRecursive(commentsWithScores, userImageUrls);
+    return addImageUrlsRecursive(finalComments, userImageUrls);
 }
 
 /**
  * Build a comment tree from a flat array of comments
  */
-export function buildCommentTree(comments: CommentWithUser[]): CommentTree[] {
+export function buildCommentTree(comments: CommentWithUser[], currentUserId?: string): CommentTree[] {
     const commentMap = new Map<number, CommentTree>();
     const rootComments: CommentTree[] = [];
 
     // First pass: create all comment objects
     comments.forEach((comment) => {
+        const upvotes = comment.votes.filter((v) => v.value === "UPVOTE").length;
+        const downvotes = comment.votes.filter((v) => v.value === "DOWNVOTE").length;
+        const score = upvotes - downvotes;
+        const wilsonScoreValue = wilsonScore(upvotes, downvotes);
+        
         const commentWithScore: CommentTree = {
             ...comment,
             replies: [],
-            score:
-                comment.votes.filter((v) => v.value === "UPVOTE").length -
-                comment.votes.filter((v) => v.value === "DOWNVOTE").length,
-            userVote: comment.votes.find((v) => v.userId === comment.userId)
-                ?.value,
+            score,
+            wilsonScore: wilsonScoreValue,
+            userVote: currentUserId ? comment.votes.find((v) => v.userId === currentUserId)?.value : undefined,
         };
         commentMap.set(comment.id, commentWithScore);
     });

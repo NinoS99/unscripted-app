@@ -15,7 +15,6 @@ export function useDynamicMaxDepth() {
       const width = window.innerWidth;
       const newMaxDepth = calculateMaxDepth(width);
       setMaxDepth(newMaxDepth);
-      console.log("Window width:", width, "px, newMaxDepth:", newMaxDepth);
     };
 
     // Initial calculation

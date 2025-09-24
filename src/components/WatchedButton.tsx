@@ -5,6 +5,8 @@ import { useUser } from "@clerk/nextjs";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { FiX, FiCheck } from "react-icons/fi";
 import ErrorNotification from "./ErrorNotification";
+import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 interface WatchedButtonProps {
     entityType: "show" | "season" | "episode";
@@ -54,6 +56,14 @@ export default function WatchedButton({
     const [showUnwatchConfirmation, setShowUnwatchConfirmation] = useState(false);
     const [unwatchConfirmationData, setUnwatchConfirmationData] = useState<UnwatchConfirmationData | null>(null);
     const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
+
+    // Modal scroll prevention and escape key handling
+    useModalScrollPrevention(showPopup || showUnwatchConfirmation);
+    useEscapeKey(showPopup, () => setShowPopup(false));
+    useEscapeKey(showUnwatchConfirmation, () => {
+        setShowUnwatchConfirmation(false);
+        setUnwatchConfirmationData(null);
+    });
 
     const checkWatchedStatus = useCallback(async () => {
         try {
@@ -420,8 +430,8 @@ export default function WatchedButton({
 
             {/* Popup Modal */}
             {showPopup && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+                    <div className="modal-content bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-gray-700">
                             <h3 className="text-lg font-semibold text-white">
@@ -564,8 +574,8 @@ export default function WatchedButton({
 
             {/* Unwatch Confirmation Modal */}
             {showUnwatchConfirmation && unwatchConfirmationData && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 rounded-lg max-w-md w-full">
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm md:bg-white/5 flex items-center justify-center z-50 p-2 sm:p-4">
+                    <div className="modal-content bg-gray-800 rounded-lg max-w-md w-full">
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-gray-700">
                             <h3 className="text-lg font-semibold text-white">

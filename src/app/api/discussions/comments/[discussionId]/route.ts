@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCommentsForDiscussion, getCommentStats } from "@/lib/comments";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(
     request: NextRequest,
@@ -17,8 +18,9 @@ export async function GET(
         const tree = searchParams.get("tree") === "true";
         const maxDepth = parseInt(searchParams.get("maxDepth") || "1"); // Default to 1 level deep
 
-        // Get current user ID from headers (you'll need to implement auth)
-        const currentUserId = request.headers.get("x-user-id") || undefined;
+        // Get current user ID from Clerk authentication
+        const { userId } = await auth();
+        const currentUserId = userId || undefined;
 
         const comments = await getCommentsForDiscussion(
             discussionId,
@@ -29,6 +31,8 @@ export async function GET(
             currentUserId,
             maxDepth
         );
+        
+        
 
         const result: { comments: unknown; stats?: unknown; pagination?: unknown } = { comments };
 
@@ -49,7 +53,7 @@ export async function GET(
                 replies: comment.replies || [],
                 score: comment.votes.filter((v: { value: string }) => v.value === "UPVOTE").length - 
                        comment.votes.filter((v: { value: string }) => v.value === "DOWNVOTE").length,
-                userVote: comment.votes.find((v: { userId: string; value: string }) => v.userId === comment.userId)?.value,
+                userVote: currentUserId ? comment.votes.find((v: { userId: string; value: string }) => v.userId === currentUserId)?.value : undefined,
             }));
             result.comments = commentTree;
         }

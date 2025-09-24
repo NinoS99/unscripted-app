@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { FiSend, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiSend, FiChevronDown } from "react-icons/fi";
 import DiscussionComment from "./DiscussionComment";
 import { CommentTree, SortMode } from "@/lib/comments";
 import { useDynamicMaxDepth } from "@/hooks/useDynamicMaxDepth";
@@ -27,45 +27,74 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
   const { maxDepth, containerRef } = useDynamicMaxDepth();
   const [comments, setComments] = useState<CommentTree[]>([]);
   
-  // Log when maxDepth changes
-  useEffect(() => {
-    console.log("DiscussionCommentsList - Current maxDepth:", maxDepth);
-  }, [maxDepth]);
   const [stats, setStats] = useState<CommentStats | null>(null);
   const [sort, setSort] = useState<SortMode>("new");
-  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [spoiler, setSpoiler] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const commentsPerPage = 20;
+  const currentOffset = useRef(0);
+  const isFetching = useRef(false);
+  const initialLoad = 20;
+  const loadMoreAmount = 50;
 
  
-  const fetchComments = useCallback(async () => {
-    setIsLoading(true);
+  const fetchComments = useCallback(async (isInitialLoad = true) => {
+    // Prevent multiple simultaneous calls
+    if (isFetching.current) return;
+    isFetching.current = true;
+    
+    if (isInitialLoad) {
+      setIsLoading(true);
+      currentOffset.current = 0;
+    } else {
+      setIsLoadingMore(true);
+    }
+    
     try {
-      const offset = (currentPage - 1) * commentsPerPage;
+      const limit = isInitialLoad ? initialLoad : loadMoreAmount;
+      const offset = isInitialLoad ? 0 : currentOffset.current;
+      
       const response = await fetch(
-        `/api/discussions/comments/${discussionId}?sort=${sort}&limit=${commentsPerPage}&offset=${offset}&tree=true&maxDepth=${maxDepth}`
+        `/api/discussions/comments/${discussionId}?sort=${sort}&limit=${limit}&offset=${offset}&tree=true&maxDepth=${maxDepth}`
       );
 
       if (response.ok) {
         const data = await response.json();
-        setComments(data.comments || []);
+        const newComments = data.comments || [];
+        
+        
+        if (isInitialLoad) {
+          setComments(newComments);
+        } else {
+          setComments(prev => [...prev, ...newComments]);
+        }
+        
+        
+        
+        // Update the offset for next load
+        currentOffset.current = offset + newComments.length;
+        
         setStats(data.stats || null);
         setHasMore(data.pagination?.hasMore || false);
       }
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
-      setIsLoading(false);
+      isFetching.current = false;
+      if (isInitialLoad) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
-  }, [discussionId, sort, currentPage, commentsPerPage, maxDepth]);
+  }, [discussionId, sort, maxDepth, initialLoad, loadMoreAmount]);
 
   useEffect(() => {
-    fetchComments();
-  }, [discussionId, sort, currentPage, fetchComments]);
+    fetchComments(true);
+  }, [discussionId, sort, fetchComments]);
 
   const handleSubmitComment = async () => {
     if (!user || !newComment.trim() || isSubmitting) return;
@@ -113,7 +142,9 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
 
   const handleSortChange = (newSort: SortMode) => {
     setSort(newSort);
-    setCurrentPage(1);
+    setComments([]);
+    setHasMore(false);
+    currentOffset.current = 0;
   };
 
   const handleCommentAdded = () => {
@@ -127,12 +158,16 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
 
   const handleVoteChange = () => {
     // Refresh comments to get updated vote counts
-    fetchComments();
+    fetchComments(true);
   };
 
   const handleReactionChange = () => {
     // Refresh comments to get updated reaction counts
-    fetchComments();
+    fetchComments(true);
+  };
+
+  const handleLoadMore = () => {
+    fetchComments(false);
   };
 
   if (isLoading) {
@@ -215,7 +250,8 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
                       type="checkbox"
                       checked={spoiler}
                       onChange={(e) => setSpoiler(e.target.checked)}
-                      className="rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500"
+                      className="rounded text-green-600"
+                      style={{ accentColor: "#16a34a" }}
                     />
                     Spoiler
                   </label>
@@ -263,30 +299,28 @@ export default function DiscussionCommentsList({ discussionId }: DiscussionComme
               />
             ))}
             
-            {/* Pagination */}
-            <div className="flex items-center justify-center gap-3 py-4">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <FiChevronLeft className="w-3 h-3" />
-                Previous
-              </button>
-              
-              <span className="text-sm text-gray-400">
-                Page {currentPage}
-              </span>
-              
-              <button
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                disabled={!hasMore}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-                <FiChevronRight className="w-3 h-3" />
-              </button>
-            </div>
+            {/* Show More Button */}
+            {hasMore && (
+              <div className="flex items-center justify-center py-4">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="flex items-center gap-2 px-6 py-3 text-sm border border-gray-600 text-gray-300 rounded hover:border-gray-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                      Loading more comments...
+                    </>
+                  ) : (
+                    <>
+                      <FiChevronDown className="w-4 h-4" />
+                      Show More Comments
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
