@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
+import { trackUserActivity } from "@/lib/activityTracker";
 
 export async function GET(request: NextRequest) {
     try {
@@ -126,6 +127,25 @@ export async function POST(request: NextRequest) {
                     },
                 },
             },
+        });
+
+        // Track user activity (no points awarded for comments)
+        // userId = watchlist owner (who received the comment), giverId = commenter (who made the comment)
+        await trackUserActivity({
+            userId: watchList.userId, // Watchlist owner
+            activityType: 'COMMENT_CREATED',
+            entityType: 'COMMENT',
+            entityId: comment.id,
+            description: 'Created a watchlist comment',
+            metadata: {
+                contentType: 'watchlist',
+                contentName: watchList.name,
+                watchListId: parseInt(watchListId),
+                commentLength: content.trim().length,
+                entityType: 'watchlist',
+                entityName: watchList.name
+            },
+            giverId: userId // Commenter
         });
 
         // Get Clerk user data for the comment author

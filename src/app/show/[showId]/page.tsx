@@ -313,7 +313,7 @@ export default async function ShowPage({
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-2 md:px-8 md:py-8 bg-gray-900">
+            <div className="container mx-auto px-2 py-2 md:px-8 md:py-8 bg-gray-900">
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                     {/* Left Column - Same as before but adjusted for mobile */}
                     <div className="flex-shrink-0 w-full md:w-64">

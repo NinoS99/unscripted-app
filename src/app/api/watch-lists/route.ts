@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@prisma/client";
+import { trackUserActivity } from "@/lib/activityTracker";
 
 const prisma = new PrismaClient();
 
@@ -79,6 +80,29 @@ export async function POST(request: NextRequest) {
                         tag: true
                     }
                 }
+            }
+        });
+
+        // Track user activity and award points
+        await trackUserActivity({
+            userId,
+            activityType: 'WATCHLIST_CREATED',
+            entityType: 'WATCHLIST',
+            entityId: watchList.id,
+            description: 'Created a watch list',
+            metadata: {
+                entityType: 'watchlist',
+                entityName: name,
+                entityId: watchList.id,
+                watchListId: watchList.id,
+                watchlistName: name,
+                showCount: shows.length,
+                isPublic,
+                friendsOnly,
+                isRanked,
+                hasTags: tags && tags.length > 0,
+                hasNotes: shows.some((show: { note?: string }) => show.note),
+                hasSpoilers: shows.some((show: { spoiler?: boolean }) => show.spoiler)
             }
         });
 

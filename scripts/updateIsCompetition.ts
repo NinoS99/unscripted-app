@@ -54,6 +54,52 @@ const COMPETITION_KEYWORDS = [
   'elimination ceremony'
 ];
 
+// Show type keywords for classification
+const SHOW_TYPE_KEYWORDS = {
+  talent: [
+    'talent show',
+    'singing competition',
+    'dance competition',
+    'performance',
+    'judges',
+    'audition',
+    'talent competition',
+    'skill competition',
+    'pageant',
+    'beauty contest'
+  ],
+  dating: [
+    'dating show',
+    'rose ceremony',
+    'bachelor',
+    'bachelorette',
+    'love',
+    'romance',
+    'relationship'
+  ],
+  survival: [
+    'survivor',
+    'tribal council',
+    'immunity',
+    'survival',
+    'island',
+    'wilderness',
+    'stranded',
+    'outlast'
+  ],
+  competition: [
+    'game show',
+    'contest',
+    'tournament',
+    'championship',
+    'elimination challenge',
+    'battle',
+    'race',
+    'public vote',
+    'viewer voting'
+  ]
+};
+
 /**
  * Fetches keywords for a show from TMDB API
  */
@@ -88,29 +134,54 @@ function isCompetitionShow(keywords: string[]): boolean {
 }
 
 /**
- * Updates the isCompetition flag for a specific show
+ * Determines the specific show type for competition shows
  */
-async function updateShowCompetitionStatus(show: { id: number; tmdbId: number; name: string; isCompetition: boolean }) {
+function determineShowType(keywords: string[]): string | null {
+  const keywordString = keywords.join(' ').toLowerCase();
+  
+  // Check each type in order of specificity
+  for (const [type, typeKeywords] of Object.entries(SHOW_TYPE_KEYWORDS)) {
+    if (typeKeywords.some(keyword => keywordString.includes(keyword))) {
+      return type;
+    }
+  }
+  
+  // Default to 'competition' if it has competition keywords but no specific type
+  return isCompetitionShow(keywords) ? 'competition' : null;
+}
+
+/**
+ * Updates the isCompetition flag and showType for a specific show
+ */
+async function updateShowCompetitionStatus(show: { id: number; tmdbId: number; name: string; isCompetition: boolean; showType: string | null }) {
   console.log(`Checking ${show.name}...`);
   
   try {
     const keywords = await getShowKeywords(show.tmdbId);
     const shouldBeCompetition = isCompetitionShow(keywords);
+    const newShowType = shouldBeCompetition ? determineShowType(keywords) : null;
     
-    if (shouldBeCompetition !== show.isCompetition) {
+    const needsUpdate = shouldBeCompetition !== show.isCompetition || newShowType !== show.showType;
+    
+    if (needsUpdate) {
       await prisma.show.update({
         where: { id: show.id },
-        data: { isCompetition: shouldBeCompetition }
+        data: { 
+          isCompetition: shouldBeCompetition,
+          showType: newShowType
+        }
       });
       
-      console.log(`  ✓ Updated ${show.name}: ${show.isCompetition} → ${shouldBeCompetition}`);
+      console.log(`  ✓ Updated ${show.name}:`);
+      console.log(`    Competition: ${show.isCompetition} → ${shouldBeCompetition}`);
+      console.log(`    Show Type: ${show.showType || 'null'} → ${newShowType || 'null'}`);
       if (keywords.length > 0) {
         console.log(`    Keywords: ${keywords.slice(0, 5).join(', ')}${keywords.length > 5 ? '...' : ''}`);
       }
       
       return true;
     } else {
-      console.log(`  - ${show.name}: Already correct (${show.isCompetition})`);
+      console.log(`  - ${show.name}: Already correct (Competition: ${show.isCompetition}, Type: ${show.showType || 'null'})`);
       return false;
     }
   } catch (error) {
@@ -123,7 +194,7 @@ async function updateShowCompetitionStatus(show: { id: number; tmdbId: number; n
  * Main function to update competition status for all shows
  */
 async function updateIsCompetition() {
-  console.log("Starting competition status update for all shows...\n");
+  console.log("Starting competition status and show type update for all shows...\n");
   
   try {
     // Get all shows from the database
@@ -133,6 +204,7 @@ async function updateIsCompetition() {
         tmdbId: true,
         name: true,
         isCompetition: true,
+        showType: true,
       },
       orderBy: { name: 'asc' }
     });
@@ -161,7 +233,7 @@ async function updateIsCompetition() {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    console.log(`\n✓ Competition status update completed!`);
+    console.log(`\n✓ Competition status and show type update completed!`);
     console.log(`Processed: ${processedCount} shows`);
     console.log(`Updated: ${updatedCount} shows`);
     console.log(`Errors: ${errorCount} shows`);
@@ -176,6 +248,22 @@ async function updateIsCompetition() {
     console.log(`Competition shows: ${competitionCount}`);
     console.log(`Non-competition shows: ${totalCount - competitionCount}`);
     console.log(`Total shows: ${totalCount}`);
+    
+    // Show breakdown by show type
+    const showTypeCounts = await prisma.show.groupBy({
+      by: ['showType'],
+      _count: {
+        showType: true
+      },
+      where: {
+        isCompetition: true
+      }
+    });
+    
+    console.log(`\nShow type breakdown:`);
+    showTypeCounts.forEach(group => {
+      console.log(`${group.showType || 'null'}: ${group._count.showType}`);
+    });
 
   } catch (error) {
     console.error("Error during competition status update:", error);

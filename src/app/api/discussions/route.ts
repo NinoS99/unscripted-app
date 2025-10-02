@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@prisma/client";
+import { trackUserActivity } from "@/lib/activityTracker";
 
 const prisma = new PrismaClient();
 
@@ -23,17 +24,31 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Entity type and ID are required" }, { status: 400 });
         }
 
-        // Validate entity exists
+        // Validate entity exists and get entity name
         let entity;
+        let entityName;
         switch (entityType) {
             case "show":
                 entity = await prisma.show.findUnique({ where: { id: entityId } });
+                entityName = entity?.name;
                 break;
             case "season":
-                entity = await prisma.season.findUnique({ where: { id: entityId } });
+                entity = await prisma.season.findUnique({ 
+                    where: { id: entityId },
+                    include: { show: true }
+                });
+                entityName = entity ? `${entity.show.name} ${entity.seasonNumber === 0 ? 'Specials' : `Season ${entity.seasonNumber}`}` : null;
                 break;
             case "episode":
-                entity = await prisma.episode.findUnique({ where: { id: entityId } });
+                entity = await prisma.episode.findUnique({ 
+                    where: { id: entityId },
+                    include: { 
+                        season: { 
+                            include: { show: true } 
+                        } 
+                    }
+                });
+                entityName = entity ? `${entity.season.show.name} ${entity.season.seasonNumber === 0 ? 'Specials' : `Season ${entity.season.seasonNumber}`}, Episode ${entity.episodeNumber}: ${entity.name}` : null;
                 break;
             default:
                 return NextResponse.json({ error: "Invalid entity type" }, { status: 400 });
@@ -101,6 +116,25 @@ export async function POST(request: NextRequest) {
                 }
             }
         }
+
+        // Track user activity and award points
+        await trackUserActivity({
+            userId,
+            activityType: 'DISCUSSION_CREATED',
+            entityType: 'DISCUSSION',
+            entityId: discussion.id,
+            description: 'Created a discussion',
+            metadata: {
+                entityType: entityType as 'show' | 'season' | 'episode',
+                entityName: entityName || '',
+                entityId: entityId,
+                discussionId: discussion.id,
+                discussionTitle: title.trim(),
+                discussionLength: content.trim().length,
+                hasTags: tags && tags.length > 0,
+                hasPoll: !!(poll && poll.question && poll.options && poll.options.length >= 2)
+            }
+        });
 
         return NextResponse.json({ 
             discussion,

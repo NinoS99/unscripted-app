@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { addComment } from "@/lib/comments";
+import { trackUserActivity } from "@/lib/activityTracker";
+import prisma from "@/lib/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +35,67 @@ export async function POST(request: NextRequest) {
       parentId ? parseInt(parentId) : undefined,
       spoiler
     );
+
+    // Get discussion details for activity tracking
+    const discussion = await prisma.discussion.findUnique({
+      where: { id: parseInt(discussionId) },
+      select: { 
+        userId: true,
+        title: true,
+        showId: true,
+        seasonId: true,
+        episodeId: true,
+        show: { select: { name: true } },
+        season: { select: { seasonNumber: true, show: { select: { name: true } } } },
+        episode: { select: { name: true, episodeNumber: true, season: { select: { seasonNumber: true, show: { select: { name: true } } } } } }
+      }
+    });
+
+    if (discussion) {
+      // Determine the entity type and ID for the discussion
+      let discussionEntityType: 'show' | 'season' | 'episode' = 'show';
+      let discussionEntityId = discussion.showId;
+      
+      if (discussion.seasonId) {
+        discussionEntityType = 'season';
+        discussionEntityId = discussion.seasonId;
+      } else if (discussion.episodeId) {
+        discussionEntityType = 'episode';
+        discussionEntityId = discussion.episodeId;
+      }
+      
+      // Ensure entityId is not null
+      if (!discussionEntityId) return NextResponse.json({ error: "Invalid discussion entity" }, { status: 400 });
+
+      // Track user activity (no points awarded for comments)
+      // userId = discussion owner (who received the comment), giverId = commenter (who made the comment)
+      await trackUserActivity({
+        userId: discussion.userId, // Discussion owner
+        activityType: 'COMMENT_CREATED',
+        entityType: 'COMMENT',
+        entityId: comment.id,
+        description: 'Created a discussion comment',
+        metadata: {
+          contentType: 'discussion',
+          contentName: discussion.title,
+          discussionId: parseInt(discussionId),
+          commentLength: content.trim().length,
+          isReply: !!parentId,
+          depth: comment.depth,
+          spoiler,
+          entityType: discussionEntityType,
+          entityId: discussionEntityId,
+          entityName: discussion.title,
+          // Include the entity the discussion is about
+          discussionAboutEntityType: discussionEntityType,
+          discussionAboutEntityId: discussionEntityId,
+          discussionAboutEntityName: discussion.show?.name || 
+                                    (discussion.season ? `${discussion.season.show.name} Season ${discussion.season.seasonNumber}` : '') ||
+                                    (discussion.episode ? `${discussion.episode.season.show.name} Season ${discussion.episode.season.seasonNumber}, Episode ${discussion.episode.episodeNumber}: ${discussion.episode.name}` : '')
+        },
+        giverId: userId // Commenter
+      });
+    }
 
     return NextResponse.json({ comment });
   } catch (error) {
