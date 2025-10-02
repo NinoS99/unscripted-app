@@ -10,7 +10,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { entityType, entityId } = await req.json();
+        // Check if request has a body
+        const body = await req.text();
+        if (!body) {
+            return NextResponse.json({ error: "Request body is required" }, { status: 400 });
+        }
+
+        let parsedBody;
+        try {
+            parsedBody = JSON.parse(body);
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+        }
+
+        const { entityType, entityId } = parsedBody;
 
         if (!entityType || !entityId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

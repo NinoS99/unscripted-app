@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
+import { trackUserActivity } from "@/lib/activityTracker";
 
 export async function POST(request: Request) {
     try {
@@ -89,6 +90,24 @@ export async function POST(request: Request) {
                 }
             }
         }
+
+        // Track user activity and award points
+        await trackUserActivity({
+            userId,
+            activityType: 'REVIEW_CREATED',
+            entityType: 'REVIEW',
+            entityId: review.id,
+            description: 'Created a season review',
+            metadata: {
+                entityType: 'season',
+                entityName: `${season.show.name} ${season.seasonNumber === 0 ? 'Specials' : `Season ${season.seasonNumber}`}`,
+                entityId: seasonId,
+                reviewId: review.id,
+                reviewLength: content.length,
+                hasTags: tags && tags.length > 0,
+                hasFavouriteCharacters: favouriteCharacters && favouriteCharacters.length > 0
+            }
+        });
 
         return NextResponse.json({ 
             message: "Season review submitted successfully",

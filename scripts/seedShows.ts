@@ -153,6 +153,52 @@ const COMPETITION_KEYWORDS = [
   'elimination ceremony'
 ];
 
+// Show type keywords for classification
+const SHOW_TYPE_KEYWORDS = {
+  talent: [
+    'talent show',
+    'singing competition',
+    'dance competition',
+    'performance',
+    'judges',
+    'audition',
+    'talent competition',
+    'skill competition',
+    'pageant',
+    'beauty contest'
+  ],
+  dating: [
+    'dating show',
+    'rose ceremony',
+    'bachelor',
+    'bachelorette',
+    'love',
+    'romance',
+    'relationship'
+  ],
+  survival: [
+    'survivor',
+    'tribal council',
+    'immunity',
+    'survival',
+    'island',
+    'wilderness',
+    'stranded',
+    'outlast'
+  ],
+  competition: [
+    'game show',
+    'contest',
+    'tournament',
+    'championship',
+    'elimination challenge',
+    'battle',
+    'race',
+    'public vote',
+    'viewer voting'
+  ]
+};
+
 
 function safePath(path: string | null | undefined): string | null {
   if (typeof path !== "string") return null;
@@ -203,6 +249,23 @@ function isCompetitionShow(keywords: string[]): boolean {
   );
 }
 
+/**
+ * Determines the specific show type for competition shows
+ */
+function determineShowType(keywords: string[]): string | null {
+  const keywordString = keywords.join(' ').toLowerCase();
+  
+  // Check each type in order of specificity
+  for (const [type, typeKeywords] of Object.entries(SHOW_TYPE_KEYWORDS)) {
+    if (typeKeywords.some(keyword => keywordString.includes(keyword))) {
+      return type;
+    }
+  }
+  
+  // Default to 'competition' if it has competition keywords but no specific type
+  return isCompetitionShow(keywords) ? 'competition' : null;
+}
+
 async function getSeasonCredits(
   showId: number,
   seasonNumber: number
@@ -220,13 +283,14 @@ async function createShow(showData: ShowDetails) {
     ? showData.original_language
     : [showData.original_language];
 
-  // Get keywords to determine if it's a competition show
+  // Get keywords to determine if it's a competition show and its type
   console.log(`  Checking if ${showData.name} is a competition show...`);
   const keywords = await getShowKeywords(showData.id);
   const isCompetition = isCompetitionShow(keywords);
+  const showType = isCompetition ? determineShowType(keywords) : null;
   
   if (isCompetition && keywords.length > 0) {
-    console.log(`    ✓ Detected as competition show. Keywords: ${keywords.slice(0, 3).join(', ')}${keywords.length > 3 ? '...' : ''}`);
+    console.log(`    ✓ Detected as competition show (${showType}). Keywords: ${keywords.slice(0, 3).join(', ')}${keywords.length > 3 ? '...' : ''}`);
   }
 
   const show = await prisma.show.create({
@@ -246,6 +310,7 @@ async function createShow(showData: ShowDetails) {
       tmdbRating: showData.vote_average,
       isRunning: showData.next_episode_to_air !== null,
       isCompetition: isCompetition,
+      showType: showType,
     },
   });
 

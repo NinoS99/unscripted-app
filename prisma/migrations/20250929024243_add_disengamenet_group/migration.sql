@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ActivityGroup" ADD VALUE 'DISENGAGEMENT';

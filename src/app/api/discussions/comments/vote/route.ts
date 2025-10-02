@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
+import { trackEngagementSingle } from "@/lib/activityTracker";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +20,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if comment exists
+    // Check if comment exists and get author with discussion details
     const comment = await prisma.discussionComment.findUnique({
       where: { id: parseInt(commentId) },
-      select: { id: true }
+      select: { 
+        id: true, 
+        userId: true,
+        discussionId: true,
+        user: { select: { username: true } },
+        discussion: {
+          select: {
+            title: true,
+            userId: true,
+            showId: true,
+            seasonId: true,
+            episodeId: true,
+            user: { select: { username: true } },
+            show: { select: { name: true } },
+            season: { select: { seasonNumber: true, show: { select: { name: true } } } },
+            episode: { select: { name: true, episodeNumber: true, season: { select: { seasonNumber: true, show: { select: { name: true } } } } } }
+          }
+        }
+      }
     });
 
     if (!comment) {
@@ -64,6 +83,45 @@ export async function POST(request: NextRequest) {
     ]);
 
     const score = upvotes - downvotes;
+
+    // Track engagement and award points to comment author
+    if (comment.userId !== userId) {
+      // Determine the entity type and ID for the discussion
+      let discussionEntityType: 'show' | 'season' | 'episode' = 'show';
+      let discussionEntityId = comment.discussion.showId;
+      
+      if (comment.discussion.seasonId) {
+        discussionEntityType = 'season';
+        discussionEntityId = comment.discussion.seasonId;
+      } else if (comment.discussion.episodeId) {
+        discussionEntityType = 'episode';
+        discussionEntityId = comment.discussion.episodeId;
+      }
+
+      // Build entity name
+      const discussionAboutEntityName = comment.discussion.show?.name || 
+                                       (comment.discussion.season ? `${comment.discussion.season.show.name} Season ${comment.discussion.season.seasonNumber}` : '') ||
+                                       (comment.discussion.episode ? `${comment.discussion.episode.season.show.name} Season ${comment.discussion.episode.season.seasonNumber}, Episode ${comment.discussion.episode.episodeNumber}: ${comment.discussion.episode.name}` : '');
+
+      const activityType = value === "UPVOTE" ? "COMMENT_UPVOTED" : "COMMENT_DOWNVOTED";
+      await trackEngagementSingle(
+        userId, // giver
+        comment.userId, // receiver
+        activityType,
+        "COMMENT",
+        parseInt(commentId),
+        `Comment ${value.toLowerCase()}`,
+        {
+          receiverUsername: comment.user.username,
+          discussionId: comment.discussionId,
+          discussionTitle: comment.discussion.title,
+          discussionAuthorUsername: comment.discussion.user.username,
+          discussionAboutEntityType: discussionEntityType,
+          discussionAboutEntityId: discussionEntityId,
+          discussionAboutEntityName: discussionAboutEntityName
+        }
+      );
+    }
 
     return NextResponse.json({
       vote,

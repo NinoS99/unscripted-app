@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
+import { trackUserActivity } from "@/lib/activityTracker";
 
 export async function POST(request: Request) {
     try {
@@ -27,23 +28,30 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if review exists
+        // Check if review exists and get related entity data
         let review;
+        let entityName = '';
         switch (reviewType) {
             case "show":
                 review = await prisma.showReview.findUnique({
                     where: { id: reviewId },
+                    include: { show: true }
                 });
+                entityName = review?.show?.name || '';
                 break;
             case "season":
                 review = await prisma.seasonReview.findUnique({
                     where: { id: reviewId },
+                    include: { season: { include: { show: true } } }
                 });
+                entityName = review?.season ? `${review.season.show.name} ${review.season.seasonNumber === 0 ? 'Specials' : `Season ${review.season.seasonNumber}`}` : '';
                 break;
             case "episode":
                 review = await prisma.episodeReview.findUnique({
                     where: { id: reviewId },
+                    include: { episode: { include: { season: { include: { show: true } } } } }
                 });
+                entityName = review?.episode ? `${review.episode.season.show.name} ${review.episode.season.seasonNumber === 0 ? 'Specials' : `Season ${review.episode.season.seasonNumber}`}, Episode ${review.episode.episodeNumber}: ${review.episode.name}` : '';
                 break;
         }
 
@@ -68,6 +76,25 @@ export async function POST(request: Request) {
                     },
                 },
             },
+        });
+
+        // Track user activity (no points awarded for comments)
+        // userId = review owner (who received the comment), giverId = commenter (who made the comment)
+        await trackUserActivity({
+            userId: review.userId, // Review owner
+            activityType: 'COMMENT_CREATED',
+            entityType: 'COMMENT',
+            entityId: comment.id,
+            description: 'Created a review comment',
+            metadata: {
+                contentType: reviewType as 'show' | 'season' | 'episode',
+                contentName: entityName,
+                reviewId: reviewId,
+                commentLength: content.trim().length,
+                entityType: reviewType as 'show' | 'season' | 'episode',
+                entityName: entityName
+            },
+            giverId: userId // Commenter
         });
 
         // Get Clerk user data for the comment author

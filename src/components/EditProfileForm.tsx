@@ -49,6 +49,14 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
             };
         }>
     >([]);
+
+    // Activity Privacy State
+    const [globalActivityPrivacy, setGlobalActivityPrivacy] = useState(true);
+    const [originalGlobalActivityPrivacy, setOriginalGlobalActivityPrivacy] = useState(true);
+    const [groupPrivacySettings, setGroupPrivacySettings] = useState<Record<string, boolean>>({});
+    const [originalGroupPrivacySettings, setOriginalGroupPrivacySettings] = useState<Record<string, boolean>>({});
+    const [activityGroups, setActivityGroups] = useState<string[]>([]);
+    const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSaveTooltip, setShowSaveTooltip] = useState(false);
@@ -70,7 +78,9 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
         formData.bio !== originalData.bio ||
         formData.twitter !== originalData.twitter ||
         formData.instagram !== originalData.instagram ||
-        JSON.stringify(topFourShows) !== JSON.stringify(originalTopFourShows);
+        JSON.stringify(topFourShows) !== JSON.stringify(originalTopFourShows) ||
+        globalActivityPrivacy !== originalGlobalActivityPrivacy ||
+        JSON.stringify(groupPrivacySettings) !== JSON.stringify(originalGroupPrivacySettings);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -114,8 +124,8 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                 instagram: formData.instagram.trim() || null,
             };
 
-            // Save profile and top four shows in parallel
-            const [, topFourResponse] = await Promise.all([
+            // Save profile, top four shows, and privacy settings in parallel
+            const [, topFourResponse, privacyResponse] = await Promise.all([
                 updateUserProfile(user.id, dataToSend),
                 fetch("/api/users/top-four-shows", {
                     method: "POST",
@@ -126,12 +136,31 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                         showIds: topFourShows.map((show) => show.show.id),
                     }),
                 }),
+                fetch(`/api/users/${user.username}/privacy/bulk`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        globalPrivacy: globalActivityPrivacy,
+                        groupPrivacy: Object.entries(groupPrivacySettings).map(([activityGroup, isPublic]) => ({
+                            activityGroup,
+                            isPublic
+                        }))
+                    }),
+                }),
             ]);
 
             if (topFourResponse.ok) {
                 const topFourData = await topFourResponse.json();
                 setTopFourShows(topFourData.topFourShows);
                 setOriginalTopFourShows(topFourData.topFourShows);
+            }
+
+            if (privacyResponse.ok) {
+                // Update original privacy settings to current values after successful save
+                setOriginalGlobalActivityPrivacy(globalActivityPrivacy);
+                setOriginalGroupPrivacySettings({ ...groupPrivacySettings });
             }
 
             // Update original data to current values after successful save
@@ -148,6 +177,8 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
     const handleCancel = () => {
         setFormData(originalData); // Revert to original values
         setTopFourShows(originalTopFourShows); // Revert top four shows
+        setGlobalActivityPrivacy(originalGlobalActivityPrivacy); // Revert global privacy
+        setGroupPrivacySettings({ ...originalGroupPrivacySettings }); // Revert group privacy
         setSearchQuery(""); // Clear search
         setSearchResults([]); // Clear search results
     };
@@ -258,6 +289,25 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
         setIsDragging(false);
     };
 
+    // Activity Privacy Handlers
+    const handleGlobalPrivacyToggle = () => {
+        const newGlobalPrivacy = !globalActivityPrivacy;
+        setGlobalActivityPrivacy(newGlobalPrivacy);
+        
+        // If setting to public, restore original group settings
+        if (newGlobalPrivacy) {
+            setGroupPrivacySettings({ ...originalGroupPrivacySettings });
+        }
+        // If setting to private, keep current group settings unchanged
+    };
+
+    const handleGroupPrivacyToggle = (group: string) => {
+        setGroupPrivacySettings(prev => ({
+            ...prev,
+            [group]: !prev[group]
+        }));
+    };
+
     // Handle search input change
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -278,6 +328,45 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
 
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
+
+    // Load activity privacy settings
+    useEffect(() => {
+        const loadPrivacySettings = async () => {
+            if (!user?.username) return;
+            
+            setIsLoadingPrivacy(true);
+            try {
+                // Load activity groups
+                const groupsResponse = await fetch('/api/activity-groups');
+                if (groupsResponse.ok) {
+                    const groupsData = await groupsResponse.json();
+                    setActivityGroups(groupsData.activityGroups);
+                }
+
+                // Load privacy settings
+                const privacyResponse = await fetch(`/api/users/${user.username}/privacy`);
+                if (privacyResponse.ok) {
+                    const privacyData = await privacyResponse.json();
+                    setGlobalActivityPrivacy(privacyData.globalPrivacy);
+                    setOriginalGlobalActivityPrivacy(privacyData.globalPrivacy);
+                    
+                    // Set group privacy settings
+                    const groupSettings: Record<string, boolean> = {};
+                    privacyData.groupPrivacy.forEach((setting: { activityGroup: string; isPublic: boolean }) => {
+                        groupSettings[setting.activityGroup] = setting.isPublic;
+                    });
+                    setGroupPrivacySettings(groupSettings);
+                    setOriginalGroupPrivacySettings(groupSettings);
+                }
+            } catch (error) {
+                console.error('Error loading privacy settings:', error);
+            } finally {
+                setIsLoadingPrivacy(false);
+            }
+        };
+
+        loadPrivacySettings();
+    }, [user?.username]);
 
 
     if (isLoading)
@@ -590,6 +679,110 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="border-b border-gray-600"></div>
+
+                        {/* Activity Privacy Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-medium text-white text-md">
+                                Activity Privacy
+                            </h3>
+
+                            {/* Global Activity Privacy Toggle */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-300">
+                                    Show Activity on Profile
+                                </label>
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleGlobalPrivacyToggle()}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                            globalActivityPrivacy ? 'bg-green-600' : 'bg-gray-600'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                globalActivityPrivacy ? 'translate-x-6' : 'translate-x-1'
+                                            }`}
+                                        />
+                                    </button>
+                                    <span className="text-sm text-gray-300">
+                                        {globalActivityPrivacy ? 'Public' : 'Private'}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-400">
+                                    {globalActivityPrivacy 
+                                        ? 'Your activity will be visible on your profile' 
+                                        : 'Your activity will be hidden from your profile'
+                                    }
+                                </p>
+                            </div>
+
+                            {/* Activity Group Privacy Settings */}
+                            {globalActivityPrivacy && (
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-gray-300">
+                                        Activity Group Privacy
+                                    </label>
+                                    {isLoadingPrivacy ? (
+                                        <div className="text-sm text-gray-400">Loading privacy settings...</div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {activityGroups.map((group) => {
+                                                const getExample = (groupName: string) => {
+                                                    const currentUsername = user?.username || 'username';
+                                                    switch (groupName) {
+                                                        case 'CONTENT_CREATION':
+                                                            return `${currentUsername} reviewed Love Island Season 2`;
+                                                        case 'ENGAGEMENT':
+                                                            return `${currentUsername} gave a rose to realitylover's discussion post on RuPaul's Drag Race`;
+                                                        case 'DISENGAGEMENT':
+                                                            return `${currentUsername} removed a rose from realitylover's discussion post`;
+                                                        case 'PREDICTION_MARKET':
+                                                            return `${currentUsername} bought YES shares for "John will be eliminated"`;
+                                                        case 'SOCIAL':
+                                                            return `${currentUsername} followed realitylover`;
+                                                        default:
+                                                            return '';
+                                                    }
+                                                };
+
+                                                return (
+                                                    <div key={group} className="space-y-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm text-gray-300 capitalize">
+                                                                {group.toLowerCase().replace('_', ' ')}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleGroupPrivacyToggle(group)}
+                                                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+                                                                    groupPrivacySettings[group] ? 'bg-green-600' : 'bg-gray-600'
+                                                                }`}
+                                                            >
+                                                                <span
+                                                                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                                                        groupPrivacySettings[group] ? 'translate-x-5' : 'translate-x-1'
+                                                                    }`}
+                                                                />
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-xs text-gray-400 italic ml-0">
+                                                            {getExample(group)}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-gray-400">
+                                        Control which activity groups are visible on your profile
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Footer with buttons */}
