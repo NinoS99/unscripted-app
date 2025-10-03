@@ -102,7 +102,7 @@ export async function getUserActivitiesWithPrivacy(
           });
           
           const engagementActivityTypes = engagementTypes.map(mapping => mapping.activityType);
-          const engagementActivities = await getUserGiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
+          const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
           results.push(...engagementActivities);
         }
         
@@ -114,14 +114,14 @@ export async function getUserActivitiesWithPrivacy(
           });
           
           const nonEngagementActivityTypes = nonEngagementTypes.map(mapping => mapping.activityType);
-          const nonEngagementActivities = await getUserActivities(userId, limit, offset, nonEngagementActivityTypes, dateFilter, false);
+          const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, false);
           results.push(...nonEngagementActivities);
         }
         
-        // Sort by creation date and limit results
+        // Sort by creation date and apply offset/limit
         return results
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(0, limit);
+          .slice(offset, offset + limit);
       }
       
       // If filtering by activity types
@@ -149,28 +149,28 @@ export async function getUserActivitiesWithPrivacy(
 
         // Get giver activities
         if (giverTypes.length > 0) {
-          const giverActivities = await getUserGiverActivities(userId, limit, offset, giverTypes, dateFilter);
+          const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
           results.push(...giverActivities);
         }
 
         // Get creator activities
         if (creatorTypes.length > 0) {
-          const creatorActivities = await getUserActivities(userId, limit, offset, creatorTypes, dateFilter, false);
+          const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
           results.push(...creatorActivities);
         }
 
-        // Sort by creation date and limit results
+        // Sort by creation date and apply offset/limit
         return results
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(0, limit);
+          .slice(offset, offset + limit);
       }
       
       // No specific filters, get all activities (giver + content creation)
       const engagementActivityTypes = ['REVIEW_LIKED', 'REVIEW_UNLIKED', 'DISCUSSION_LIKED', 'DISCUSSION_UNLIKED', 'WATCHLIST_LIKED', 'WATCHLIST_UNLIKED', 'PREDICTION_LIKED', 'PREDICTION_UNLIKED', 'COMMENT_UPVOTED', 'COMMENT_DOWNVOTED', 'COMMENT_CREATED'] as ActivityType[];
       const contentCreationActivityTypes = ['REVIEW_CREATED', 'DISCUSSION_CREATED', 'WATCHLIST_CREATED', 'PREDICTION_CREATED'] as ActivityType[];
       
-      const engagementActivities = await getUserGiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
-      const contentCreationActivities = await getUserActivities(userId, limit, offset, contentCreationActivityTypes, dateFilter, false);
+      const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
+      const contentCreationActivities = await getUserActivities(userId, 1000, 0, contentCreationActivityTypes, dateFilter, false);
       
       const filteredContentCreationActivities = contentCreationActivities.filter(activity => 
         activity.giverId === null
@@ -178,7 +178,7 @@ export async function getUserActivitiesWithPrivacy(
       
       const allActivities = [...engagementActivities, ...filteredContentCreationActivities]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(0, limit);
+        .slice(offset, offset + limit);
       
       return allActivities;
     }
@@ -249,7 +249,7 @@ export async function getUserActivitiesWithPrivacy(
         });
         
         const engagementActivityTypes = engagementTypes.map(mapping => mapping.activityType);
-        const engagementActivities = await getUserGiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
+        const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
         results.push(...engagementActivities);
       }
       
@@ -260,13 +260,13 @@ export async function getUserActivitiesWithPrivacy(
         });
         
         const nonEngagementActivityTypes = nonEngagementTypes.map(mapping => mapping.activityType);
-        const nonEngagementActivities = await getUserActivities(userId, limit, offset, nonEngagementActivityTypes, dateFilter, false);
+        const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, false);
         results.push(...nonEngagementActivities);
       }
       
       return results
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(0, limit);
+        .slice(offset, offset + limit);
     }
     
     if (activityTypes && activityTypes.length > 0) {
@@ -291,26 +291,26 @@ export async function getUserActivitiesWithPrivacy(
         .map(mapping => mapping.activityType);
 
       if (giverTypes.length > 0) {
-        const giverActivities = await getUserGiverActivities(userId, limit, offset, giverTypes, dateFilter);
+        const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
         results.push(...giverActivities);
       }
 
       if (creatorTypes.length > 0) {
-        const creatorActivities = await getUserActivities(userId, limit, offset, creatorTypes, dateFilter, false);
+        const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
         results.push(...creatorActivities);
       }
 
       return results
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(0, limit);
+        .slice(offset, offset + limit);
     }
     
     // No specific filters, get all activities (giver + content creation)
     const engagementActivityTypes = ['REVIEW_LIKED', 'REVIEW_UNLIKED', 'DISCUSSION_LIKED', 'DISCUSSION_UNLIKED', 'WATCHLIST_LIKED', 'WATCHLIST_UNLIKED', 'PREDICTION_LIKED', 'PREDICTION_UNLIKED', 'COMMENT_UPVOTED', 'COMMENT_DOWNVOTED', 'COMMENT_CREATED'] as ActivityType[];
     const contentCreationActivityTypes = ['REVIEW_CREATED', 'DISCUSSION_CREATED', 'WATCHLIST_CREATED', 'PREDICTION_CREATED'] as ActivityType[];
     
-    const engagementActivities = await getUserGiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
-    const contentCreationActivities = await getUserActivities(userId, limit, offset, contentCreationActivityTypes, dateFilter, false);
+    const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
+    const contentCreationActivities = await getUserActivities(userId, 1000, 0, contentCreationActivityTypes, dateFilter, false);
     
     const filteredContentCreationActivities = contentCreationActivities.filter(activity => 
       activity.giverId === null
@@ -318,7 +318,7 @@ export async function getUserActivitiesWithPrivacy(
     
     const allActivities = [...engagementActivities, ...filteredContentCreationActivities]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
+      .slice(offset, offset + limit);
     
     return allActivities;
   }
@@ -364,7 +364,7 @@ export async function getUserActivitiesWithPrivacy(
       });
       
       const engagementActivityTypes = engagementTypes.map(mapping => mapping.activityType);
-      const engagementActivities = await getUserGiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
+      const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
       results.push(...engagementActivities);
     }
     
@@ -376,14 +376,14 @@ export async function getUserActivitiesWithPrivacy(
       });
       
       const nonEngagementActivityTypes = nonEngagementTypes.map(mapping => mapping.activityType);
-      const nonEngagementActivities = await getUserActivities(userId, limit, offset, nonEngagementActivityTypes, dateFilter, false);
+      const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, false);
       results.push(...nonEngagementActivities);
     }
     
-    // Sort by creation date and limit results
+    // Sort by creation date and apply offset/limit
     return results
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
+      .slice(offset, offset + limit);
   }
 
   // If filtering by activity types, we need to check which groups they belong to
@@ -420,20 +420,20 @@ export async function getUserActivitiesWithPrivacy(
 
     // Get giver activities
     if (giverTypes.length > 0) {
-      const giverActivities = await getUserGiverActivities(userId, limit, offset, giverTypes, dateFilter);
+      const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
       results.push(...giverActivities);
     }
 
     // Get creator activities
     if (creatorTypes.length > 0) {
-      const creatorActivities = await getUserActivities(userId, limit, offset, creatorTypes, dateFilter, false);
+      const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
       results.push(...creatorActivities);
     }
 
-    // Sort by creation date and limit results
+    // Sort by creation date and apply offset/limit
     return results
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, limit);
+      .slice(offset, offset + limit);
   }
 
   // No specific filters, get all public activities respecting privacy settings
@@ -475,20 +475,20 @@ export async function getUserActivitiesWithPrivacy(
 
   // Get giver activities
   if (giverTypes.length > 0) {
-    const giverActivities = await getUserGiverActivities(userId, limit, offset, giverTypes, dateFilter);
+    const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
     results.push(...giverActivities);
   }
 
   // Get creator activities
   if (creatorTypes.length > 0) {
-    const creatorActivities = await getUserActivities(userId, limit, offset, creatorTypes, dateFilter, false);
+    const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
     results.push(...creatorActivities);
   }
 
-  // Sort by creation date and limit results
+  // Sort by creation date and apply offset/limit
   return results
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, limit);
+    .slice(offset, offset + limit);
 }
 
 // Helper function to get activity statistics
