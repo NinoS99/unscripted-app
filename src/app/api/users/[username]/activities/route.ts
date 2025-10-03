@@ -56,7 +56,7 @@ export async function GET(
       filterMode
     );
 
-    // Get total count for pagination
+    // Get total count for pagination - get one extra to check if there are more
     const totalCount = await getUserActivitiesWithPrivacy(
       targetUserId,
       userId, // viewerId
@@ -73,6 +73,9 @@ export async function GET(
       stats = await getUserActivityStats(targetUserId, userId);
     }
 
+    // Calculate hasMore based on total count vs current offset
+    const hasMore = offset + activities.length < totalCount;
+
     return NextResponse.json({
       activities,
       totalCount,
@@ -80,7 +83,7 @@ export async function GET(
       pagination: {
         limit,
         offset,
-        hasMore: activities.length === limit
+        hasMore
       }
     });
 
