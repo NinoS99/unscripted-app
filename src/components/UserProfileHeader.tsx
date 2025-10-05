@@ -113,32 +113,6 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
               </div>
             </div>
             
-            {/* Top 4 Shows */}
-            {user.topFourShows.length > 0 && (
-              <div className="flex flex-col gap-2 pb-2">
-                <h3 className="text-sm font-medium text-gray-200">
-                  {isOwnProfile ? 'Your Showcase' : `${user.username}'s Showcase`}
-                </h3>
-                <div className="flex gap-2">
-                  {user.topFourShows.map((show) => (
-                    <Link
-                      key={show.id}
-                      href={`/show/${show.id}`}
-                      className="relative w-20 h-30 rounded overflow-hidden shadow-lg hover:scale-105 transition-transform"
-                      title={show.name}
-                    >
-                      <Image
-                        src={show.posterPath ? `https://image.tmdb.org/t/p/w154${show.posterPath}` : '/noPoster.jpg'}
-                        alt={show.name}
-                        width={80}
-                        height={120}
-                        className="w-full h-full object-cover"
-                      />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -224,19 +198,19 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
                 </h3>
                 <div className="flex gap-2 justify-center">
                   {user.topFourShows.map((show) => (
-                    <Link
-                      key={show.id}
-                      href={`/show/${show.id}`}
-                      className="relative w-16 h-24 rounded overflow-hidden shadow-lg"
-                      title={show.name}
-                    >
-                      <Image
-                        src={show.posterPath ? `https://image.tmdb.org/t/p/w154${show.posterPath}` : '/noPoster.jpg'}
-                        alt={show.name}
-                        width={64}
-                        height={96}
-                        className="w-full h-full object-cover"
-                      />
+                      <Link
+                        key={show.id}
+                        href={`/show/${show.id}`}
+                        className="relative w-20 h-30 rounded overflow-hidden shadow-lg"
+                        title={show.name}
+                      >
+                        <Image
+                          src={show.posterPath ? `https://image.tmdb.org/t/p/w154${show.posterPath}` : '/noPoster.jpg'}
+                          alt={show.name}
+                          width={80}
+                          height={120}
+                          className="w-full h-full object-cover"
+                        />
                     </Link>
                   ))}
                 </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getUserActivitiesWithPrivacy, getUserActivityStats } from '@/lib/activityFilters';
+import { getUserActivitiesWithPrivacy } from '@/lib/activityFilters';
 import { ActivityType, ActivityGroup } from '@prisma/client';
 
 export async function GET(
@@ -32,7 +32,6 @@ export async function GET(
     const day = searchParams.get('day') ? parseInt(searchParams.get('day')!) : undefined;
     const startDate = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined;
     const endDate = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined;
-    const includeStats = searchParams.get('includeStats') === 'true';
     const filterMode = searchParams.get('filterMode') as 'you' | 'incoming' || 'you';
 
     // Build date filter
@@ -45,7 +44,7 @@ export async function GET(
     } : undefined;
 
     // Get activities with privacy settings
-    const activities = await getUserActivitiesWithPrivacy(
+    const { activities, userShowActivity } = await getUserActivitiesWithPrivacy(
       targetUserId,
       userId, // viewerId
       limit,
@@ -57,7 +56,7 @@ export async function GET(
     );
 
     // Get total count for pagination - get one extra to check if there are more
-    const totalCount = await getUserActivitiesWithPrivacy(
+    const { activities: allActivities } = await getUserActivitiesWithPrivacy(
       targetUserId,
       userId, // viewerId
       1000, // Large limit to get all activities
@@ -66,12 +65,8 @@ export async function GET(
       activityGroups,
       dateFilter,
       filterMode
-    ).then(allActivities => allActivities.length);
-
-    let stats = null;
-    if (includeStats) {
-      stats = await getUserActivityStats(targetUserId, userId);
-    }
+    );
+    const totalCount = allActivities.length;
 
     // Calculate hasMore based on total count vs current offset
     const hasMore = offset + activities.length < totalCount;
@@ -79,7 +74,7 @@ export async function GET(
     return NextResponse.json({
       activities,
       totalCount,
-      stats,
+      userShowActivity,
       pagination: {
         limit,
         offset,

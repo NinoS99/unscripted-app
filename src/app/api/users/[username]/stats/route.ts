@@ -8,14 +8,22 @@ export async function GET(
   try {
     const { username } = await params;
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
+    const yearParam = searchParams.get('year');
     
     // The username parameter is actually the userId (Clerk ID)
     const targetUserId = username;
 
-    // Build date filter for the year
-    const startDate = new Date(year, 0, 1); // January 1st
-    const endDate = new Date(year + 1, 0, 1); // January 1st of next year
+    // Determine if we're filtering by year or showing all time
+    const isAllTime = yearParam === 'all';
+    const year = isAllTime ? null : (yearParam ? parseInt(yearParam) : new Date().getFullYear());
+
+    // Build date filter - only apply if not all time
+    const dateFilter = isAllTime ? {} : {
+      createdAt: {
+        gte: new Date(year!, 0, 1), // January 1st
+        lt: new Date(year! + 1, 0, 1) // January 1st of next year
+      }
+    };
 
     // Get user account creation date first
     const user = await prisma.user.findUnique({
@@ -53,7 +61,7 @@ export async function GET(
           showId: { not: null },
           seasonId: null,
           episodeId: null,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
@@ -62,7 +70,7 @@ export async function GET(
           userId: targetUserId,
           seasonId: { not: null },
           episodeId: null,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
@@ -70,7 +78,7 @@ export async function GET(
         where: {
           userId: targetUserId,
           episodeId: { not: null },
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
@@ -81,7 +89,7 @@ export async function GET(
           showId: { not: null },
           seasonId: null,
           episodeId: null,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         },
         select: { rating: true }
       }),
@@ -91,7 +99,7 @@ export async function GET(
           userId: targetUserId,
           seasonId: { not: null },
           episodeId: null,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         },
         select: { rating: true }
       }),
@@ -100,7 +108,7 @@ export async function GET(
         where: {
           userId: targetUserId,
           episodeId: { not: null },
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         },
         select: { rating: true }
       }),
@@ -109,21 +117,21 @@ export async function GET(
       prisma.showReview.count({
         where: {
           userId: targetUserId,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
       prisma.seasonReview.count({
         where: {
           userId: targetUserId,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
       prisma.episodeReview.count({
         where: {
           userId: targetUserId,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
@@ -131,14 +139,14 @@ export async function GET(
       prisma.discussion.count({
         where: {
           userId: targetUserId,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       }),
       
       prisma.watchList.count({
         where: {
           userId: targetUserId,
-          createdAt: { gte: startDate, lt: endDate }
+          ...dateFilter
         }
       })
     ]);
@@ -154,7 +162,7 @@ export async function GET(
     const averageEpisodeRating = calculateAverage(episodeRatings);
 
     const stats = {
-      year,
+      year: year || 'all',
       accountCreatedYear,
       watchedCounts: {
         shows: watchedShows,

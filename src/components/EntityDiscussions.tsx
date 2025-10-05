@@ -44,20 +44,22 @@ export default function EntityDiscussions({
     const [discussions, setDiscussions] = useState<{
         recent: Discussion[];
         popular: Discussion[];
-    }>({ recent: [], popular: [] });
+        totalCount: number;
+    }>({ recent: [], popular: [], totalCount: 0 });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchDiscussions = async () => {
             try {
                 const response = await fetch(
-                    `/api/discussions?entityType=${entityType}&entityId=${entityId}&limit=6`
+                    `/api/discussions?entityType=${entityType}&entityId=${entityId}`
                 );
                 if (response.ok) {
                     const data = await response.json();
                     setDiscussions({
                         recent: data.recent || [],
                         popular: data.popular || [],
+                        totalCount: data.totalCount || 0,
                     });
                 }
             } catch (error) {
@@ -88,9 +90,8 @@ export default function EntityDiscussions({
         );
     }
 
-    const allDiscussions = [...discussions.recent, ...discussions.popular];
 
-    if (allDiscussions.length === 0) {
+    if (discussions.totalCount === 0) {
         return (
             <div className="mb-8">
                 <h2 className="text-xl md:text-lg font-semibold text-green-500 mb-4 md:mb-2 mt-2">
@@ -108,7 +109,7 @@ export default function EntityDiscussions({
         <div className="mb-8">
             <div className="flex items-center justify-between mb-4 mt-3">
                 <h2 className="text-xl md:text-lg font-semibold text-green-500">
-                    Discussions ({formatNumber(allDiscussions.length)})
+                    Discussions ({formatNumber(discussions.totalCount)})
                 </h2>
                 <Link
                     href={`/discussions/${entityType}/${entityId}`}
