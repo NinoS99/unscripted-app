@@ -225,9 +225,15 @@ export async function GET(request: NextRequest) {
             // Sort by likes count in memory since Prisma doesn't support ordering by _count directly
             popularDiscussions.sort((a, b) => b._count.likes - a._count.likes);
 
+            // Get total count of discussions for this entity
+            const totalCount = await prisma.discussion.count({
+                where: whereClause
+            });
+
             return NextResponse.json({
                 recent: recentDiscussions,
-                popular: popularDiscussions
+                popular: popularDiscussions,
+                totalCount
             });
         }
 

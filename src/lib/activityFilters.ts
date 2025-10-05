@@ -74,12 +74,38 @@ export async function getUserActivitiesWithPrivacy(
     endDate?: Date;
   },
   filterMode?: 'you' | 'incoming' // New filter mode parameter
-) {
+): Promise<{ activities: unknown[], userShowActivity: boolean }> {
   // Import the getUserActivities, getUserGiverActivities, and getUserReceiverActivities functions from activityTracker
   const { getUserActivities, getUserGiverActivities, getUserReceiverActivities } = await import('./activityTracker');
 
+  // Get user's global privacy setting
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { showActivity: true }
+  });
+
+  const userShowActivity = user?.showActivity ?? false;
+
   // If viewing own activities, handle different filter modes
   if (viewerId === userId) {
+    // Get privacy settings to determine which groups are private
+    const privacySettings = await getUserActivityPrivacy(userId);
+    const privateGroups = privacySettings
+      .filter(setting => !setting.isPublic)
+      .map(setting => setting.activityGroup);
+    
+    // Create a mapping of activity types to their groups
+    const groupMappings = await prisma.activityGroupMapping.findMany({
+      select: {
+        activityType: true,
+        activityGroup: true
+      }
+    });
+    
+    const activityTypeToGroup = new Map(
+      groupMappings.map(mapping => [mapping.activityType, mapping.activityGroup])
+    );
+    
     // Handle "you" filter mode - show what the user did (giver activities + content creation)
     if (filterMode === 'you') {
       // Use the same logic as viewing someone else's profile, but for giver activities
@@ -103,7 +129,14 @@ export async function getUserActivitiesWithPrivacy(
           
           const engagementActivityTypes = engagementTypes.map(mapping => mapping.activityType);
           const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
-          results.push(...engagementActivities);
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = engagementActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          results.push(...activitiesWithPrivacy);
         }
         
         // Get non-ENGAGEMENT activities where user was the creator
@@ -114,14 +147,24 @@ export async function getUserActivitiesWithPrivacy(
           });
           
           const nonEngagementActivityTypes = nonEngagementTypes.map(mapping => mapping.activityType);
-          const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, false);
-          results.push(...nonEngagementActivities);
+          const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, true); // includePrivate = true
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = nonEngagementActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          results.push(...activitiesWithPrivacy);
         }
         
         // Sort by creation date and apply offset/limit
-        return results
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(offset, offset + limit);
+        return {
+          activities: results
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .slice(offset, offset + limit),
+          userShowActivity
+        };
       }
       
       // If filtering by activity types
@@ -150,19 +193,36 @@ export async function getUserActivitiesWithPrivacy(
         // Get giver activities
         if (giverTypes.length > 0) {
           const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
-          results.push(...giverActivities);
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = giverActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          results.push(...activitiesWithPrivacy);
         }
 
         // Get creator activities
         if (creatorTypes.length > 0) {
-          const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
-          results.push(...creatorActivities);
+          const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, true); // includePrivate = true
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = creatorActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          results.push(...activitiesWithPrivacy);
         }
 
         // Sort by creation date and apply offset/limit
-        return results
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          .slice(offset, offset + limit);
+        return {
+          activities: results
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            .slice(offset, offset + limit),
+          userShowActivity
+        };
       }
       
       // No specific filters, get all activities (giver + content creation)
@@ -170,17 +230,31 @@ export async function getUserActivitiesWithPrivacy(
       const contentCreationActivityTypes = ['REVIEW_CREATED', 'DISCUSSION_CREATED', 'WATCHLIST_CREATED', 'PREDICTION_CREATED'] as ActivityType[];
       
       const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
-      const contentCreationActivities = await getUserActivities(userId, 1000, 0, contentCreationActivityTypes, dateFilter, false);
+      const contentCreationActivities = await getUserActivities(userId, 1000, 0, contentCreationActivityTypes, dateFilter, true); // includePrivate = true
       
       const filteredContentCreationActivities = contentCreationActivities.filter(activity => 
         activity.giverId === null
       );
       
-      const allActivities = [...engagementActivities, ...filteredContentCreationActivities]
+      // Add group privacy information to each activity
+      const engagementActivitiesWithPrivacy = engagementActivities.map(activity => ({
+        ...activity,
+        isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+      }));
+      
+      const contentCreationActivitiesWithPrivacy = filteredContentCreationActivities.map(activity => ({
+        ...activity,
+        isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+      }));
+      
+      const allActivities = [...engagementActivitiesWithPrivacy, ...contentCreationActivitiesWithPrivacy]
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(offset, offset + limit);
       
-      return allActivities;
+      return {
+        activities: allActivities,
+        userShowActivity
+      };
     }
     
     // Handle "incoming" filter mode - show what the user received
@@ -197,10 +271,26 @@ export async function getUserActivitiesWithPrivacy(
           });
           
           const engagementActivityTypes = engagementTypes.map(mapping => mapping.activityType);
-          return await getUserReceiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
+          const receiverActivities = await getUserReceiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = receiverActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          return {
+            activities: activitiesWithPrivacy
+              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+              .slice(offset, offset + limit),
+            userShowActivity
+          };
         }
         
-        return [];
+        return {
+          activities: [],
+          userShowActivity
+        };
       }
       
       if (activityTypes && activityTypes.length > 0) {
@@ -219,15 +309,44 @@ export async function getUserActivitiesWithPrivacy(
           .map(mapping => mapping.activityType);
         
         if (giverTypes.length > 0) {
-          return await getUserReceiverActivities(userId, limit, offset, giverTypes, dateFilter);
+          const receiverActivities = await getUserReceiverActivities(userId, 1000, 0, giverTypes, dateFilter);
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = receiverActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          return {
+            activities: activitiesWithPrivacy
+              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+              .slice(offset, offset + limit),
+            userShowActivity
+          };
         }
         
-        return [];
+        return {
+          activities: [],
+          userShowActivity
+        };
       }
       
       // No specific filters, get all receiver activities
       const engagementActivityTypes = ['REVIEW_LIKED', 'REVIEW_UNLIKED', 'DISCUSSION_LIKED', 'DISCUSSION_UNLIKED', 'WATCHLIST_LIKED', 'WATCHLIST_UNLIKED', 'PREDICTION_LIKED', 'PREDICTION_UNLIKED', 'COMMENT_UPVOTED', 'COMMENT_DOWNVOTED', 'COMMENT_CREATED'] as ActivityType[];
-      return await getUserReceiverActivities(userId, limit, offset, engagementActivityTypes, dateFilter);
+      const receiverActivities = await getUserReceiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
+      
+      // Add group privacy information to each activity
+      const activitiesWithPrivacy = receiverActivities.map(activity => ({
+        ...activity,
+        isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+      }));
+      
+      return {
+        activities: activitiesWithPrivacy
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(offset, offset + limit),
+        userShowActivity
+      };
     }
     
     // Default "you" mode - show what they did (giver activities + content creation)
@@ -250,7 +369,14 @@ export async function getUserActivitiesWithPrivacy(
         
         const engagementActivityTypes = engagementTypes.map(mapping => mapping.activityType);
         const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
-        results.push(...engagementActivities);
+        
+        // Add group privacy information to each activity
+        const activitiesWithPrivacy = engagementActivities.map(activity => ({
+          ...activity,
+          isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+        }));
+        
+        results.push(...activitiesWithPrivacy);
       }
       
       if (nonEngagementGroups.length > 0) {
@@ -260,13 +386,23 @@ export async function getUserActivitiesWithPrivacy(
         });
         
         const nonEngagementActivityTypes = nonEngagementTypes.map(mapping => mapping.activityType);
-        const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, false);
-        results.push(...nonEngagementActivities);
+        const nonEngagementActivities = await getUserActivities(userId, 1000, 0, nonEngagementActivityTypes, dateFilter, true); // includePrivate = true
+        
+        // Add group privacy information to each activity
+        const activitiesWithPrivacy = nonEngagementActivities.map(activity => ({
+          ...activity,
+          isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+        }));
+        
+        results.push(...activitiesWithPrivacy);
       }
       
-      return results
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(offset, offset + limit);
+      return {
+        activities: results
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(offset, offset + limit),
+        userShowActivity
+      };
     }
     
     if (activityTypes && activityTypes.length > 0) {
@@ -292,17 +428,34 @@ export async function getUserActivitiesWithPrivacy(
 
       if (giverTypes.length > 0) {
         const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
-        results.push(...giverActivities);
+        
+        // Add group privacy information to each activity
+        const activitiesWithPrivacy = giverActivities.map(activity => ({
+          ...activity,
+          isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+        }));
+        
+        results.push(...activitiesWithPrivacy);
       }
 
       if (creatorTypes.length > 0) {
-        const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
-        results.push(...creatorActivities);
+        const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, true); // includePrivate = true
+        
+        // Add group privacy information to each activity
+        const activitiesWithPrivacy = creatorActivities.map(activity => ({
+          ...activity,
+          isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+        }));
+        
+        results.push(...activitiesWithPrivacy);
       }
 
-      return results
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(offset, offset + limit);
+      return {
+        activities: results
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(offset, offset + limit),
+        userShowActivity
+      };
     }
     
     // No specific filters, get all activities (giver + content creation)
@@ -310,27 +463,38 @@ export async function getUserActivitiesWithPrivacy(
     const contentCreationActivityTypes = ['REVIEW_CREATED', 'DISCUSSION_CREATED', 'WATCHLIST_CREATED', 'PREDICTION_CREATED'] as ActivityType[];
     
     const engagementActivities = await getUserGiverActivities(userId, 1000, 0, engagementActivityTypes, dateFilter);
-    const contentCreationActivities = await getUserActivities(userId, 1000, 0, contentCreationActivityTypes, dateFilter, false);
+    const contentCreationActivities = await getUserActivities(userId, 1000, 0, contentCreationActivityTypes, dateFilter, true); // includePrivate = true
     
     const filteredContentCreationActivities = contentCreationActivities.filter(activity => 
       activity.giverId === null
     );
     
-    const allActivities = [...engagementActivities, ...filteredContentCreationActivities]
+    // Add group privacy information to each activity
+    const engagementActivitiesWithPrivacy = engagementActivities.map(activity => ({
+      ...activity,
+      isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+    }));
+    
+    const contentCreationActivitiesWithPrivacy = filteredContentCreationActivities.map(activity => ({
+      ...activity,
+      isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+    }));
+    
+    const allActivities = [...engagementActivitiesWithPrivacy, ...contentCreationActivitiesWithPrivacy]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(offset, offset + limit);
     
-    return allActivities;
+    return {
+      activities: allActivities,
+      userShowActivity
+    };
   }
 
-  // Get user's global privacy setting
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { showActivity: true }
-  });
-
-  if (!user?.showActivity) {
-    return [];
+  if (!userShowActivity) {
+    return {
+      activities: [],
+      userShowActivity
+    };
   }
 
   // Get privacy settings for activity groups
@@ -343,7 +507,10 @@ export async function getUserActivitiesWithPrivacy(
   if (activityGroups && activityGroups.length > 0) {
     const publicGroups = activityGroups.filter(group => !privateGroups.includes(group));
     if (publicGroups.length === 0) {
-      return [];
+      return {
+        activities: [],
+        userShowActivity
+      };
     }
     
     // Separate groups by query type
@@ -381,9 +548,12 @@ export async function getUserActivitiesWithPrivacy(
     }
     
     // Sort by creation date and apply offset/limit
-    return results
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(offset, offset + limit);
+    return {
+      activities: results
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(offset, offset + limit),
+      userShowActivity
+    };
   }
 
   // If filtering by activity types, we need to check which groups they belong to
@@ -404,7 +574,10 @@ export async function getUserActivitiesWithPrivacy(
     );
 
     if (publicMappings.length === 0) {
-      return [];
+      return {
+        activities: [],
+        userShowActivity
+      };
     }
 
     const results = [];
@@ -431,9 +604,12 @@ export async function getUserActivitiesWithPrivacy(
     }
 
     // Sort by creation date and apply offset/limit
-    return results
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(offset, offset + limit);
+    return {
+      activities: results
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(offset, offset + limit),
+      userShowActivity
+    };
   }
 
   // No specific filters, get all public activities respecting privacy settings
@@ -459,7 +635,10 @@ export async function getUserActivitiesWithPrivacy(
   );
 
   if (publicMappings.length === 0) {
-    return [];
+    return {
+      activities: [],
+      userShowActivity
+    };
   }
 
   const results = [];
@@ -486,55 +665,11 @@ export async function getUserActivitiesWithPrivacy(
   }
 
   // Sort by creation date and apply offset/limit
-  return results
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(offset, offset + limit);
-}
-
-// Helper function to get activity statistics
-export async function getUserActivityStats(userId: string, viewerId?: string) {
-  // Get total activity count
-  const totalActivities = await prisma.userActivity.count({
-    where: {
-      userId,
-      isPublic: viewerId === userId ? undefined : true
-    }
-  });
-  console.log('totalActivities', totalActivities);
-
-  // Get activities by type
-  const activitiesByType = await prisma.userActivity.groupBy({
-    by: ['activityType'],
-    where: {
-      userId,
-      isPublic: viewerId === userId ? undefined : true
-    },
-    _count: {
-      activityType: true
-    }
-  });
-  console.log('activitiesByType', activitiesByType);
-  // Get activities by month (last 12 months)
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-  const activitiesByMonth = await prisma.userActivity.groupBy({
-    by: ['createdAt'],
-    where: {
-      userId,
-      isPublic: viewerId === userId ? undefined : true,
-      createdAt: {
-        gte: twelveMonthsAgo
-      }
-    },
-    _count: {
-      createdAt: true
-    }
-  });
-  console.log('activitiesByMonth', activitiesByMonth);
   return {
-    totalActivities,
-    activitiesByType,
-    activitiesByMonth
+    activities: results
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(offset, offset + limit),
+    userShowActivity
   };
 }
+

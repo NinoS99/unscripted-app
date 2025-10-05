@@ -715,8 +715,8 @@ export default function EditProfileForm({ onClose, isOpen = true }: { onClose: (
                                 </div>
                                 <p className="text-xs text-gray-400">
                                     {globalActivityPrivacy 
-                                        ? 'Your activity will be visible on your profile' 
-                                        : 'Your activity will be hidden from your profile'
+                                        ? 'Your activity will be visible on your profile.' 
+                                        : 'Your activity will be hidden from your profile. Users you interact with can still see these activities on their profiles.'
                                     }
                                 </p>
                             </div>

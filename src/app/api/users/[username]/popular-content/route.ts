@@ -107,6 +107,7 @@ export async function GET(
           content: review.content,
           likeCount: review._count.likes,
           commentCount: review._count.comments,
+          createdAt: review.createdAt,
           entityPosterPath: review.show.posterPath
         })),
         ...seasonReviews.map(review => ({
@@ -118,6 +119,7 @@ export async function GET(
           content: review.content,
           likeCount: review._count.likes,
           commentCount: review._count.comments,
+          createdAt: review.createdAt,
           entityPosterPath: review.season.show.posterPath
         })),
         ...episodeReviews.map(review => ({
@@ -129,6 +131,7 @@ export async function GET(
           content: review.content,
           likeCount: review._count.likes,
           commentCount: review._count.comments,
+          createdAt: review.createdAt,
           entityPosterPath: review.episode.season.show.posterPath
         }))
       ].sort((a, b) => b.likeCount - a.likeCount).slice(0, 5);
@@ -197,6 +200,7 @@ export async function GET(
         content: discussion.content,
         likeCount: discussion._count.likes,
         commentCount: discussion._count.comments,
+        createdAt: discussion.createdAt,
         entityName,
         entityId,
         entityType,
@@ -235,6 +239,7 @@ export async function GET(
       description: watchlist.description,
       likeCount: watchlist._count.likes,
       commentCount: watchlist._count.comments,
+      createdAt: watchlist.createdAt,
       showCount: watchlist._count.shows,
       posterPaths: watchlist.shows.map(s => s.show.posterPath).filter((p): p is string => p !== null)
     }));

@@ -18,6 +18,9 @@ export async function GET(
         include: {
           show: {
             select: { name: true, posterPath: true }
+          },
+          _count: {
+            select: { likes: true, comments: true }
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -32,6 +35,9 @@ export async function GET(
               seasonNumber: true,
               show: { select: { name: true, posterPath: true } }
             }
+          },
+          _count: {
+            select: { likes: true, comments: true }
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -52,6 +58,9 @@ export async function GET(
                 }
               }
             }
+          },
+          _count: {
+            select: { likes: true, comments: true }
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -97,6 +106,8 @@ export async function GET(
           rating: showRatingMap.get(review.showId) || null,
           content: review.content,
           createdAt: review.createdAt,
+          likeCount: review._count.likes,
+          commentCount: review._count.comments,
           entityPosterPath: review.show.posterPath
         })),
         ...seasonReviews.map(review => ({
@@ -107,6 +118,8 @@ export async function GET(
           rating: seasonRatingMap.get(review.seasonId) || null,
           content: review.content,
           createdAt: review.createdAt,
+          likeCount: review._count.likes,
+          commentCount: review._count.comments,
           entityPosterPath: review.season.show.posterPath
         })),
         ...episodeReviews.map(review => ({
@@ -117,6 +130,8 @@ export async function GET(
           rating: episodeRatingMap.get(review.episodeId) || null,
           content: review.content,
           createdAt: review.createdAt,
+          likeCount: review._count.likes,
+          commentCount: review._count.comments,
           entityPosterPath: review.episode.season.show.posterPath
         }))
       ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5);
@@ -143,6 +158,12 @@ export async function GET(
                 show: { select: { name: true, posterPath: true } }
               }
             }
+          }
+        },
+        _count: {
+          select: { 
+            likes: true,
+            comments: true
           }
         }
       },
@@ -178,6 +199,8 @@ export async function GET(
         title: discussion.title,
         content: discussion.content,
         createdAt: discussion.createdAt,
+        likeCount: discussion._count.likes,
+        commentCount: discussion._count.comments,
         entityName,
         entityId,
         entityType,
@@ -190,7 +213,11 @@ export async function GET(
       where: { userId: targetUserId },
       include: {
         _count: {
-          select: { shows: true }
+          select: { 
+            shows: true,
+            likes: true,
+            comments: true
+          }
         },
         shows: {
           take: 4,
@@ -211,6 +238,8 @@ export async function GET(
       name: watchlist.name,
       description: watchlist.description,
       createdAt: watchlist.createdAt,
+      likeCount: watchlist._count.likes,
+      commentCount: watchlist._count.comments,
       showCount: watchlist._count.shows,
       posterPaths: watchlist.shows.map(s => s.show.posterPath).filter((p): p is string => p !== null)
     }));
