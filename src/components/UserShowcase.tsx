@@ -18,7 +18,7 @@ export default function UserShowcase({ username, topFourShows, isOwnProfile }: U
   }
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 px-4 md:px-0">
       {/* Header - matching Activity Feed style */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-green-500">

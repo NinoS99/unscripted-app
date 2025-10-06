@@ -107,7 +107,7 @@ const POINT_VALUES: Record<ActivityType, number> = {
   PREDICTION_LOST: 0, // No points for losses
   
   // Social
-  USER_FOLLOWED: 0,
+  USER_FOLLOWED: 1,
   USER_UNFOLLOWED: 0
 };
 
@@ -420,6 +420,115 @@ export async function trackEngagementSingle(
     // Update user points only if points were earned
     if (points > 0) {
       await updateUserPoints(receiverId, points, activityType, entityType, entityId);
+    }
+  }
+}
+
+// Helper function to track follow/unfollow activities with single entry
+export async function trackFollowActivity(
+  giverId: string,
+  receiverId: string,
+  activityType: ActivityType,
+  description?: string,
+  entityMetadata?: object
+) {
+  // Check if this user has already followed/unfollowed this user
+  const existingActivity = await prisma.userActivity.findFirst({
+    where: {
+      userId: receiverId,
+      giverId: giverId,
+      entityType: 'USER',
+      entityId: 0, // Use 0 for user follow activities
+      activityType: {
+        in: ['USER_FOLLOWED', 'USER_UNFOLLOWED']
+      }
+    }
+  });
+
+  if (existingActivity) {
+    // If it's the same activity type, don't create duplicate
+    if (existingActivity.activityType === activityType) {
+      return;
+    }
+    
+    // If it's a different activity type (follow vs unfollow), update the existing record
+    await prisma.userActivity.update({
+      where: { id: existingActivity.id },
+      data: {
+        activityType,
+        description: description || 'User followed',
+        metadata: entityMetadata,
+        points: getPointValueForActivity(activityType, false)
+      }
+    });
+
+    // Update user points - only award points, never deduct them
+    const oldPoints = getPointValueForActivity(existingActivity.activityType, false);
+    const newPoints = getPointValueForActivity(activityType, false);
+    
+    // Only award points if this is the first time earning points for this follow relationship
+    // and the new activity type awards points
+    if (newPoints > 0 && oldPoints === 0) {
+      // Check if this user has already earned points for this specific follow relationship
+      const existingTransaction = await prisma.pointsTransaction.findFirst({
+        where: {
+          userId: receiverId,
+          referenceId: 0, // Use 0 for user follow activities
+          referenceType: 'USER',
+          type: 'EARNED'
+        }
+      });
+
+      // Only award points if this is the first time earning points for this follow relationship
+      if (!existingTransaction) {
+        await prisma.userPoints.upsert({
+          where: { userId: receiverId },
+          update: {
+            balance: { increment: newPoints },
+            totalEarned: { increment: newPoints },
+            lastUpdated: new Date()
+          },
+          create: {
+            userId: receiverId,
+            balance: newPoints,
+            totalEarned: newPoints
+          }
+        });
+
+        // Create transaction record for the point award
+        await prisma.pointsTransaction.create({
+          data: {
+            userId: receiverId,
+            amount: newPoints,
+            type: 'EARNED',
+            description: `Points earned for ${activityType}`,
+            referenceId: 0, // Use 0 for user follow activities
+            referenceType: 'USER'
+          }
+        });
+      }
+    }
+  } else {
+    // Create new activity entry for the receiver with giver info
+    // Only track points for positive activities (follows, not unfollows)
+    const points = getPointValueForActivity(activityType, false);
+    
+    await prisma.userActivity.create({
+      data: {
+        userId: receiverId,
+        activityType,
+        entityType: 'USER',
+        entityId: 0, // Use 0 for user follow activities
+        points,
+        description: description || 'User followed',
+        metadata: entityMetadata,
+        giverId
+      }
+    });
+
+    // Update user points only if points were earned
+    if (points > 0) {
+      await updateUserPoints(receiverId, points, activityType, 'USER', 0);
     }
   }
 }

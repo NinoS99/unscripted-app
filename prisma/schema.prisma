@@ -45,6 +45,10 @@ model User {
   points           UserPoints?
   pointsTransactions PointsTransaction[]
   activityPrivacy  UserActivityPrivacy[]
+  
+  // Following relationships
+  following        UserFollow[] @relation("UserFollowing")
+  followers        UserFollow[] @relation("UserFollowers")
 
   @@index([username])
   @@index([email])
@@ -993,5 +997,20 @@ enum TransactionType {
   PENALTY
   REFUND
   DEDUCTED
+}
+
+model UserFollow {
+  id          Int      @id @default(autoincrement())
+  followerId  String   // User who is following
+  followingId String   // User being followed
+  createdAt   DateTime @default(now())
+  
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@index([createdAt])
 }
 

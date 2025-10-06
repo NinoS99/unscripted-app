@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FiStar, FiMessageSquare, FiList, FiTrendingUp, FiEye, FiHeart, FiChevronDown } from 'react-icons/fi';
 
 interface UserStatsProps {
@@ -66,9 +66,12 @@ export default function UserStats({ userId }: UserStatsProps) {
     }
   }, [userId]);
 
+  const fetchStatsRef = useRef(fetchStats);
+  fetchStatsRef.current = fetchStats;
+
   useEffect(() => {
-    fetchStats(selectedYear);
-  }, [fetchStats, selectedYear]);
+    fetchStatsRef.current(selectedYear);
+  }, [selectedYear]);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -91,9 +94,9 @@ export default function UserStats({ userId }: UserStatsProps) {
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
 
   return (
-    <div className="rounded-lg shadow">
+    <div className="">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl md:text-lg font-semibold text-green-500">Stats</h3>
+        <h3 className="text-xl md:text-lg font-semibold text-green-500 md:mb-1">Stats</h3>
         {isMobile && (
           <button
             onClick={toggleCollapse}

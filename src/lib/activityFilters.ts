@@ -86,13 +86,14 @@ export async function getUserActivitiesWithPrivacy(
 
   const userShowActivity = user?.showActivity ?? false;
 
+  // Get privacy settings for all users (needed for filtering)
+  const privacySettings = await getUserActivityPrivacy(userId);
+  const privateGroups = privacySettings
+    .filter(setting => !setting.isPublic)
+    .map(setting => setting.activityGroup);
+
   // If viewing own activities, handle different filter modes
   if (viewerId === userId) {
-    // Get privacy settings to determine which groups are private
-    const privacySettings = await getUserActivityPrivacy(userId);
-    const privateGroups = privacySettings
-      .filter(setting => !setting.isPublic)
-      .map(setting => setting.activityGroup);
     
     // Create a mapping of activity types to their groups
     const groupMappings = await prisma.activityGroupMapping.findMany({
@@ -116,8 +117,11 @@ export async function getUserActivitiesWithPrivacy(
         const engagementGroups = activityGroups.filter(group => 
           group === 'ENGAGEMENT' || group === 'DISENGAGEMENT'
         );
+        const socialGroups = activityGroups.filter(group => 
+          group === 'SOCIAL'
+        );
         const nonEngagementGroups = activityGroups.filter(group => 
-          group === 'CONTENT_CREATION' || group === 'PREDICTION_MARKET' || group === 'SOCIAL'
+          group === 'CONTENT_CREATION' || group === 'PREDICTION_MARKET'
         );
         
         // Get ENGAGEMENT activities where user was the giver
@@ -132,6 +136,25 @@ export async function getUserActivitiesWithPrivacy(
           
           // Add group privacy information to each activity
           const activitiesWithPrivacy = engagementActivities.map(activity => ({
+            ...activity,
+            isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+          }));
+          
+          results.push(...activitiesWithPrivacy);
+        }
+        
+        // Get SOCIAL activities where user was the giver
+        if (socialGroups.length > 0) {
+          const socialTypes = await prisma.activityGroupMapping.findMany({
+            where: { activityGroup: { in: socialGroups } },
+            select: { activityType: true }
+          });
+          
+          const socialActivityTypes = socialTypes.map(mapping => mapping.activityType);
+          const socialActivities = await getUserGiverActivities(userId, 1000, 0, socialActivityTypes, dateFilter);
+          
+          // Add group privacy information to each activity
+          const activitiesWithPrivacy = socialActivities.map(activity => ({
             ...activity,
             isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
           }));
@@ -261,7 +284,7 @@ export async function getUserActivitiesWithPrivacy(
     if (filterMode === 'incoming') {
       if (activityGroups && activityGroups.length > 0) {
         const engagementGroups = activityGroups.filter(group => 
-          group === 'ENGAGEMENT' || group === 'DISENGAGEMENT'
+          group === 'ENGAGEMENT' || group === 'DISENGAGEMENT' || group === 'SOCIAL'
         );
         
         if (engagementGroups.length > 0) {
@@ -305,7 +328,7 @@ export async function getUserActivitiesWithPrivacy(
         });
 
         const giverTypes = groupMappings
-          .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT')
+          .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT' || mapping.activityGroup === 'SOCIAL')
           .map(mapping => mapping.activityType);
         
         if (giverTypes.length > 0) {
@@ -357,8 +380,11 @@ export async function getUserActivitiesWithPrivacy(
       const engagementGroups = activityGroups.filter(group => 
         group === 'ENGAGEMENT' || group === 'DISENGAGEMENT'
       );
+      const socialGroups = activityGroups.filter(group => 
+        group === 'SOCIAL'
+      );
       const nonEngagementGroups = activityGroups.filter(group => 
-        group === 'CONTENT_CREATION' || group === 'PREDICTION_MARKET' || group === 'SOCIAL'
+        group === 'CONTENT_CREATION' || group === 'PREDICTION_MARKET'
       );
       
       if (engagementGroups.length > 0) {
@@ -372,6 +398,24 @@ export async function getUserActivitiesWithPrivacy(
         
         // Add group privacy information to each activity
         const activitiesWithPrivacy = engagementActivities.map(activity => ({
+          ...activity,
+          isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
+        }));
+        
+        results.push(...activitiesWithPrivacy);
+      }
+      
+      if (socialGroups.length > 0) {
+        const socialTypes = await prisma.activityGroupMapping.findMany({
+          where: { activityGroup: { in: socialGroups } },
+          select: { activityType: true }
+        });
+        
+        const socialActivityTypes = socialTypes.map(mapping => mapping.activityType);
+        const socialActivities = await getUserGiverActivities(userId, 1000, 0, socialActivityTypes, dateFilter);
+        
+        // Add group privacy information to each activity
+        const activitiesWithPrivacy = socialActivities.map(activity => ({
           ...activity,
           isGroupPrivate: privateGroups.includes(activityTypeToGroup.get(activity.activityType) as ActivityGroup)
         }));
@@ -419,11 +463,11 @@ export async function getUserActivitiesWithPrivacy(
       const results = [];
       
       const giverTypes = groupMappings
-        .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT')
+        .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT' || mapping.activityGroup === 'SOCIAL')
         .map(mapping => mapping.activityType);
       
       const creatorTypes = groupMappings
-        .filter(mapping => mapping.activityGroup === 'CONTENT_CREATION' || mapping.activityGroup === 'PREDICTION_MARKET' || mapping.activityGroup === 'SOCIAL')
+        .filter(mapping => mapping.activityGroup === 'CONTENT_CREATION' || mapping.activityGroup === 'PREDICTION_MARKET')
         .map(mapping => mapping.activityType);
 
       if (giverTypes.length > 0) {
@@ -497,11 +541,7 @@ export async function getUserActivitiesWithPrivacy(
     };
   }
 
-  // Get privacy settings for activity groups
-  const privacySettings = await getUserActivityPrivacy(userId);
-  const privateGroups = privacySettings
-    .filter(setting => !setting.isPublic)
-    .map(setting => setting.activityGroup);
+  // Privacy settings already defined above
 
   // If filtering by activity groups, exclude private ones
   if (activityGroups && activityGroups.length > 0) {
@@ -515,10 +555,10 @@ export async function getUserActivitiesWithPrivacy(
     
     // Separate groups by query type
     const engagementGroups = publicGroups.filter(group => 
-      group === 'ENGAGEMENT' || group === 'DISENGAGEMENT'
+      group === 'ENGAGEMENT' || group === 'DISENGAGEMENT' || group === 'SOCIAL'
     );
     const nonEngagementGroups = publicGroups.filter(group => 
-      group === 'CONTENT_CREATION' || group === 'PREDICTION_MARKET' || group === 'SOCIAL'
+      group === 'CONTENT_CREATION' || group === 'PREDICTION_MARKET'
     );
     
     const results = [];
@@ -583,12 +623,12 @@ export async function getUserActivitiesWithPrivacy(
     const results = [];
     
     // Separate by group type
-    const giverTypes = publicMappings
-      .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT')
-      .map(mapping => mapping.activityType);
+  const giverTypes = publicMappings
+    .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT' || mapping.activityGroup === 'SOCIAL')
+    .map(mapping => mapping.activityType);
     
     const creatorTypes = publicMappings
-      .filter(mapping => mapping.activityGroup === 'CONTENT_CREATION' || mapping.activityGroup === 'PREDICTION_MARKET' || mapping.activityGroup === 'SOCIAL')
+      .filter(mapping => mapping.activityGroup === 'CONTENT_CREATION' || mapping.activityGroup === 'PREDICTION_MARKET')
       .map(mapping => mapping.activityType);
 
     // Get giver activities
@@ -612,11 +652,20 @@ export async function getUserActivitiesWithPrivacy(
     };
   }
 
+  // Skip "no specific filters" section if activityGroups are provided (already handled above)
+  if (activityGroups && activityGroups.length > 0) {
+    return {
+      activities: [],
+      userShowActivity
+    };
+  }
+
   // No specific filters, get all public activities respecting privacy settings
   // When viewing someone else's profile, show what they did (giver + content creation)
+  // When viewing own profile, respect filterMode (you vs incoming)
   
   // Get all activity types and filter by privacy settings
-  const allActivityTypes = ['REVIEW_LIKED', 'REVIEW_UNLIKED', 'DISCUSSION_LIKED', 'DISCUSSION_UNLIKED', 'WATCHLIST_LIKED', 'WATCHLIST_UNLIKED', 'PREDICTION_LIKED', 'PREDICTION_UNLIKED', 'COMMENT_UPVOTED', 'COMMENT_DOWNVOTED', 'COMMENT_CREATED', 'REVIEW_CREATED', 'DISCUSSION_CREATED', 'WATCHLIST_CREATED', 'PREDICTION_CREATED'] as ActivityType[];
+  const allActivityTypes = ['REVIEW_LIKED', 'REVIEW_UNLIKED', 'DISCUSSION_LIKED', 'DISCUSSION_UNLIKED', 'WATCHLIST_LIKED', 'WATCHLIST_UNLIKED', 'PREDICTION_LIKED', 'PREDICTION_UNLIKED', 'COMMENT_UPVOTED', 'COMMENT_DOWNVOTED', 'COMMENT_CREATED', 'REVIEW_CREATED', 'DISCUSSION_CREATED', 'WATCHLIST_CREATED', 'PREDICTION_CREATED', 'USER_FOLLOWED', 'USER_UNFOLLOWED'] as ActivityType[];
   
   // Get group mappings for all activity types
   const groupMappings = await prisma.activityGroupMapping.findMany({
@@ -645,20 +694,29 @@ export async function getUserActivitiesWithPrivacy(
   
   // Separate by group type
   const giverTypes = publicMappings
-    .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT')
+    .filter(mapping => mapping.activityGroup === 'ENGAGEMENT' || mapping.activityGroup === 'DISENGAGEMENT' || mapping.activityGroup === 'SOCIAL')
     .map(mapping => mapping.activityType);
-  
+    
   const creatorTypes = publicMappings
-    .filter(mapping => mapping.activityGroup === 'CONTENT_CREATION' || mapping.activityGroup === 'PREDICTION_MARKET' || mapping.activityGroup === 'SOCIAL')
+    .filter(mapping => mapping.activityGroup === 'CONTENT_CREATION' || mapping.activityGroup === 'PREDICTION_MARKET')
     .map(mapping => mapping.activityType);
 
-  // Get giver activities
-  if (giverTypes.length > 0) {
-    const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
-    results.push(...giverActivities);
+  // For incoming mode, get receiver activities instead of giver activities
+  if (filterMode === 'incoming') {
+    // Get receiver activities (where user received something)
+    if (giverTypes.length > 0) {
+      const receiverActivities = await getUserReceiverActivities(userId, 1000, 0, giverTypes, dateFilter);
+      results.push(...receiverActivities);
+    }
+  } else {
+    // Get giver activities (where user did something)
+    if (giverTypes.length > 0) {
+      const giverActivities = await getUserGiverActivities(userId, 1000, 0, giverTypes, dateFilter);
+      results.push(...giverActivities);
+    }
   }
 
-  // Get creator activities
+  // Get creator activities (always the same regardless of filter mode)
   if (creatorTypes.length > 0) {
     const creatorActivities = await getUserActivities(userId, 1000, 0, creatorTypes, dateFilter, false);
     results.push(...creatorActivities);

@@ -3,6 +3,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 import UserProfileHeader from "@/components/UserProfileHeader";
 import UserStats from "@/components/UserStats";
+import UserTags from "@/components/UserTags";
 import UserActivityFeed from "@/components/UserActivityFeed";
 import UserContent from "@/components/UserContent";
 import UserShowcase from "@/components/UserShowcase";
@@ -79,42 +80,18 @@ export default async function UserProfilePage({
             />
 
             <div className="container mx-auto px-2 py-2 md:px-8 md:py-8 bg-gray-900">
-                {/* Mobile Layout - Single Column */}
-                <div className="flex flex-col md:hidden gap-6">
-                    <div className="px-6 pt-2">
-                        {/* User Stats */}
-                        <UserStats userId={user.id} />
-                    </div>
-
-                    <div className="px-6">
-                        {/* Content */}
-                        <UserContent
-                            userId={user.id}
-                            username={user.username}
-                        />
-                    </div>
-                    
-                    <div className="px-6">
-                        {/* Activity Feed */}
-                        <UserActivityFeed
-                            userId={user.id}
-                            isOwnProfile={isOwnProfile}
-                        />
-                    </div>
-                </div>
-
-                {/* Desktop Layout - Two Columns */}
-                <div className="hidden md:flex flex-row gap-8">
-                    {/* Left Column - Stats */}
-                    <div className="flex-shrink-0 w-64">
-                        <div className="p-0">
-                            {/* User Stats */}
+                {/* Single Layout - Responsive */}
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+                    {/* Left Column - Stats and Tags (Mobile: Full width, Desktop: Fixed width) */}
+                    <div className="md:flex-shrink-0 md:w-64">
+                        <div className="px-4 pt-2 md:px-0 md:pt-0 space-y-6">
                             <UserStats userId={user.id} />
+                            <UserTags username={user.username} hideOnMobile={true} />
                         </div>
                     </div>
 
                     {/* Right Column - Showcase, Activity Feed and Content */}
-                    <div className="flex-1 p-0">
+                    <div className="flex-1">
                         {/* User Showcase */}
                         <UserShowcase
                             username={user.username}
@@ -125,15 +102,20 @@ export default async function UserProfilePage({
                         />
 
                         {/* Content */}
-                        <div className="mt-8">
+                        <div className="mt-8 px-4 md:px-0">
                             <UserContent
                                 userId={user.id}
                                 username={user.username}
                             />
                         </div>
 
+                        {/* Tags - Mobile only */}
+                        <div className="mt-8 md:hidden px-4 md:px-0">
+                            <UserTags username={user.username} />
+                        </div>
+
                         {/* Activity Feed */}
-                        <div className="mt-8">
+                        <div className="mt-8 px-4 md:px-0">
                             <UserActivityFeed
                                 userId={user.id}
                                 isOwnProfile={isOwnProfile}

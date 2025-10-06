@@ -9,6 +9,8 @@ import {
     FiThumbsUp,
     FiThumbsDown,
     FiList,
+    FiUserPlus,
+    FiUserMinus,
 } from "react-icons/fi";
 import { FaPenSquare, FaStar } from "react-icons/fa";
 import { FaMugHot } from "react-icons/fa";
@@ -75,13 +77,26 @@ export default function UserActivityFeed({
     const [isUnauthorized, setIsUnauthorized] = useState(false);
     const [userShowActivity, setUserShowActivity] = useState(true);
     const currentOffsetRef = useRef(0);
+    const loadActivitiesRef = useRef<((isLoadMore?: boolean) => Promise<void>) | null>(null);
     const [showFilters, setShowFilters] = useState(false);
     const [filterMode, setFilterMode] = useState<"you" | "incoming">("you");
     const [filters, setFilters] = useState<ActivityFilters>({
         activityTypes: [],
         activityGroups: [],
+        startDate: undefined,
+        endDate: undefined,
+    });
+    const filtersRef = useRef(filters);
+    const previousSelectionsRef = useRef<string[]>([]);
+    const [hasFilterChanges, setHasFilterChanges] = useState(false);
+    const appliedFiltersRef = useRef<ActivityFilters>({
+        activityTypes: [],
+        activityGroups: [],
+        startDate: undefined,
+        endDate: undefined,
     });
     const [hasInitializedFilters, setHasInitializedFilters] = useState(false);
+    const [hasInitialLoad, setHasInitialLoad] = useState(false);
     const [dateFilters, setDateFilters] = useState({
         startDate: "",
         endDate: "",
@@ -91,6 +106,9 @@ export default function UserActivityFeed({
 
     const loadActivities = useCallback(
         async (isLoadMore = false) => {
+            // Get current filters from ref to avoid stale closure
+            const currentFilters = filtersRef.current;
+            console.log('UserActivityFeed: loadActivities called', { isLoadMore, filterMode, activityGroups: currentFilters.activityGroups });
             try {
                 if (isLoadMore) {
                     setLoadingMore(true);
@@ -107,17 +125,17 @@ export default function UserActivityFeed({
                     limit: limit.toString(),
                     offset: offset.toString(),
                     filterMode,
-                    ...(filters.activityTypes.length > 0 && {
-                        activityTypes: filters.activityTypes.join(","),
+                    ...(currentFilters.activityTypes.length > 0 && {
+                        activityTypes: currentFilters.activityTypes.join(","),
                     }),
-                    ...(filters.activityGroups.length > 0 && {
-                        activityGroups: filters.activityGroups.join(","),
+                    ...(currentFilters.activityGroups.length > 0 && {
+                        activityGroups: currentFilters.activityGroups.join(","),
                     }),
-                    ...(filters.year && { year: filters.year.toString() }),
-                    ...(filters.month && { month: filters.month.toString() }),
-                    ...(filters.day && { day: filters.day.toString() }),
-                    ...(filters.startDate && { startDate: filters.startDate }),
-                    ...(filters.endDate && { endDate: filters.endDate }),
+                    ...(currentFilters.year && { year: currentFilters.year.toString() }),
+                    ...(currentFilters.month && { month: currentFilters.month.toString() }),
+                    ...(currentFilters.day && { day: currentFilters.day.toString() }),
+                    ...(currentFilters.startDate && { startDate: currentFilters.startDate }),
+                    ...(currentFilters.endDate && { endDate: currentFilters.endDate }),
                 });
 
                 const response = await fetch(
@@ -149,8 +167,48 @@ export default function UserActivityFeed({
                 setLoadingMore(false);
             }
         },
-        [userId, filters, filterMode, isMobile]
+        [userId, filterMode, isMobile]
     );
+
+    // Store the loadActivities function in a ref to avoid dependency issues
+    loadActivitiesRef.current = loadActivities;
+    
+    // Update filters ref whenever filters change
+    filtersRef.current = filters;
+    
+    // Update previous selections when filters change
+    useEffect(() => {
+        previousSelectionsRef.current = [...filters.activityGroups];
+    }, [filters.activityGroups]);
+
+    // Sync date filters with main filters state
+    useEffect(() => {
+        setFilters((prev) => ({
+            ...prev,
+            startDate: dateFilters.startDate || undefined,
+            endDate: dateFilters.endDate || undefined,
+        }));
+    }, [dateFilters.startDate, dateFilters.endDate]);
+
+
+    // Track filter changes to enable/disable Apply Filters button
+    useEffect(() => {
+        if (hasInitializedFilters) {
+            // Check if activity groups have changed from applied state
+            const hasActivityGroupChanges = 
+                filters.activityGroups.length !== appliedFiltersRef.current.activityGroups.length ||
+                !filters.activityGroups.every(group => appliedFiltersRef.current.activityGroups.includes(group)) ||
+                !appliedFiltersRef.current.activityGroups.every(group => filters.activityGroups.includes(group));
+            
+            // Check if date filters have changed from applied state
+            const hasDateChanges = 
+                filters.startDate !== appliedFiltersRef.current.startDate ||
+                filters.endDate !== appliedFiltersRef.current.endDate;
+            
+            
+            setHasFilterChanges(hasActivityGroupChanges || hasDateChanges);
+        }
+    }, [filters, hasInitializedFilters]);
 
     // Detect screen size changes
     useEffect(() => {
@@ -168,11 +226,101 @@ export default function UserActivityFeed({
         return () => window.removeEventListener("resize", checkScreenSize);
     }, []);
 
+    // Initialize filters on component mount
     useEffect(() => {
-        setHasLoadedMore(false);
-        setIsUnauthorized(false);
-        loadActivities(false);
-    }, [filters, filterMode, loadActivities]);
+        if (!hasInitializedFilters) {
+            const allGroups = Object.values(ActivityGroup).filter((group) => {
+                // For incoming mode on own profile, exclude CONTENT_CREATION
+                if (
+                    isOwnProfile &&
+                    filterMode === "incoming" &&
+                    group === "CONTENT_CREATION"
+                ) {
+                    return false;
+                }
+                return true;
+            });
+
+            const initialFilters = {
+                ...filters,
+                activityGroups: allGroups,
+            };
+            
+            setFilters(initialFilters);
+            
+            // Initialize applied filters ref with the initial state
+            appliedFiltersRef.current = {
+                activityTypes: [],
+                activityGroups: allGroups,
+                startDate: undefined,
+                endDate: undefined
+            };
+            
+            setHasInitializedFilters(true);
+        }
+    }, [hasInitializedFilters, isOwnProfile, filterMode, filters]);
+
+    // Load activities when filters are ready (only once on initial load)
+    useEffect(() => {
+        if (hasInitializedFilters && !hasInitialLoad && loadActivitiesRef.current) {
+            console.log('UserActivityFeed: Loading activities on initial setup');
+            setHasLoadedMore(false);
+            setIsUnauthorized(false);
+            loadActivitiesRef.current(false);
+            setHasInitialLoad(true);
+        }
+    }, [hasInitializedFilters, hasInitialLoad]);
+
+    // Handle filter mode changes and preserve selections
+    useEffect(() => {
+        if (hasInitialLoad && hasInitializedFilters) {
+            // When switching from "incoming" to "you" mode, restore CONTENT_CREATION if it was previously selected
+            if (filterMode === "you" && isOwnProfile) {
+                const currentGroups = filtersRef.current.activityGroups;
+                const hasContentCreation = currentGroups.includes("CONTENT_CREATION");
+                const wasContentCreationSelected = previousSelectionsRef.current.includes("CONTENT_CREATION");
+                
+                console.log('Mode switch check:', {
+                    filterMode,
+                    hasContentCreation,
+                    wasContentCreationSelected,
+                    currentGroups,
+                    previousGroups: previousSelectionsRef.current
+                });
+                
+                if (!hasContentCreation && wasContentCreationSelected) {
+                    // Restore CONTENT_CREATION if it was selected before
+                    setFilters((prev) => ({
+                        ...prev,
+                        activityGroups: [...prev.activityGroups, "CONTENT_CREATION"],
+                    }));
+                }
+            }
+            
+            // Load activities with the updated filters
+            if (loadActivitiesRef.current) {
+                console.log('UserActivityFeed: Loading activities due to filter mode change');
+                setHasLoadedMore(false);
+                setIsUnauthorized(false);
+                loadActivitiesRef.current(false);
+            }
+            
+            // Update applied filters ref when mode changes
+            appliedFiltersRef.current = {
+                ...filtersRef.current,
+                startDate: filtersRef.current.startDate,
+                endDate: filtersRef.current.endDate
+            };
+            
+            // Reset changes flag when mode changes since initial state changes
+            setHasFilterChanges(false);
+        }
+    }, [
+        hasInitialLoad,
+        hasInitializedFilters,
+        filterMode,
+        isOwnProfile
+    ]);
 
     const handleLoadMore = () => {
         setHasLoadedMore(true);
@@ -186,29 +334,6 @@ export default function UserActivityFeed({
         loadActivities(false);
     };
 
-    // Initialize filters with all groups selected when filter panel opens for the first time
-    useEffect(() => {
-        if (showFilters && !hasInitializedFilters) {
-            const allGroups = Object.values(ActivityGroup).filter((group) => {
-                // For incoming mode on own profile, exclude CONTENT_CREATION
-                if (
-                    isOwnProfile &&
-                    filterMode === "incoming" &&
-                    group === "CONTENT_CREATION"
-                ) {
-                    return false;
-                }
-                return true;
-            });
-
-            setFilters((prev) => ({
-                ...prev,
-                activityGroups: allGroups,
-            }));
-            setHasInitializedFilters(true);
-        }
-    }, [showFilters, hasInitializedFilters, isOwnProfile, filterMode]);
-
     const handleSelectAllGroups = () => {
         const allGroups = Object.values(ActivityGroup).filter((group) => {
             if (
@@ -220,14 +345,95 @@ export default function UserActivityFeed({
             }
             return true;
         });
+        
+        // Preserve groups that aren't available in current mode but were previously selected
+        const preservedGroups = filters.activityGroups.filter(group => 
+            !allGroups.includes(group)
+        );
+        
+        const finalGroups = [...allGroups, ...preservedGroups];
+        
+        console.log('handleSelectAllGroups:', {
+            allGroups,
+            preservedGroups,
+            finalGroups,
+            filterMode,
+            isOwnProfile
+        });
+        
         setFilters((prev) => ({
             ...prev,
-            activityGroups: allGroups,
+            activityGroups: finalGroups,
         }));
     };
 
-    const handleApplyDateFilter = () => {
-        // Validate date range
+    // Check if all available activity groups are selected
+    const isAllGroupsSelected = () => {
+        // Don't check if filters haven't been initialized yet
+        if (!hasInitializedFilters) {
+            return false;
+        }
+        
+        const availableGroups = Object.values(ActivityGroup).filter((group) => {
+            if (
+                isOwnProfile &&
+                filterMode === "incoming" &&
+                group === "CONTENT_CREATION"
+            ) {
+                return false;
+            }
+            return true;
+        });
+        
+        // Check if all available groups are selected
+        const allAvailableSelected = availableGroups.every(group => filters.activityGroups.includes(group));
+        
+        
+        return allAvailableSelected;
+    };
+
+
+    const handleRemoveDateFilter = () => {
+        // Clear date inputs
+        setDateFilters({
+            startDate: "",
+            endDate: "",
+        });
+        setDateError("");
+        
+        // Update filters to remove date filters but keep activity groups
+        const newFilters = {
+            ...filters,
+            startDate: undefined,
+            endDate: undefined,
+        };
+        
+        setFilters(newFilters);
+        
+        // Update the ref immediately so loadActivities uses the new filters
+        filtersRef.current = newFilters;
+        
+        // Update the applied filters ref to track what was last applied
+        appliedFiltersRef.current = {
+            activityTypes: newFilters.activityTypes,
+            activityGroups: newFilters.activityGroups,
+            startDate: newFilters.startDate,
+            endDate: newFilters.endDate
+        };
+
+        // Apply the filter removal immediately (with current activity groups)
+        console.log('UserActivityFeed: Remove date filter clicked');
+        if (loadActivitiesRef.current) {
+            setHasLoadedMore(false);
+            setIsUnauthorized(false);
+            loadActivitiesRef.current(false);
+        }
+    };
+
+    const handleApplyFilters = () => {
+        console.log('UserActivityFeed: Apply filters clicked');
+        
+        // Validate date range if both dates are provided
         if (dateFilters.startDate && dateFilters.endDate) {
             const startDate = new Date(dateFilters.startDate);
             const endDate = new Date(dateFilters.endDate);
@@ -238,25 +444,38 @@ export default function UserActivityFeed({
             }
         }
 
+        // Clear any existing date errors
         setDateError("");
-        setFilters((prev) => ({
-            ...prev,
+        
+        // Update filters with current activity groups and date filters
+        const newFilters = {
+            ...filters,
             startDate: dateFilters.startDate || undefined,
             endDate: dateFilters.endDate || undefined,
-        }));
-    };
+        };
+        
+        setFilters(newFilters);
+        
+        // Update the ref immediately so loadActivities uses the new filters
+        filtersRef.current = newFilters;
+        
+        // Update the applied filters ref to track what was last applied
+        appliedFiltersRef.current = {
+            activityTypes: newFilters.activityTypes,
+            activityGroups: newFilters.activityGroups,
+            startDate: newFilters.startDate,
+            endDate: newFilters.endDate
+        };
 
-    const handleRemoveDateFilter = () => {
-        setDateFilters({
-            startDate: "",
-            endDate: "",
-        });
-        setDateError("");
-        setFilters((prev) => ({
-            ...prev,
-            startDate: undefined,
-            endDate: undefined,
-        }));
+        // Apply the filters immediately
+        if (loadActivitiesRef.current) {
+            setHasLoadedMore(false);
+            setIsUnauthorized(false);
+            loadActivitiesRef.current(false);
+        }
+        
+        // Reset the changes flag after applying filters
+        setHasFilterChanges(false);
     };
 
     const formatActivityTime = (date: Date) => {
@@ -295,6 +514,14 @@ export default function UserActivityFeed({
             if (activityType.includes("COMMENT_CREATED")) {
                 return <FiMessageCircle className="w-5 h-5 text-blue-400" />;
             }
+        }
+
+        // For follow/unfollow activities
+        if (activityType.includes("USER_FOLLOWED")) {
+            return <FiUserPlus className="w-5 h-5 text-green-400" />;
+        }
+        if (activityType.includes("USER_UNFOLLOWED")) {
+            return <FiUserMinus className="w-5 h-5 text-red-400" />;
         }
 
         // For other entities, use entityType
@@ -609,6 +836,24 @@ export default function UserActivityFeed({
             }
         }
 
+        // For follow/unfollow activities
+        if (activityType.includes("USER_FOLLOWED")) {
+            const followedUsername = metadata?.receiverUsername || receiverUsername;
+            if (isIncoming) {
+                return `${giverUsername} followed you`;
+            } else {
+                return `${isOwnProfile ? "You" : giverUsername} followed ${followedUsername}`;
+            }
+        }
+        if (activityType.includes("USER_UNFOLLOWED")) {
+            const unfollowedUsername = metadata?.receiverUsername || receiverUsername;
+            if (isIncoming) {
+                return `${giverUsername} unfollowed you`;
+            } else {
+                return `${isOwnProfile ? "You" : giverUsername} unfollowed ${unfollowedUsername}`;
+            }
+        }
+
         // Fallback to original description
         return activity.description;
     };
@@ -637,6 +882,18 @@ export default function UserActivityFeed({
                 return false; // User was the giver, didn't receive points
             } else {
                 return true; // User was the receiver, received points
+            }
+        }
+
+        // Follow/unfollow activities - only show points for USER_FOLLOWED (not USER_UNFOLLOWED)
+        if (activityType.includes("USER_FOLLOWED") || activityType.includes("USER_UNFOLLOWED")) {
+            // In "You" mode: user performed the action (followed/unfollowed someone) - they didn't receive points
+            // In "Incoming" mode: someone else followed/unfollowed the user - user received points for being followed
+            if (filterMode === "you") {
+                return false; // User was the giver, didn't receive points
+            } else {
+                // Only show points for USER_FOLLOWED, not USER_UNFOLLOWED
+                return activityType.includes("USER_FOLLOWED");
             }
         }
 
@@ -731,23 +988,6 @@ export default function UserActivityFeed({
         return null;
     };
 
-    if (loading && activities.length === 0) {
-        return (
-            <div className="bg-gray-800 rounded-lg p-6">
-                <div className="animate-pulse">
-                    <div className="h-6 bg-gray-700 rounded mb-4"></div>
-                    <div className="space-y-3">
-                        {[...Array(5)].map((_, i) => (
-                            <div
-                                key={i}
-                                className="h-4 bg-gray-700 rounded"
-                            ></div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="mb-8">
@@ -816,12 +1056,30 @@ export default function UserActivityFeed({
                                 <label className="block text-sm font-medium text-gray-300">
                                     Activity Groups
                                 </label>
-                                <button
-                                    onClick={handleSelectAllGroups}
-                                    className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                                >
-                                    Select All
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleSelectAllGroups}
+                                        disabled={isAllGroupsSelected()}
+                                        className={`px-3 py-1 text-xs transition-colors ${
+                                            isAllGroupsSelected()
+                                                ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+                                                : "bg-green-600 text-white hover:bg-green-700"
+                                        }`}
+                                    >
+                                        Select All
+                                    </button>
+                                    <button
+                                        onClick={handleApplyFilters}
+                                        disabled={!hasFilterChanges}
+                                        className={`px-3 py-1 text-xs transition-colors ${
+                                            hasFilterChanges
+                                                ? "bg-blue-600 text-white hover:bg-blue-700"
+                                                : "bg-gray-500 text-gray-300 cursor-not-allowed"
+                                        }`}
+                                    >
+                                        Apply Filters
+                                    </button>
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 {Object.values(ActivityGroup)
@@ -902,16 +1160,10 @@ export default function UserActivityFeed({
                                 </label>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={handleApplyDateFilter}
-                                        className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                                    >
-                                        Apply Filter
-                                    </button>
-                                    <button
                                         onClick={handleRemoveDateFilter}
                                         className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
                                     >
-                                        Remove Filter
+                                        Remove Date Filter
                                     </button>
                                 </div>
                             </div>
