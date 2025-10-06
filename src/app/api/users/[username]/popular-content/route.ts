@@ -220,7 +220,7 @@ export async function GET(
           }
         },
         shows: {
-          take: 4,
+          take: 10,
           orderBy: { ranking: 'asc' },
           include: {
             show: {
@@ -241,7 +241,8 @@ export async function GET(
       commentCount: watchlist._count.comments,
       createdAt: watchlist.createdAt,
       showCount: watchlist._count.shows,
-      posterPaths: watchlist.shows.map(s => s.show.posterPath).filter((p): p is string => p !== null)
+      posterPaths: watchlist.shows.map(s => s.show.posterPath).filter((p): p is string => p !== null),
+      isRanked: watchlist.shows.some(s => s.ranking !== null)
     }));
 
     return NextResponse.json({

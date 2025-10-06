@@ -44,6 +44,7 @@ interface RecentContent {
     commentCount: number;
     showCount: number;
     posterPaths: string[];
+    isRanked: boolean;
   }>;
 }
 
@@ -81,6 +82,7 @@ interface PopularContent {
     commentCount: number;
     showCount: number;
     posterPaths: string[];
+    isRanked: boolean;
   }>;
 }
 
@@ -149,20 +151,10 @@ export default function UserContent({ userId, username }: UserContentProps) {
     return activeMode === 'recent' ? recentContent : popularContent;
   };
 
-  const getCurrentTabCounts = () => {
-    const content = getCurrentContent();
-    if (!content) return { reviews: 0, discussions: 0, watchlists: 0 };
-    
-    return {
-      reviews: content.reviews.length,
-      discussions: content.discussions.length,
-      watchlists: content.watchlists.length,
-    };
-  };
 
   if (loading) {
     return (
-      <div className="mb-8">
+      <div>
         {/* Header - matching Activity Feed style */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-green-500">Content</h2>
@@ -214,11 +206,10 @@ export default function UserContent({ userId, username }: UserContentProps) {
   }
 
   const content = getCurrentContent();
-  const tabCounts = getCurrentTabCounts();
 
   if (!content) {
     return (
-      <div className="mb-8">
+      <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-green-500">Content</h2>
           {isMobile && (
@@ -242,13 +233,13 @@ export default function UserContent({ userId, username }: UserContentProps) {
   }
 
   const tabs = [
-    { key: 'reviews' as const, label: 'Reviews', icon: FiStar, count: tabCounts.reviews },
-    { key: 'discussions' as const, label: 'Discussions', icon: FiMessageSquare, count: tabCounts.discussions },
-    { key: 'watchlists' as const, label: 'Watchlists', icon: FiList, count: tabCounts.watchlists },
+    { key: 'reviews' as const, label: 'Reviews', icon: FiStar },
+    { key: 'discussions' as const, label: 'Discussions', icon: FiMessageSquare },
+    { key: 'watchlists' as const, label: 'Watchlists', icon: FiList },
   ];
 
   return (
-    <div className="mb-8">
+    <div>
       {/* Header - matching Activity Feed style */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-green-500">Content</h2>
@@ -307,9 +298,6 @@ export default function UserContent({ userId, username }: UserContentProps) {
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
-                <span className="bg-gray-600 text-gray-300 text-xs px-2 py-1 rounded-full">
-                  {tab.count}
-                </span>
               </button>
             ))}
           </div>
@@ -400,25 +388,13 @@ export default function UserContent({ userId, username }: UserContentProps) {
                                 {review.rating && (
                                   <>
                                     <div className="flex items-center gap-1">
-                                      {[...Array(5)].map((_, i) => {
-                                        const rating = review.rating!;
-                                        const isFullStar = i < Math.floor(rating);
-                                        const isHalfStar = i === Math.floor(rating) && rating % 1 >= 0.5;
-                                        
-                                        return (
-                                          <div key={i} className="relative">
-                                            <FiStar className="w-4 h-4 text-gray-600" />
-                                            {(isFullStar || isHalfStar) && (
-                                              <div 
-                                                className="absolute inset-0 overflow-hidden"
-                                                style={{ width: isHalfStar ? '50%' : '100%' }}
-                                              >
-                                                <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
+                                      <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
+                                      <span className="text-sm font-semibold text-yellow-400">
+                                        {review.rating}
+                                      </span>
+                                      <span className="text-xs text-gray-400">
+                                        / 5
+                                      </span>
                                     </div>
                                     <span className="text-sm text-gray-500">•</span>
                                   </>
@@ -559,40 +535,56 @@ export default function UserContent({ userId, username }: UserContentProps) {
                               {watchlist.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-gray-400">
-                              {formatDate(watchlist.createdAt)}
-                            </p>
-                            <span className="text-sm text-gray-500">•</span>
-                            <p className="text-sm text-gray-400">
-                              {watchlist.showCount} show{watchlist.showCount !== 1 ? 's' : ''} in this list
-                            </p>
-                            <span className="text-sm text-gray-500">•</span>
-                            <div className="flex items-center gap-1">
-                              <GiRose className="w-4 h-4 text-red-400" />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
                               <p className="text-sm text-gray-400">
-                                {watchlist.likeCount}
+                                {formatDate(watchlist.createdAt)}
                               </p>
+                              <span className="text-sm text-gray-500">•</span>
+                              <p className="text-sm text-gray-400">
+                                {watchlist.showCount} show{watchlist.showCount !== 1 ? 's' : ''} in this list
+                              </p>
+                              {watchlist.isRanked && (
+                                <>
+                                  <span className="text-sm text-gray-500">•</span>
+                                  <span className="text-xs text-white px-2 py-1 rounded-full">
+                                    Ranked list
+                                  </span>
+                                </>
+                              )}
                             </div>
-                            <span className="text-sm text-gray-500">•</span>
-                            <div className="flex items-center gap-1">
-                              <FiMessageCircle className="w-4 h-4 text-white-400" />
-                              <p className="text-sm text-gray-400">
-                                {watchlist.commentCount}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                <GiRose className="w-4 h-4 text-red-400" />
+                                <p className="text-sm text-gray-400">
+                                  {watchlist.likeCount}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <FiMessageCircle className="w-4 h-4 text-white-400" />
+                                <p className="text-sm text-gray-400">
+                                  {watchlist.commentCount}
+                                </p>
+                              </div>
                             </div>
                           </div>
                           {watchlist.posterPaths.length > 0 && (
-                            <div className="flex gap-2 mt-2">
-                              {watchlist.posterPaths.slice(0, 3).map((posterPath, posterIndex) => (
-                                <Image
-                                  key={posterIndex}
-                                  src={`https://image.tmdb.org/t/p/w500${posterPath}`}
-                                  alt={`Show ${posterIndex + 1}`}
-                                  width={80}
-                                  height={120}
-                                  className="w-16 h-24 md:w-20 md:h-30 rounded object-cover"
-                                />
+                            <div className="flex gap-1.5 mt-2 overflow-hidden">
+                              {watchlist.posterPaths.slice(0,4).map((posterPath, posterIndex) => (
+                                <div key={posterIndex} className="relative">
+                                  <Image
+                                    src={`https://image.tmdb.org/t/p/w500${posterPath}`}
+                                    alt={`Show ${posterIndex + 1}`}
+                                    width={60}
+                                    height={90}
+                                    className="w-18 h-27 md:w-24 md:h-36 rounded object-cover flex-shrink-0"
+                                  />
+                                  {posterIndex === 3 && watchlist.posterPaths.length > 4 && (
+                                    <div className="absolute inset-0 bg-green-600 bg-opacity-50 rounded flex items-center justify-center">
+                                      <span className="text-white text-lg font-bold">+{watchlist.posterPaths.length - 4}</span>
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           )}

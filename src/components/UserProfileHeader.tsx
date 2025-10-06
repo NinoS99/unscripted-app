@@ -1,8 +1,10 @@
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiTwitter, FiInstagram, FiCalendar } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiTwitter, FiInstagram, FiCalendar, FiUserPlus, FiUserMinus } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
+import { useAuth } from '@clerk/nextjs';
 
 interface UserProfileHeaderProps {
   user: {
@@ -24,12 +26,84 @@ interface UserProfileHeaderProps {
 }
 
 export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHeaderProps) {
+  const { userId: currentUserId } = useAuth();
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isMutualFollow, setIsMutualFollow] = useState(false);
+  const [followStatusLoading, setFollowStatusLoading] = useState(true);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
   const displayName = user.username;
 
   const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long'
   });
+
+  // Fetch follow status on component mount
+  useEffect(() => {
+    const fetchFollowStatus = async () => {
+      if (isOwnProfile || !currentUserId) {
+        setFollowStatusLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/users/${user.username}/follow-status`);
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.isFollowing);
+          setIsMutualFollow(data.isMutualFollow);
+        }
+      } catch (error) {
+        console.error('Error fetching follow status:', error);
+      } finally {
+        setFollowStatusLoading(false);
+      }
+    };
+
+    fetchFollowStatus();
+  }, [user.username, isOwnProfile, currentUserId]);
+
+  // Fetch follower/following counts
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const response = await fetch(`/api/users/${user.username}/follow-status?includeCounts=true`);
+        if (response.ok) {
+          const data = await response.json();
+          setFollowerCount(data.followerCount || 0);
+          setFollowingCount(data.followingCount || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching follower/following counts:', error);
+      }
+    };
+
+    fetchCounts();
+  }, [user.username]);
+
+  const handleFollowToggle = async () => {
+    if (!currentUserId) return;
+
+    try {
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/users/${user.username}/follow`, {
+        method,
+      });
+
+      if (response.ok) {
+        setIsFollowing(!isFollowing);
+        // Reset mutual follow status since it will be recalculated on next fetch
+        setIsMutualFollow(false);
+      } else {
+        const error = await response.json();
+        console.error('Error toggling follow:', error);
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+    }
+  };
 
   return (
     <>
@@ -64,8 +138,26 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
                         {user.starPoints.toLocaleString()}
                       </span>
                     </div>
+                    {/* Friends indicator - Desktop */}
+                    {!isOwnProfile && currentUserId && !followStatusLoading && isMutualFollow && (
+                      <span className="text-sm text-green-400 font-medium bg-green-500/20 px-3 py-1 rounded-full">
+                        Friends
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-200">@{user.username}</p>
+                  
+                  {/* Follower/Following Counts - Desktop */}
+                  <div className="flex items-center gap-4 text-sm text-gray-300 mt-1">
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold text-white">{followerCount}</span>
+                      <span>followers</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold text-white">{followingCount}</span>
+                      <span>following</span>
+                    </div>
+                  </div>
                   
                   {/* Social Links */}
                   {(user.twitter || user.instagram) && (
@@ -113,6 +205,34 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
               </div>
             </div>
             
+            {/* Follow/Unfollow Button and Counts - Desktop */}
+            <div className="flex-shrink-0 self-start flex flex-col items-start gap-3">
+              {!isOwnProfile && currentUserId && !followStatusLoading && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                      isFollowing
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <FiUserMinus className="w-4 h-4" />
+                        Unfollow
+                      </>
+                    ) : (
+                      <>
+                        <FiUserPlus className="w-4 h-4" />
+                        Follow
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+            
           </div>
         </div>
       </div>
@@ -144,8 +264,51 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
                     {user.starPoints.toLocaleString()}
                   </span>
                 </div>
+                {/* Friends indicator - Mobile */}
+                {!isOwnProfile && currentUserId && !followStatusLoading && isMutualFollow && (
+                  <span className="text-xs text-green-400 font-medium bg-green-500/20 px-3 py-1 rounded-full">
+                    Friends
+                  </span>
+                )}
               </div>
-              <p className="text-gray-200">@{user.username}</p>
+              
+              {/* Follower/Following Counts - Mobile */}
+              <div className="flex items-center justify-center gap-4 text-sm text-gray-300">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-white">{followerCount}</span>
+                  <span>followers</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-white">{followingCount}</span>
+                  <span>following</span>
+                </div>
+              </div>
+              
+              {/* Follow/Unfollow Button - Mobile */}
+              {!isOwnProfile && currentUserId && !followStatusLoading && (
+                <div className="mt-3 flex items-center justify-center gap-3">
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors text-xs ${
+                      isFollowing
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <FiUserMinus className="w-4 h-4" />
+                        Unfollow
+                      </>
+                    ) : (
+                      <>
+                        <FiUserPlus className="w-4 h-4" />
+                        Follow
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
               
               {/* Bio */}
               {user.bio && (
