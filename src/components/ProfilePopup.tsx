@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import Image from "next/image";
+import Link from "next/link";
 import EditProfileForm from "./EditProfileForm";
 
 export default function ProfilePopup() {
@@ -27,6 +28,12 @@ export default function ProfilePopup() {
             }
         };
 
+        const handleClickOutside = (event: MouseEvent) => {
+            if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+                closeAll();
+            }
+        };
+
         // Detect when Clerk opens a modal
         const handleClerkModalOpen = () => {
             clerkModalActive.current = true;
@@ -38,11 +45,13 @@ export default function ProfilePopup() {
         };
 
         document.addEventListener("keydown", handleEscape);
+        document.addEventListener("mousedown", handleClickOutside);
         window.addEventListener("clerk-modal-open", handleClerkModalOpen);
         window.addEventListener("clerk-modal-close", handleClerkModalClose);
 
         return () => {
             document.removeEventListener("keydown", handleEscape);
+            document.removeEventListener("mousedown", handleClickOutside);
             window.removeEventListener("clerk-modal-open", handleClerkModalOpen);
             window.removeEventListener("clerk-modal-close", handleClerkModalClose);
         };
@@ -98,6 +107,14 @@ export default function ProfilePopup() {
             {showPopup && (
                 <div className="absolute right-0 mt-2 w-64 bg-gray-900 rounded-md shadow-lg z-50 border border-gray-600 animate-fade-in">
                     <div className="p-1">
+                        <Link
+                            href={`/${user.username}`}
+                            onClick={() => setShowPopup(false)}
+                            className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-400 rounded"
+                        >
+                            View Profile
+                        </Link>
+                        
                         <button
                             onClick={handleAccountSettings}
                             className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-400 rounded"

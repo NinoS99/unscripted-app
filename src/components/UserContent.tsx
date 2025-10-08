@@ -147,6 +147,16 @@ export default function UserContent({ userId, username }: UserContentProps) {
     });
   };
 
+  const formatCount = (count: number) => {
+    if (count >= 1000000) {
+      return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    }
+    return count.toString();
+  };
+
   const getCurrentContent = () => {
     return activeMode === 'recent' ? recentContent : popularContent;
   };
@@ -315,7 +325,7 @@ export default function UserContent({ userId, username }: UserContentProps) {
                         href={`/${username}/review/${review.type.toLowerCase()}/${review.id}`}
                         className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
                       >
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 h-36 md:h-30">
                           {review.entityPosterPath && (
                             <div className="flex-shrink-0">
                               <Image
@@ -323,17 +333,19 @@ export default function UserContent({ userId, username }: UserContentProps) {
                                 alt={review.entityName}
                                 width={80}
                                 height={120}
-                                className="w-16 h-24 md:w-20 md:h-30 rounded object-cover"
+                                className="w-24 h-36 md:w-20 md:h-30 rounded object-cover"
                               />
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
-                              {review.entityName}
-                            </h4>
-                            <p className="text-sm text-gray-400 line-clamp-2 mt-1">
-                              {review.content}
-                            </p>
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
+                                {review.entityName}
+                              </h4>
+                              <p className="text-sm text-gray-400 line-clamp-3 md:line-clamp-2 mt-1">
+                                {review.content}
+                              </p>
+                            </div>
                             {/* Desktop Layout - All in one row */}
                             <div className="hidden md:flex items-center gap-2 mt-2">
                               {review.rating && (
@@ -369,31 +381,28 @@ export default function UserContent({ userId, username }: UserContentProps) {
                               <div className="flex items-center gap-1">
                                 <GiRose className="w-4 h-4 text-red-400" />
                                 <p className="text-sm text-gray-400">
-                                  {review.likeCount}
+                                  {formatCount(review.likeCount)}
                                 </p>
                               </div>
                               <span className="text-sm text-gray-500">•</span>
                               <div className="flex items-center gap-1">
                                 <FiMessageCircle className="w-4 h-4 text-white-400" />
                                 <p className="text-sm text-gray-400">
-                                  {review.commentCount}
+                                  {formatCount(review.commentCount)}
                                 </p>
                               </div>
                             </div>
 
-                            {/* Mobile Layout - Split into two rows */}
-                            <div className="md:hidden space-y-1 mt-2">
-                              {/* First row: Rating (if exists) + Date */}
-                              <div className="flex items-center gap-2">
+                            {/* Mobile Layout - Two rows */}
+                            <div className="md:hidden space-y-1">
+                              {/* Row 1: Rating + Date */}
+                              <div className="flex items-center gap-1">
                                 {review.rating && (
                                   <>
                                     <div className="flex items-center gap-1">
                                       <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
                                       <span className="text-sm font-semibold text-yellow-400">
                                         {review.rating}
-                                      </span>
-                                      <span className="text-xs text-gray-400">
-                                        / 5
                                       </span>
                                     </div>
                                     <span className="text-sm text-gray-500">•</span>
@@ -402,45 +411,23 @@ export default function UserContent({ userId, username }: UserContentProps) {
                                 <p className="text-sm text-gray-400">
                                   {formatDate(review.createdAt)}
                                 </p>
-                                {/* If no rating, show likes/comments on same row */}
-                                {!review.rating && (
-                                  <>
-                                    <span className="text-sm text-gray-500">•</span>
-                                    <div className="flex items-center gap-3">
-                                      <div className="flex items-center gap-1">
-                                        <GiRose className="w-4 h-4 text-red-400" />
-                                        <p className="text-sm text-gray-400">
-                                          {review.likeCount}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <FiMessageCircle className="w-4 h-4 text-white-400" />
-                                        <p className="text-sm text-gray-400">
-                                          {review.commentCount}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </>
-                                )}
                               </div>
-                              
-                              {/* Second row: Likes + Comments (only if rating exists) */}
-                              {review.rating && (
-                                <div className="flex items-center gap-3">
-                                  <div className="flex items-center gap-1">
-                                    <GiRose className="w-4 h-4 text-red-400" />
-                                    <p className="text-sm text-gray-400">
-                                      {review.likeCount}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <FiMessageCircle className="w-4 h-4 text-white-400" />
-                                    <p className="text-sm text-gray-400">
-                                      {review.commentCount}
-                                    </p>
-                                  </div>
+                              {/* Row 2: Likes + Comments */}
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
+                                  <GiRose className="w-4 h-4 text-red-400" />
+                                  <p className="text-sm text-gray-400">
+                                    {formatCount(review.likeCount)}
+                                  </p>
                                 </div>
-                              )}
+                                <span className="text-sm text-gray-500">•</span>
+                                <div className="flex items-center gap-1">
+                                  <FiMessageCircle className="w-4 h-4 text-white-400" />
+                                  <p className="text-sm text-gray-400">
+                                    {formatCount(review.commentCount)}
+                                  </p>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -465,7 +452,7 @@ export default function UserContent({ userId, username }: UserContentProps) {
                         href={`/${username}/discussion/${discussion.entityType}/${discussion.id}`}
                         className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
                       >
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 h-36 md:h-30">
                           {discussion.entityPosterPath && (
                             <div className="flex-shrink-0">
                               <Image
@@ -473,18 +460,23 @@ export default function UserContent({ userId, username }: UserContentProps) {
                                 alt={discussion.entityName}
                                 width={80}
                                 height={120}
-                                className="w-16 h-24 md:w-20 md:h-30 rounded object-cover"
+                                className="w-24 h-36 md:w-20 md:h-30 rounded object-cover"
                               />
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
-                              {discussion.title}
-                            </h4>
-                            <p className="text-sm text-gray-400 line-clamp-2 mt-1">
-                              {discussion.content}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-1">
+                                {discussion.entityName}
+                              </h4>
+                              <p className="text-sm text-gray-400 line-clamp-1 mt-1">
+                                {discussion.title}
+                              </p>
+                              <p className="text-xs text-gray-400 line-clamp-3 md:line-clamp-2 mt-1">
+                                {discussion.content}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
                               <p className="text-sm text-gray-400">
                                 {formatDate(discussion.createdAt)}
                               </p>
@@ -492,14 +484,14 @@ export default function UserContent({ userId, username }: UserContentProps) {
                               <div className="flex items-center gap-1">
                                 <GiRose className="w-4 h-4 text-red-400" />
                                 <p className="text-sm text-gray-400">
-                                  {discussion.likeCount}
+                                  {formatCount(discussion.likeCount)}
                                 </p>
                               </div>
                               <span className="text-sm text-gray-500">•</span>
                               <div className="flex items-center gap-1">
                                 <FiMessageCircle className="w-4 h-4 text-white-400" />
                                 <p className="text-sm text-gray-400">
-                                  {discussion.commentCount}
+                                  {formatCount(discussion.commentCount)}
                                 </p>
                               </div>
                             </div>
@@ -557,13 +549,13 @@ export default function UserContent({ userId, username }: UserContentProps) {
                               <div className="flex items-center gap-1">
                                 <GiRose className="w-4 h-4 text-red-400" />
                                 <p className="text-sm text-gray-400">
-                                  {watchlist.likeCount}
+                                  {formatCount(watchlist.likeCount)}
                                 </p>
                               </div>
                               <div className="flex items-center gap-1">
                                 <FiMessageCircle className="w-4 h-4 text-white-400" />
                                 <p className="text-sm text-gray-400">
-                                  {watchlist.commentCount}
+                                  {formatCount(watchlist.commentCount)}
                                 </p>
                               </div>
                             </div>

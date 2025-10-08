@@ -1,10 +1,11 @@
 "use client";
 import Image from 'next/image';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FiTwitter, FiInstagram, FiCalendar, FiUserPlus, FiUserMinus } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 import { useAuth } from '@clerk/nextjs';
+import FollowModal from './FollowModal';
+import UserDiary from './UserDiary';
 
 interface UserProfileHeaderProps {
   user: {
@@ -32,6 +33,8 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
   const [followStatusLoading, setFollowStatusLoading] = useState(true);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   const displayName = user.username;
 
@@ -66,22 +69,22 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
   }, [user.username, isOwnProfile, currentUserId]);
 
   // Fetch follower/following counts
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const response = await fetch(`/api/users/${user.username}/follow-status?includeCounts=true`);
-        if (response.ok) {
-          const data = await response.json();
-          setFollowerCount(data.followerCount || 0);
-          setFollowingCount(data.followingCount || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching follower/following counts:', error);
+  const fetchCounts = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/users/${user.username}/follow-status?includeCounts=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setFollowerCount(data.followerCount || 0);
+        setFollowingCount(data.followingCount || 0);
       }
-    };
-
-    fetchCounts();
+    } catch (error) {
+      console.error('Error fetching follower/following counts:', error);
+    }
   }, [user.username]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts]);
 
   const handleFollowToggle = async () => {
     if (!currentUserId) return;
@@ -108,22 +111,48 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
   return (
     <>
       {/* Desktop Header with backdrop-style banner */}
-      <div className="relative min-h-64 md:min-h-50 w-full hidden md:block">
+      <div className="relative h-64 w-full hidden md:block">
         <div className="absolute inset-0 bg-gradient-to-br from-green-900/30 to-gray-900"></div>
         
         {/* Desktop Profile Info */}
-        <div className="relative bg-gradient-to-t from-black/90 to-transparent p-4 md:p-8">
-          <div className="flex items-start gap-6 justify-between">
+        <div className="relative bg-gradient-to-t from-black/90 to-transparent p-4 md:p-8 h-full">
+          <div className="flex items-start gap-6 justify-between h-full">
             <div className="flex items-start gap-6 flex-1">
-              {/* Profile Picture */}
-              <div className="flex-shrink-0 w-32 h-32 rounded-full overflow-hidden bg-gray-700 border-4 border-gray-900 self-start">
-                <Image
-                  src={user.imageUrl}
-                  alt={`${displayName}'s profile picture`}
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
-                />
+              {/* Profile Picture and Follow Button */}
+              <div className="flex-shrink-0 flex flex-col items-center gap-3">
+                <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-700 border-4 border-gray-900">
+                  <Image
+                    src={user.imageUrl}
+                    alt={`${displayName}'s profile picture`}
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                
+                {/* Follow/Unfollow Button - Desktop */}
+                {!isOwnProfile && currentUserId && !followStatusLoading && (
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                      isFollowing
+                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <FiUserMinus className="w-4 h-4" />
+                        Unfollow
+                      </>
+                    ) : (
+                      <>
+                        <FiUserPlus className="w-4 h-4" />
+                        Follow
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
               
               <div className="flex-1 pb-2 flex flex-col">
@@ -149,14 +178,20 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
                   
                   {/* Follower/Following Counts - Desktop */}
                   <div className="flex items-center gap-4 text-sm text-gray-300 mt-1">
-                    <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setShowFollowersModal(true)}
+                      className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                    >
                       <span className="font-semibold text-white">{followerCount}</span>
                       <span>followers</span>
-                    </div>
-                    <div className="flex items-center gap-1">
+                    </button>
+                    <button
+                      onClick={() => setShowFollowingModal(true)}
+                      className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                    >
                       <span className="font-semibold text-white">{followingCount}</span>
                       <span>following</span>
-                    </div>
+                    </button>
                   </div>
                   
                   {/* Social Links */}
@@ -205,32 +240,12 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
               </div>
             </div>
             
-            {/* Follow/Unfollow Button and Counts - Desktop */}
-            <div className="flex-shrink-0 self-start flex flex-col items-start gap-3">
-              {!isOwnProfile && currentUserId && !followStatusLoading && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleFollowToggle}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                      isFollowing
-                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {isFollowing ? (
-                      <>
-                        <FiUserMinus className="w-4 h-4" />
-                        Unfollow
-                      </>
-                    ) : (
-                      <>
-                        <FiUserPlus className="w-4 h-4" />
-                        Follow
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+            {/* Right Side - Watch Diary - Desktop (lg and up) */}
+            <div className="hidden lg:flex lg:flex-col w-[450px] h-full">
+              {/* Watch Diary */}
+              <div className="flex-1 min-h-0">
+                <UserDiary username={user.username} accountCreatedAt={user.createdAt} />
+              </div>
             </div>
             
           </div>
@@ -274,14 +289,20 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
               
               {/* Follower/Following Counts - Mobile */}
               <div className="flex items-center justify-center gap-4 text-sm text-gray-300">
-                <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowFollowersModal(true)}
+                  className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                >
                   <span className="font-semibold text-white">{followerCount}</span>
                   <span>followers</span>
-                </div>
-                <div className="flex items-center gap-1">
+                </button>
+                <button
+                  onClick={() => setShowFollowingModal(true)}
+                  className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                >
                   <span className="font-semibold text-white">{followingCount}</span>
                   <span>following</span>
-                </div>
+                </button>
               </div>
               
               {/* Follow/Unfollow Button - Mobile */}
@@ -353,35 +374,35 @@ export default function UserProfileHeader({ user, isOwnProfile }: UserProfileHea
               </div>
             </div>
             
-            {/* Top 4 Shows - Mobile */}
-            {user.topFourShows.length > 0 && (
-              <div className="flex flex-col gap-2 mt-4">
-                <h3 className="text-sm font-medium text-gray-200 text-center">
-                  {isOwnProfile ? 'Your Showcase' : `${user.username}'s Showcase`}
-                </h3>
-                <div className="flex gap-2 justify-center">
-                  {user.topFourShows.map((show) => (
-                      <Link
-                        key={show.id}
-                        href={`/show/${show.id}`}
-                        className="relative w-20 h-30 rounded overflow-hidden shadow-lg"
-                        title={show.name}
-                      >
-                        <Image
-                          src={show.posterPath ? `https://image.tmdb.org/t/p/w154${show.posterPath}` : '/noPoster.jpg'}
-                          alt={show.name}
-                          width={80}
-                          height={120}
-                          className="w-full h-full object-cover"
-                        />
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Followers Modal */}
+      {showFollowersModal && (
+        <FollowModal
+          username={user.username}
+          type="followers"
+          onClose={() => {
+            setShowFollowersModal(false);
+            fetchCounts();
+          }}
+          isOpen={showFollowersModal}
+        />
+      )}
+
+      {/* Following Modal */}
+      {showFollowingModal && (
+        <FollowModal
+          username={user.username}
+          type="following"
+          onClose={() => {
+            setShowFollowingModal(false);
+            fetchCounts();
+          }}
+          isOpen={showFollowingModal}
+        />
+      )}
     </>
   );
 }
