@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 
 export async function GET(
@@ -27,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get followers of the target user
+    // Get followers of the target user (fetch limit + 1 to check if there are more)
     const followers = await prisma.userFollow.findMany({
       where: { followingId: targetUser.id },
       include: {
@@ -39,12 +39,18 @@ export async function GET(
         },
       },
       orderBy: { createdAt: "desc" },
-      take: limit,
+      take: limit + 1,
       skip: offset,
     });
 
+    // Check if there are more followers
+    const hasMore = followers.length > limit;
+    
+    // Only return up to 'limit' followers
+    const followersToReturn = hasMore ? followers.slice(0, limit) : followers;
+
     // Check which of these followers the current user is also following
-    const followerIds = followers.map(f => f.follower.id);
+    const followerIds = followersToReturn.map(f => f.follower.id);
     const currentUserFollowing = await prisma.userFollow.findMany({
       where: {
         followerId: currentUserId,
@@ -55,17 +61,35 @@ export async function GET(
 
     const followingSet = new Set(currentUserFollowing.map(f => f.followingId));
 
-    const followersWithStatus = followers.map(follow => ({
+    // Fetch Clerk image URLs
+    const clerk = await clerkClient();
+    const imageUrlPromises = followersToReturn.map(async (follow) => {
+      try {
+        const clerkUser = await clerk.users.getUser(follow.follower.id);
+        return { userId: follow.follower.id, imageUrl: clerkUser.imageUrl || "/noAvatar.png" };
+      } catch (error) {
+        console.error(`Failed to fetch Clerk user for ${follow.follower.id}:`, error);
+        return { userId: follow.follower.id, imageUrl: "/noAvatar.png" };
+      }
+    });
+
+    const imageUrls = await Promise.all(imageUrlPromises);
+    const imageUrlMap = new Map(imageUrls.map(item => [item.userId, item.imageUrl]));
+
+    const followersWithStatus = followersToReturn.map(follow => ({
       id: follow.id,
-      user: follow.follower,
+      user: {
+        ...follow.follower,
+        imageUrl: imageUrlMap.get(follow.follower.id) || "/noAvatar.png",
+      },
       createdAt: follow.createdAt,
       isFollowing: followingSet.has(follow.follower.id),
     }));
 
     return NextResponse.json({
       followers: followersWithStatus,
-      total: followers.length,
-      hasMore: followers.length === limit,
+      total: followersToReturn.length,
+      hasMore: hasMore,
     });
 
   } catch (error) {

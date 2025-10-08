@@ -36,7 +36,7 @@ export default function UserShowcase({ username, topFourShows, isOwnProfile }: U
             className="group relative"
             title={show.name}
           >
-            <div className="relative aspect-[2/3] max-w-[300px] max-h-[450px] rounded-lg overflow-hidden bg-gray-700 border border-gray-600 group-hover:border-gray-500 transition-colors">
+            <div className="relative aspect-[2/3] max-w-[200px] max-h-[300px] md:max-w-[300px] md:max-h-[450px] rounded-lg overflow-hidden bg-gray-700 border border-gray-600 group-hover:border-gray-500 transition-colors">
               <Image
                 src={show.posterPath ? `https://image.tmdb.org/t/p/w500${show.posterPath}` : '/noPoster.jpg'}
                 alt={show.name}

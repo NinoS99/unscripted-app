@@ -82,17 +82,8 @@ export default async function UserProfilePage({
             <div className="container mx-auto px-2 py-2 md:px-8 md:py-8 bg-gray-900">
                 {/* Single Layout - Responsive */}
                 <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-                    {/* Left Column - Stats and Tags (Mobile: Full width, Desktop: Fixed width) */}
-                    <div className="md:flex-shrink-0 md:w-64">
-                        <div className="px-4 pt-2 md:px-0 md:pt-0 space-y-6">
-                            <UserStats userId={user.id} />
-                            <UserTags username={user.username} hideOnMobile={true} />
-                        </div>
-                    </div>
-
-                    {/* Right Column - Showcase, Activity Feed and Content */}
-                    <div className="flex-1">
-                        {/* User Showcase */}
+                    {/* User Showcase - Mobile only (appears first) */}
+                    <div className="md:hidden order-1 mt-4">
                         <UserShowcase
                             username={user.username}
                             topFourShows={user.topFourShows.map(
@@ -100,9 +91,31 @@ export default async function UserProfilePage({
                             )}
                             isOwnProfile={isOwnProfile}
                         />
+                    </div>
+
+                    {/* Left Column - Stats and Tags (Mobile: Full width, Desktop: Fixed width) */}
+                    <div className="md:flex-shrink-0 md:w-64 order-2 md:order-none">
+                        <div className="px-4 md:px-0 space-y-6">
+                            <UserStats userId={user.id} />
+                            <UserTags username={user.username} hideOnMobile={true} />
+                        </div>
+                    </div>
+
+                    {/* Right Column - Showcase (Desktop only), Activity Feed and Content */}
+                    <div className="flex-1 order-3 md:order-none">
+                        {/* User Showcase - Desktop only */}
+                        <div className="hidden md:block">
+                            <UserShowcase
+                                username={user.username}
+                                topFourShows={user.topFourShows.map(
+                                    (tfs) => tfs.show
+                                )}
+                                isOwnProfile={isOwnProfile}
+                            />
+                        </div>
 
                         {/* Content */}
-                        <div className="mt-8 px-4 md:px-0">
+                        <div className="md:mt-8 px-4 md:px-0">
                             <UserContent
                                 userId={user.id}
                                 username={user.username}
