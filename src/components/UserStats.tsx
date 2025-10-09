@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FiStar, FiMessageSquare, FiList, FiTrendingUp, FiEye, FiHeart, FiChevronDown } from 'react-icons/fi';
+import { FiStar, FiList, FiTrendingUp, FiEye, FiHeart, FiChevronDown } from 'react-icons/fi';
+import { FaMugHot } from 'react-icons/fa';
 
 interface UserStatsProps {
   userId: string;
@@ -308,14 +309,14 @@ export default function UserStats({ userId }: UserStatsProps) {
               </h4>
               <div className="grid grid-cols-2 gap-4 pb-4">
                 <div className="flex items-center gap-3">
-                  <FiMessageSquare className="w-4 h-4 text-blue-400" />
+                  <FaMugHot className="w-4 h-4  text-orange-400" />
                   <div>
                     <div className="text-lg font-semibold text-white">{stats.activityCounts.discussions}</div>
                     <div className="text-sm text-gray-400">Discussions</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <FiList className="w-4 h-4 text-green-400" />
+                  <FiList className="w-4 h-4 text-purple-400" />
                   <div>
                     <div className="text-lg font-semibold text-white">{stats.activityCounts.watchlists}</div>
                     <div className="text-sm text-gray-400">Watchlists</div>

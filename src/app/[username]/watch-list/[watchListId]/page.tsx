@@ -26,6 +26,34 @@ export default async function WatchListPage({ params }: WatchListPageProps) {
         notFound();
     }
 
+    // Check if current user is viewing their own profile
+    const isOwnProfile = userId === user.id;
+
+    // Check if current user is friends with the profile owner
+    let isFriend = false;
+    if (userId && !isOwnProfile) {
+        const [currentUserFollowsOwner, ownerFollowsCurrentUser] = await Promise.all([
+            prisma.userFollow.findUnique({
+                where: {
+                    followerId_followingId: {
+                        followerId: userId,
+                        followingId: user.id,
+                    },
+                },
+            }),
+            prisma.userFollow.findUnique({
+                where: {
+                    followerId_followingId: {
+                        followerId: user.id,
+                        followingId: userId,
+                    },
+                },
+            }),
+        ]);
+
+        isFriend = !!(currentUserFollowsOwner && ownerFollowsCurrentUser);
+    }
+
     // Fetch the watch list with all related data
     const watchList = await prisma.watchList.findFirst({
         where: {
@@ -33,8 +61,15 @@ export default async function WatchListPage({ params }: WatchListPageProps) {
             userId: user.id, // Ensure the watch list belongs to this user
             OR: [
                 { isPublic: true },
-                { userId: userId || "" }, // User's own lists
-                { friendsOnly: false } // This will be refined when we add friends functionality
+                // Show private/friends-only lists if the current user owns them
+                ...(userId === user.id ? [
+                    { isPublic: false },
+                    { friendsOnly: true }
+                ] : []),
+                // Show friends-only lists if current user is a friend
+                ...(isFriend ? [
+                    { friendsOnly: true }
+                ] : [])
             ]
         },
         include: {

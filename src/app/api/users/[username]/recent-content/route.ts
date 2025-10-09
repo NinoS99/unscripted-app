@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/client';
 
 export async function GET(
@@ -7,9 +8,36 @@ export async function GET(
 ) {
   try {
     const { username } = await params;
+    const authResult = await auth();
+    const currentUserId = authResult?.userId || null;
     
     // The username parameter is actually the userId (Clerk ID)
     const targetUserId = username;
+
+    // Check if current user is friends with the target user (only if logged in)
+    let isFriend = false;
+    if (currentUserId && currentUserId !== targetUserId) {
+        const [currentUserFollowsTarget, targetFollowsCurrentUser] = await Promise.all([
+            prisma.userFollow.findUnique({
+                where: {
+                    followerId_followingId: {
+                        followerId: currentUserId,
+                        followingId: targetUserId,
+                    },
+                },
+            }),
+            prisma.userFollow.findUnique({
+                where: {
+                    followerId_followingId: {
+                        followerId: targetUserId,
+                        followingId: currentUserId,
+                    },
+                },
+            }),
+        ]);
+
+        isFriend = !!(currentUserFollowsTarget && targetFollowsCurrentUser);
+    }
 
     // Get recent reviews with actual ratings
     const recentReviews = await prisma.$transaction(async (tx) => {
@@ -208,9 +236,23 @@ export async function GET(
       };
     });
 
-    // Get recent watchlists
+    // Get recent watchlists with privacy filtering
     const recentWatchlists = await prisma.watchList.findMany({
-      where: { userId: targetUserId },
+      where: { 
+        userId: targetUserId,
+        OR: [
+          { isPublic: true },
+          // Show all lists if viewing own profile
+          ...(currentUserId === targetUserId ? [
+            { isPublic: false },
+            { friendsOnly: true }
+          ] : []),
+          // Show friends-only lists if user is a friend
+          ...(isFriend ? [
+            { friendsOnly: true }
+          ] : [])
+        ]
+      },
       include: {
         _count: {
           select: { 

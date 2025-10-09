@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiStar, FiMessageSquare, FiList, FiMessageCircle, FiTrendingUp, FiClock, FiChevronDown } from 'react-icons/fi';
+import { useAuth } from '@clerk/nextjs';
+import { FiStar, FiList, FiMessageCircle, FiTrendingUp, FiClock, FiChevronDown } from 'react-icons/fi';
 import { GiRose } from 'react-icons/gi';
+import { FaMugHot } from 'react-icons/fa';
 
 interface UserContentProps {
   userId: string;
@@ -87,6 +89,8 @@ interface PopularContent {
 }
 
 export default function UserContent({ userId, username }: UserContentProps) {
+  const { userId: currentUserId } = useAuth();
+  const isOwnProfile = currentUserId === userId;
   const [recentContent, setRecentContent] = useState<RecentContent | null>(null);
   const [popularContent, setPopularContent] = useState<PopularContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -244,7 +248,7 @@ export default function UserContent({ userId, username }: UserContentProps) {
 
   const tabs = [
     { key: 'reviews' as const, label: 'Reviews', icon: FiStar },
-    { key: 'discussions' as const, label: 'Discussions', icon: FiMessageSquare },
+    { key: 'discussions' as const, label: 'Discussions', icon: FaMugHot },
     { key: 'watchlists' as const, label: 'Watchlists', icon: FiList },
   ];
 
@@ -319,91 +323,58 @@ export default function UserContent({ userId, username }: UserContentProps) {
                 {content.reviews.length === 0 ? (
                   <p className="text-gray-400 text-sm mt-2">No reviews yet</p>
                 ) : (
-                  content.reviews.slice(0, 5).map((review, index) => (
-                    <div key={review.id}>
-                      <Link
-                        href={`/${username}/review/${review.type.toLowerCase()}/${review.id}`}
-                        className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
-                      >
-                        <div className="flex gap-3 h-36 md:h-30">
-                          {review.entityPosterPath && (
-                            <div className="flex-shrink-0">
-                              <Image
-                                src={`https://image.tmdb.org/t/p/w500${review.entityPosterPath}`}
-                                alt={review.entityName}
-                                width={80}
-                                height={120}
-                                className="w-24 h-36 md:w-20 md:h-30 rounded object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 flex flex-col justify-between">
-                            <div>
-                              <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
-                                {review.entityName}
-                              </h4>
-                              <p className="text-sm text-gray-400 line-clamp-3 md:line-clamp-2 mt-1">
-                                {review.content}
-                              </p>
-                            </div>
-                            {/* Desktop Layout - All in one row */}
-                            <div className="hidden md:flex items-center gap-2 mt-2">
-                              {review.rating && (
-                                <>
-                                  <div className="flex items-center gap-1">
-                                    {[...Array(5)].map((_, i) => {
-                                      const rating = review.rating!;
-                                      const isFullStar = i < Math.floor(rating);
-                                      const isHalfStar = i === Math.floor(rating) && rating % 1 >= 0.5;
-                                      
-                                      return (
-                                        <div key={i} className="relative">
-                                          <FiStar className="w-4 h-4 text-gray-600" />
-                                          {(isFullStar || isHalfStar) && (
-                                            <div 
-                                              className="absolute inset-0 overflow-hidden"
-                                              style={{ width: isHalfStar ? '50%' : '100%' }}
-                                            >
-                                              <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <span className="text-sm text-gray-500">•</span>
-                                </>
-                              )}
-                              <p className="text-sm text-gray-400">
-                                {formatDate(review.createdAt)}
-                              </p>
-                              <span className="text-sm text-gray-500">•</span>
-                              <div className="flex items-center gap-1">
-                                <GiRose className="w-4 h-4 text-red-400" />
-                                <p className="text-sm text-gray-400">
-                                  {formatCount(review.likeCount)}
+                  <>
+                    {content.reviews.slice(0, 5).map((review, index) => (
+                      <div key={review.id}>
+                        <Link
+                          href={`/${username}/review/${review.type.toLowerCase()}/${review.id}`}
+                          className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
+                        >
+                          <div className="flex gap-3 h-36 md:h-30">
+                            {review.entityPosterPath && (
+                              <div className="flex-shrink-0">
+                                <Image
+                                  src={`https://image.tmdb.org/t/p/w500${review.entityPosterPath}`}
+                                  alt={review.entityName}
+                                  width={80}
+                                  height={120}
+                                  className="w-24 h-36 md:w-20 md:h-30 rounded object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                              <div>
+                                <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
+                                  {review.entityName}
+                                </h4>
+                                <p className="text-sm text-gray-400 line-clamp-3 md:line-clamp-2 mt-1">
+                                  {review.content}
                                 </p>
                               </div>
-                              <span className="text-sm text-gray-500">•</span>
-                              <div className="flex items-center gap-1">
-                                <FiMessageCircle className="w-4 h-4 text-white-400" />
-                                <p className="text-sm text-gray-400">
-                                  {formatCount(review.commentCount)}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Mobile Layout - Two rows */}
-                            <div className="md:hidden space-y-1">
-                              {/* Row 1: Rating + Date */}
-                              <div className="flex items-center gap-1">
+                              {/* Desktop Layout - All in one row */}
+                              <div className="hidden md:flex items-center gap-2 mt-2">
                                 {review.rating && (
                                   <>
                                     <div className="flex items-center gap-1">
-                                      <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
-                                      <span className="text-sm font-semibold text-yellow-400">
-                                        {review.rating}
-                                      </span>
+                                      {[...Array(5)].map((_, i) => {
+                                        const rating = review.rating!;
+                                        const isFullStar = i < Math.floor(rating);
+                                        const isHalfStar = i === Math.floor(rating) && rating % 1 >= 0.5;
+                                        
+                                        return (
+                                          <div key={i} className="relative">
+                                            <FiStar className="w-4 h-4 text-gray-600" />
+                                            {(isFullStar || isHalfStar) && (
+                                              <div 
+                                                className="absolute inset-0 overflow-hidden"
+                                                style={{ width: isHalfStar ? '50%' : '100%' }}
+                                              >
+                                                <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                     <span className="text-sm text-gray-500">•</span>
                                   </>
@@ -411,9 +382,7 @@ export default function UserContent({ userId, username }: UserContentProps) {
                                 <p className="text-sm text-gray-400">
                                   {formatDate(review.createdAt)}
                                 </p>
-                              </div>
-                              {/* Row 2: Likes + Comments */}
-                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">•</span>
                                 <div className="flex items-center gap-1">
                                   <GiRose className="w-4 h-4 text-red-400" />
                                   <p className="text-sm text-gray-400">
@@ -428,15 +397,64 @@ export default function UserContent({ userId, username }: UserContentProps) {
                                   </p>
                                 </div>
                               </div>
+
+                              {/* Mobile Layout - Two rows */}
+                              <div className="md:hidden space-y-1">
+                                {/* Row 1: Rating + Date */}
+                                <div className="flex items-center gap-1">
+                                  {review.rating && (
+                                    <>
+                                      <div className="flex items-center gap-1">
+                                        <FiStar className="w-4 h-4 text-yellow-400 fill-current" />
+                                        <span className="text-sm font-semibold text-yellow-400">
+                                          {review.rating}
+                                        </span>
+                                      </div>
+                                      <span className="text-sm text-gray-500">•</span>
+                                    </>
+                                  )}
+                                  <p className="text-sm text-gray-400">
+                                    {formatDate(review.createdAt)}
+                                  </p>
+                                </div>
+                                {/* Row 2: Likes + Comments */}
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1">
+                                    <GiRose className="w-4 h-4 text-red-400" />
+                                    <p className="text-sm text-gray-400">
+                                      {formatCount(review.likeCount)}
+                                    </p>
+                                  </div>
+                                  <span className="text-sm text-gray-500">•</span>
+                                  <div className="flex items-center gap-1">
+                                    <FiMessageCircle className="w-4 h-4 text-white-400" />
+                                    <p className="text-sm text-gray-400">
+                                      {formatCount(review.commentCount)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                      {index < content.reviews.slice(0, 5).length - 1 && (
-                        <div className="border-t border-gray-700 my-3"></div>
-                      )}
-                    </div>
-                  ))
+                        </Link>
+                        {index < content.reviews.slice(0, 5).length - 1 && (
+                          <div className="border-t border-gray-700 my-3"></div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* See All Reviews Link */}
+                    {content.reviews.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-gray-700">
+                        <Link
+                          href={`/${username}/reviews?sort=${activeMode === 'recent' ? 'recent' : 'popular'}`}
+                          className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
+                        >
+                          See all reviews by {isOwnProfile ? 'you' : username}
+                        </Link>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -446,63 +464,77 @@ export default function UserContent({ userId, username }: UserContentProps) {
                 {content.discussions.length === 0 ? (
                   <p className="text-gray-400 text-sm mt-2">No discussions yet</p>
                 ) : (
-                  content.discussions.slice(0, 5).map((discussion, index) => (
-                    <div key={discussion.id}>
-                      <Link
-                        href={`/${username}/discussion/${discussion.entityType}/${discussion.id}`}
-                        className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
-                      >
-                        <div className="flex gap-3 h-36 md:h-30">
-                          {discussion.entityPosterPath && (
-                            <div className="flex-shrink-0">
-                              <Image
-                                src={`https://image.tmdb.org/t/p/w500${discussion.entityPosterPath}`}
-                                alt={discussion.entityName}
-                                width={80}
-                                height={120}
-                                className="w-24 h-36 md:w-20 md:h-30 rounded object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 flex flex-col justify-between">
-                            <div>
-                              <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-1">
-                                {discussion.entityName}
-                              </h4>
-                              <p className="text-sm text-gray-400 line-clamp-1 mt-1">
-                                {discussion.title}
-                              </p>
-                              <p className="text-xs text-gray-400 line-clamp-3 md:line-clamp-2 mt-1">
-                                {discussion.content}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm text-gray-400">
-                                {formatDate(discussion.createdAt)}
-                              </p>
-                              <span className="text-sm text-gray-500">•</span>
-                              <div className="flex items-center gap-1">
-                                <GiRose className="w-4 h-4 text-red-400" />
-                                <p className="text-sm text-gray-400">
-                                  {formatCount(discussion.likeCount)}
+                  <>
+                    {content.discussions.slice(0, 5).map((discussion, index) => (
+                      <div key={discussion.id}>
+                        <Link
+                          href={`/${username}/discussion/${discussion.entityType}/${discussion.id}`}
+                          className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
+                        >
+                          <div className="flex gap-3 h-36 md:h-30">
+                            {discussion.entityPosterPath && (
+                              <div className="flex-shrink-0">
+                                <Image
+                                  src={`https://image.tmdb.org/t/p/w500${discussion.entityPosterPath}`}
+                                  alt={discussion.entityName}
+                                  width={80}
+                                  height={120}
+                                  className="w-24 h-36 md:w-20 md:h-30 rounded object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                              <div>
+                                <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-1">
+                                  {discussion.entityName}
+                                </h4>
+                                <p className="text-sm text-gray-400 line-clamp-1 mt-1">
+                                  {discussion.title}
+                                </p>
+                                <p className="text-xs text-gray-400 line-clamp-3 md:line-clamp-2 mt-1">
+                                  {discussion.content}
                                 </p>
                               </div>
-                              <span className="text-sm text-gray-500">•</span>
-                              <div className="flex items-center gap-1">
-                                <FiMessageCircle className="w-4 h-4 text-white-400" />
+                              <div className="flex items-center gap-2">
                                 <p className="text-sm text-gray-400">
-                                  {formatCount(discussion.commentCount)}
+                                  {formatDate(discussion.createdAt)}
                                 </p>
+                                <span className="text-sm text-gray-500">•</span>
+                                <div className="flex items-center gap-1">
+                                  <GiRose className="w-4 h-4 text-red-400" />
+                                  <p className="text-sm text-gray-400">
+                                    {formatCount(discussion.likeCount)}
+                                  </p>
+                                </div>
+                                <span className="text-sm text-gray-500">•</span>
+                                <div className="flex items-center gap-1">
+                                  <FiMessageCircle className="w-4 h-4 text-white-400" />
+                                  <p className="text-sm text-gray-400">
+                                    {formatCount(discussion.commentCount)}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                      {index < content.discussions.slice(0, 5).length - 1 && (
-                        <div className="border-t border-gray-700 my-3"></div>
-                      )}
-                    </div>
-                  ))
+                        </Link>
+                        {index < content.discussions.slice(0, 5).length - 1 && (
+                          <div className="border-t border-gray-700 my-3"></div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* See All Discussions Link */}
+                    {content.discussions.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-gray-700">
+                        <Link
+                          href={`/${username}/discussions?sort=${activeMode === 'recent' ? 'recent' : 'popular'}`}
+                          className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
+                        >
+                          See all discussions by {isOwnProfile ? 'you' : username}
+                        </Link>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -512,81 +544,95 @@ export default function UserContent({ userId, username }: UserContentProps) {
                 {content.watchlists.length === 0 ? (
                   <p className="text-gray-400 text-sm mt-2">No watchlists yet</p>
                 ) : (
-                  content.watchlists.slice(0, 5).map((watchlist, index) => (
-                    <div key={watchlist.id}>
-                      <Link
-                        href={`/${username}/watch-list/${watchlist.id}`}
-                        className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
-                      >
-                        <div className="flex flex-col gap-2">
-                          <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
-                            {watchlist.name}
-                          </h4>
-                          {watchlist.description && (
-                            <p className="text-sm text-gray-400 line-clamp-2">
-                              {watchlist.description}
-                            </p>
-                          )}
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm text-gray-400">
-                                {formatDate(watchlist.createdAt)}
+                  <>
+                    {content.watchlists.slice(0, 5).map((watchlist, index) => (
+                      <div key={watchlist.id}>
+                        <Link
+                          href={`/${username}/watch-list/${watchlist.id}`}
+                          className="block py-3 hover:bg-gray-800/50 rounded-lg transition-colors"
+                        >
+                          <div className="flex flex-col gap-2">
+                            <h4 className="text-md font-medium text-white hover:text-green-400 transition-colors line-clamp-2">
+                              {watchlist.name}
+                            </h4>
+                            {watchlist.description && (
+                              <p className="text-sm text-gray-400 line-clamp-2">
+                                {watchlist.description}
                               </p>
-                              <span className="text-sm text-gray-500">•</span>
-                              <p className="text-sm text-gray-400">
-                                {watchlist.showCount} show{watchlist.showCount !== 1 ? 's' : ''} in this list
-                              </p>
-                              {watchlist.isRanked && (
-                                <>
-                                  <span className="text-sm text-gray-500">•</span>
-                                  <span className="text-xs text-white px-2 py-1 rounded-full">
-                                    Ranked list
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1">
-                                <GiRose className="w-4 h-4 text-red-400" />
+                            )}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
                                 <p className="text-sm text-gray-400">
-                                  {formatCount(watchlist.likeCount)}
+                                  {formatDate(watchlist.createdAt)}
                                 </p>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <FiMessageCircle className="w-4 h-4 text-white-400" />
+                                <span className="text-sm text-gray-500">•</span>
                                 <p className="text-sm text-gray-400">
-                                  {formatCount(watchlist.commentCount)}
+                                  {watchlist.showCount} show{watchlist.showCount !== 1 ? 's' : ''} in this list
                                 </p>
+                                {watchlist.isRanked && (
+                                  <>
+                                    <span className="text-sm text-gray-500">•</span>
+                                    <span className="text-xs text-white px-2 py-1 rounded-full">
+                                      Ranked list
+                                    </span>
+                                  </>
+                                )}
                               </div>
-                            </div>
-                          </div>
-                          {watchlist.posterPaths.length > 0 && (
-                            <div className="flex gap-1.5 mt-2 overflow-hidden">
-                              {watchlist.posterPaths.slice(0,4).map((posterPath, posterIndex) => (
-                                <div key={posterIndex} className="relative">
-                                  <Image
-                                    src={`https://image.tmdb.org/t/p/w500${posterPath}`}
-                                    alt={`Show ${posterIndex + 1}`}
-                                    width={60}
-                                    height={90}
-                                    className="w-18 h-27 md:w-24 md:h-36 rounded object-cover flex-shrink-0"
-                                  />
-                                  {posterIndex === 3 && watchlist.posterPaths.length > 4 && (
-                                    <div className="absolute inset-0 bg-green-600 bg-opacity-50 rounded flex items-center justify-center">
-                                      <span className="text-white text-lg font-bold">+{watchlist.posterPaths.length - 4}</span>
-                                    </div>
-                                  )}
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1">
+                                  <GiRose className="w-4 h-4 text-red-400" />
+                                  <p className="text-sm text-gray-400">
+                                    {formatCount(watchlist.likeCount)}
+                                  </p>
                                 </div>
-                              ))}
+                                <div className="flex items-center gap-1">
+                                  <FiMessageCircle className="w-4 h-4 text-white-400" />
+                                  <p className="text-sm text-gray-400">
+                                    {formatCount(watchlist.commentCount)}
+                                  </p>
+                                </div>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </Link>
-                      {index < content.watchlists.slice(0, 5).length - 1 && (
-                        <div className="border-t border-gray-700 my-3"></div>
-                      )}
-                    </div>
-                  ))
+                            {watchlist.posterPaths.length > 0 && (
+                              <div className="flex gap-1.5 mt-2 overflow-hidden">
+                                {watchlist.posterPaths.slice(0,4).map((posterPath, posterIndex) => (
+                                  <div key={posterIndex} className="relative">
+                                    <Image
+                                      src={`https://image.tmdb.org/t/p/w500${posterPath}`}
+                                      alt={`Show ${posterIndex + 1}`}
+                                      width={60}
+                                      height={90}
+                                      className="w-18 h-27 md:w-24 md:h-36 rounded object-cover flex-shrink-0"
+                                    />
+                                    {posterIndex === 3 && watchlist.posterPaths.length > 4 && (
+                                      <div className="absolute inset-0 bg-green-600 bg-opacity-50 rounded flex items-center justify-center">
+                                        <span className="text-white text-lg font-bold">+{watchlist.posterPaths.length - 4}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                        {index < content.watchlists.slice(0, 5).length - 1 && (
+                          <div className="border-t border-gray-700 my-3"></div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {/* See All Watch Lists Link */}
+                    {content.watchlists.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-gray-700">
+                        <Link
+                          href={`/${username}/watch-lists`}
+                          className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors"
+                        >
+                          See all watch lists by {isOwnProfile ? 'you' : username}
+                        </Link>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
