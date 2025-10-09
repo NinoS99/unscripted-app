@@ -10,8 +10,6 @@ import { GiRose } from "react-icons/gi";
 interface User {
     id: string;
     username: string;
-    bio?: string | null;
-    profilePicture?: string | null;
 }
 
 interface WatchListShow {
@@ -63,38 +61,16 @@ export default function UserWatchLists({
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
-            <div className="container mx-auto px-4 py-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-4 md:gap-6 mb-6">
-                        <Link href={`/${user.username}`}>
-                            <Image
-                                src={user.profilePicture || "/noAvatar.png"}
-                                alt={user.username}
-                                width={80}
-                                height={80}
-                                className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover hover:opacity-80 transition-opacity"
-                            />
-                        </Link>
-                        <div>
-                            <h1 className="text-xl md:text-3xl font-bold mb-2">
-                                Watch lists crafted by{" "}
-                                <Link
-                                    href={`/${user.username}`}
-                                    className="text-green-400 hover:text-green-300 transition-colors"
-                                >
-                                    {user.username}
-                                </Link>
-                            </h1>
-                            {user.bio && (
-                                <p className="text-gray-300 text-base md:text-lg">
-                                    {user.bio}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
+        <div className="px-4 py-8">
+            {/* Header */}
+            <div className="mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold text-green-500">
+                    Watch lists by {isOwnProfile ? 'You' : user.username}
+                </h1>
+                <p className="text-gray-400 mt-2">
+                    {watchLists.length} watch list{watchLists.length !== 1 ? 's' : ''}
+                </p>
+            </div>
 
                 {/* Watch Lists Grid */}
                 {watchLists.length > 0 ? (
@@ -118,26 +94,22 @@ export default function UserWatchLists({
                                         </p>
                                     )}
 
-                                    {/* Tags */}
-                                    {watchList.tags.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mb-3">
-                                            {watchList.tags
-                                                .slice(0, 3)
-                                                .map(({ tag }) => (
-                                                    <span
-                                                        key={tag.id}
-                                                        className="px-2 py-1 bg-green-600 text-white text-xs rounded-full"
-                                                    >
-                                                        {tag.name}
-                                                    </span>
-                                                ))}
-                                            {watchList.tags.length > 3 && (
-                                                <span className="px-2 py-1 bg-gray-600 text-gray-300 text-xs rounded-full">
-                                                    +{watchList.tags.length - 3}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
+                                    {/* Privacy Label */}
+                                    <div className="flex items-center gap-1 mb-3">
+                                        {watchList.isPublic ? (
+                                            <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
+                                                Public
+                                            </span>
+                                        ) : watchList.friendsOnly ? (
+                                            <span className="px-2 py-1 bg-yellow-600 text-white text-xs rounded-full">
+                                                Friends Only
+                                            </span>
+                                        ) : (
+                                            <span className="px-2 py-1 bg-gray-600 text-white text-xs rounded-full">
+                                                Private
+                                            </span>
+                                        )}
+                                    </div>
 
                                     {/* Stats */}
                                     <div className="flex items-center justify-between text-sm text-gray-400">
@@ -165,7 +137,7 @@ export default function UserWatchLists({
                                 </div>
 
                                 {/* Shows Preview */}
-                                <div className="p-4">
+                                <div className="p-4 pt-2">
                                     <div className="flex gap-2 w-full">
                                         {watchList.shows
                                             .slice(0, 5)
@@ -204,34 +176,17 @@ export default function UserWatchLists({
                                             </div>
                                         )}
                                     </div>
+                                </div>
 
-                                    {/* Date and Privacy */}
-                                    <div className="flex items-center justify-between mt-3">
-                                        <p className="text-gray-400 text-xs">
-                                            Created{" "}
-                                            {format(
-                                                new Date(watchList.createdAt),
-                                                "MMM d, yyyy"
-                                            )}
-                                        </p>
-                                        {isOwnProfile && (
-                                            <div className="flex items-center gap-1">
-                                                {watchList.isPublic ? (
-                                                    <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
-                                                        Public
-                                                    </span>
-                                                ) : watchList.friendsOnly ? (
-                                                    <span className="px-2 py-1 bg-yellow-600 text-white text-xs rounded-full">
-                                                        Friends Only
-                                                    </span>
-                                                ) : (
-                                                    <span className="px-2 py-1 bg-gray-600 text-white text-xs rounded-full">
-                                                        Private
-                                                    </span>
-                                                )}
-                                            </div>
+                                {/* Date at card bottom */}
+                                <div className="px-4 pb-4">
+                                    <p className="text-gray-400 text-xs">
+                                        Created{" "}
+                                        {format(
+                                            new Date(watchList.createdAt),
+                                            "MMM d, yyyy"
                                         )}
-                                    </div>
+                                    </p>
                                 </div>
                             </Link>
                         ))}
@@ -262,7 +217,6 @@ export default function UserWatchLists({
                         )}
                     </div>
                 )}
-            </div>
         </div>
     );
 }

@@ -91,6 +91,31 @@ export default async function ShowPage({
         },
     });
 
+    // Get list of user IDs that the current user is friends with
+    let friendUserIds: string[] = [];
+    if (userId) {
+        // Get users that current user follows
+        const currentUserFollowing = await prisma.userFollow.findMany({
+            where: { followerId: userId },
+            select: { followingId: true },
+        });
+
+        const followingIds = currentUserFollowing.map(f => f.followingId);
+
+        if (followingIds.length > 0) {
+            // Check which of those users also follow the current user back (mutual)
+            const mutualFollowers = await prisma.userFollow.findMany({
+                where: {
+                    followerId: { in: followingIds },
+                    followingId: userId,
+                },
+                select: { followerId: true },
+            });
+
+            friendUserIds = mutualFollowers.map(f => f.followerId);
+        }
+    }
+
     // Fetch watch lists containing this show
     const watchListsWithShow = await prisma.watchList.findMany({
         where: {
@@ -99,9 +124,25 @@ export default async function ShowPage({
                     showId: Number(showId),
                 },
             },
-            isPublic: true,
+            OR: [
+                { isPublic: true },
+                // Include own watch lists
+                ...(userId ? [{ userId: userId }] : []),
+                // Include friends-only lists from friends
+                ...(friendUserIds.length > 0 ? [
+                    {
+                        friendsOnly: true,
+                        userId: { in: friendUserIds },
+                    }
+                ] : [])
+            ],
         },
-        include: {
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            friendsOnly: true,
+            createdAt: true,
             user: {
                 select: {
                     username: true,
@@ -167,14 +208,14 @@ export default async function ShowPage({
     const totalWatched = show.watched.length; // Count of users who watched
     const totalLikes = show.favorites.length; // Count of favorites from users
     const totalRatings = show.ratings.length;
-    
+
     // Fetch discussion count for this show
     const totalDiscussions = await prisma.discussion.count({
         where: {
             showId: Number(showId),
         },
     });
-    
+
     // Count watch lists containing this show
     const totalWatchLists = await prisma.watchListShow.count({
         where: {
@@ -334,121 +375,143 @@ export default async function ShowPage({
                         {/* Mobile: Add padding to match ratings section */}
                         <div className="md:p-0 p-6">
                             <ShowActionButtons
-                            showId={show.id}
-                            entityType="show"
-                            entityId={show.id}
-                            userId={userId}
-                            initialTotalWatched={totalWatched}
-                            initialTotalLikes={totalLikes}
-                            initialTotalReviews={totalReviews}
-                            initialTotalDiscussions={totalDiscussions}
-                            initialTotalWatchLists={totalWatchLists}
-                        />
-
-                        {/* Review Button */}
-                        {userId && (
-                            <ShowReviewButton
-                                show={{
-                                    id: show.id,
-                                    name: show.name,
-                                    posterPath: show.posterPath,
-                                    firstAirDate: show.firstAirDate ? new Date(show.firstAirDate.toISOString().split('T')[0] + 'T00:00:00.000Z') : null,
-                                    characters: show.seasons.flatMap((season) =>
-                                        season.characters.map((character) => ({
-                                            id: character.id,
-                                            name: character.person.name,
-                                            characterName: character.showRole,
-                                            profilePath:
-                                                character.person.profilePath,
-                                            seasonId: season.id,
-                                            seasonNumber: season.seasonNumber,
-                                        }))
-                                    ),
-                                }}
-                            />
-                        )}
-
-                        {/* Add to Watch List Button */}
-                        <div className="mt-2">
-                            <AddToWatchListButton
                                 showId={show.id}
-                                showName={show.name}
-                            />
-                        </div>
-
-                        {/* Start Discussion Button */}
-                        <div className="mt-4">
-                            <StartDiscussionButton
                                 entityType="show"
                                 entityId={show.id}
-                                entityName={show.name}
-                                entityData={{
-                                    rating: userRating?.rating,
-                                    isFavorited: !!userFavorite,
-                                }}
+                                userId={userId}
+                                initialTotalWatched={totalWatched}
+                                initialTotalLikes={totalLikes}
+                                initialTotalReviews={totalReviews}
+                                initialTotalDiscussions={totalDiscussions}
+                                initialTotalWatchLists={totalWatchLists}
                             />
-                        </div>
 
-                        {/* Watch On Section */}
-                        {show.ShowsOnNetworks.length > 0 && (
-                            <div className="rounded-lg shadow mt-4 mb-4">
-                                <h3 className="text-lg font-semibold text-green-500 mb-2">
-                                    On Network
-                                    {show.ShowsOnNetworks.length > 1 ? "s" : ""}
-                                </h3>
-                                <div className="hidden md:block border-b border-gray-600 mb-4"></div>
-                                <div className="flex flex-wrap gap-2">
-                                    {show.ShowsOnNetworks.map(({ network }) =>
-                                        network.homepage ? (
-                                            <a
-                                                key={network.id}
-                                                href={network.homepage}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 bg-white p-1.5 rounded shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                                            >
-                                                {network.logoPath && (
-                                                    <Image
-                                                        src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
-                                                        alt={network.name}
-                                                        width={24}
-                                                        height={24}
-                                                        className="object-contain"
-                                                    />
-                                                )}
-                                                <span className="text-xs font-medium text-gray-800">
-                                                    {network.name}
-                                                </span>
-                                            </a>
-                                        ) : (
-                                            <div
-                                                key={network.id}
-                                                className="flex items-center gap-1 bg-white p-1.5 rounded shadow-sm border border-gray-200"
-                                            >
-                                                {network.logoPath && (
-                                                    <Image
-                                                        src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
-                                                        alt={network.name}
-                                                        width={24}
-                                                        height={24}
-                                                        className="object-contain"
-                                                    />
-                                                )}
-                                                <span className="text-xs font-medium text-gray-800">
-                                                    {network.name}
-                                                </span>
-                                            </div>
-                                        )
-                                    )}
-                                </div>
+                            {/* Review Button */}
+                            {userId && (
+                                <ShowReviewButton
+                                    show={{
+                                        id: show.id,
+                                        name: show.name,
+                                        posterPath: show.posterPath,
+                                        firstAirDate: show.firstAirDate
+                                            ? new Date(
+                                                  show.firstAirDate
+                                                      .toISOString()
+                                                      .split("T")[0] +
+                                                      "T00:00:00.000Z"
+                                              )
+                                            : null,
+                                        characters: show.seasons.flatMap(
+                                            (season) =>
+                                                season.characters.map(
+                                                    (character) => ({
+                                                        id: character.id,
+                                                        name: character.person
+                                                            .name,
+                                                        characterName:
+                                                            character.showRole,
+                                                        profilePath:
+                                                            character.person
+                                                                .profilePath,
+                                                        seasonId: season.id,
+                                                        seasonNumber:
+                                                            season.seasonNumber,
+                                                    })
+                                                )
+                                        ),
+                                    }}
+                                />
+                            )}
+
+                            {/* Add to Watch List Button */}
+                            <div className="mt-2">
+                                <AddToWatchListButton
+                                    showId={show.id}
+                                    showName={show.name}
+                                />
                             </div>
-                        )}
+
+                            {/* Start Discussion Button */}
+                            <div className="mt-4">
+                                <StartDiscussionButton
+                                    entityType="show"
+                                    entityId={show.id}
+                                    entityName={show.name}
+                                    entityData={{
+                                        rating: userRating?.rating,
+                                        isFavorited: !!userFavorite,
+                                    }}
+                                />
+                            </div>
+
+                            {/* Watch On Section */}
+                            {show.ShowsOnNetworks.length > 0 && (
+                                <div className="rounded-lg shadow mt-4 mb-4">
+                                    <h3 className="text-lg font-semibold text-green-500 mb-2">
+                                        On Network
+                                        {show.ShowsOnNetworks.length > 1
+                                            ? "s"
+                                            : ""}
+                                    </h3>
+                                    <div className="hidden md:block border-b border-gray-600 mb-4"></div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {show.ShowsOnNetworks.map(
+                                            ({ network }) =>
+                                                network.homepage ? (
+                                                    <a
+                                                        key={network.id}
+                                                        href={network.homepage}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1 bg-white p-1.5 rounded shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                                                    >
+                                                        {network.logoPath && (
+                                                            <Image
+                                                                src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
+                                                                alt={
+                                                                    network.name
+                                                                }
+                                                                width={24}
+                                                                height={24}
+                                                                className="object-contain"
+                                                            />
+                                                        )}
+                                                        <span className="text-xs font-medium text-gray-800">
+                                                            {network.name}
+                                                        </span>
+                                                    </a>
+                                                ) : (
+                                                    <div
+                                                        key={network.id}
+                                                        className="flex items-center gap-1 bg-white p-1.5 rounded shadow-sm border border-gray-200"
+                                                    >
+                                                        {network.logoPath && (
+                                                            <Image
+                                                                src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
+                                                                alt={
+                                                                    network.name
+                                                                }
+                                                                width={24}
+                                                                height={24}
+                                                                className="object-contain"
+                                                            />
+                                                        )}
+                                                        <span className="text-xs font-medium text-gray-800">
+                                                            {network.name}
+                                                        </span>
+                                                    </div>
+                                                )
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Included in Watch Lists Section - Desktop Only */}
                         <div className="hidden md:block mt-3">
                             <h3 className="text-lg font-semibold text-green-500">
-                                Included in Watch Lists ({formatNumber(sortedWatchLists.length)})
+                                Included in Watch Lists (
+                                {formatNumber(sortedWatchLists.length)})
                             </h3>
                             <div className="border-b border-gray-600 mt-2"></div>
                             {sortedWatchLists.length > 0 ? (
@@ -461,75 +524,86 @@ export default async function ShowPage({
                                                     className="block py-3"
                                                 >
                                                     <div className="flex flex-col gap-2">
-                                                                                                                 <div className="flex items-start justify-between">
-                                                             <div className="flex-grow">
-                                                                 <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
-                                                                     {
-                                                                         watchList.name
-                                                                     }
-                                                                 </h4>
-                                                                 {watchList.description && (
-                                                                     <p className="text-sm text-gray-200 break-words">
-                                                                         {watchList.description.length > 100
-                                                                             ? `${watchList.description.substring(0, 100)}...`
-                                                                             : watchList.description}
-                                                                     </p>
-                                                                 )}
-                                                                 <p className="text-sm text-gray-400">
-                                                                     by{" "}
-                                                                     {
-                                                                         watchList
-                                                                             .user
-                                                                             .username
-                                                                     }
-                                                                 </p>
-                                                                 <p className="text-sm text-gray-400">
-                                                                     {
-                                                                         watchList
-                                                                             .shows
-                                                                             .length
-                                                                     }{" "}
-                                                                     show
-                                                                     {watchList
-                                                                         .shows
-                                                                         .length !==
-                                                                     1
-                                                                         ? "s"
-                                                                         : ""}{" "}
-                                                                     in this list
-                                                                 </p>
-                                                                 {watchList.shows.some(
-                                                                     (show) =>
-                                                                         show.ranking !==
-                                                                         null
-                                                                 ) && (
-                                                                     <div className="flex items-center gap-1">
-                                                                         <FiTrendingUp className="w-3 h-3 text-blue-400" />
-                                                                         <span className="text-sm text-blue-400 font-medium">
-                                                                             Ranked list
-                                                                         </span>
-                                                                     </div>
-                                                                 )}
-                                                             </div>
-                                                             <div className="flex items-center gap-4 text-gray-400 flex-shrink-0 ml-3">
-                                                                 <div className="flex items-center gap-1">
-                                                                     <FiMessageCircle className="w-4 h-4" />
-                                                                     <span className="text-sm">
-                                                                         {
-                                                                             formatNumber(watchList._count.comments)
-                                                                         }
-                                                                     </span>
-                                                                 </div>
-                                                                 <div className="flex items-center gap-1">
-                                                                     <GiRose className="w-4 h-4 text-red-400" />
-                                                                     <span className="text-sm">
-                                                                         {
-                                                                             formatNumber(watchList._count.likes)
-                                                                         }
-                                                                     </span>
-                                                                 </div>
-                                                             </div>
-                                                         </div>
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-grow">
+                                                                <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
+                                                                    {
+                                                                        watchList.name
+                                                                    }
+                                                                </h4>
+                                                                {watchList.description && (
+                                                                    <p className="text-sm text-gray-200 break-words">
+                                                                        {watchList
+                                                                            .description
+                                                                            .length >
+                                                                        100
+                                                                            ? `${watchList.description.substring(
+                                                                                  0,
+                                                                                  100
+                                                                              )}...`
+                                                                            : watchList.description}
+                                                                    </p>
+                                                                )}
+                                                                <p className="text-sm text-gray-400">
+                                                                    by{" "}
+                                                                    {
+                                                                        watchList
+                                                                            .user
+                                                                            .username
+                                                                    }
+                                                                </p>
+                                                                <p className="text-sm text-gray-400">
+                                                                    {
+                                                                        watchList
+                                                                            .shows
+                                                                            .length
+                                                                    }{" "}
+                                                                    show
+                                                                    {watchList
+                                                                        .shows
+                                                                        .length !==
+                                                                    1
+                                                                        ? "s"
+                                                                        : ""}{" "}
+                                                                    in this list
+                                                                </p>
+                                                                {watchList.shows.some(
+                                                                    (show) =>
+                                                                        show.ranking !==
+                                                                        null
+                                                                ) && (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <FiTrendingUp className="w-3 h-3 text-blue-400" />
+                                                                        <span className="text-sm text-blue-400 font-medium">
+                                                                            Ranked
+                                                                            list
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-4 text-gray-400 flex-shrink-0 ml-3">
+                                                                <div className="flex items-center gap-1">
+                                                                    <FiMessageCircle className="w-4 h-4" />
+                                                                    <span className="text-sm">
+                                                                        {formatNumber(
+                                                                            watchList
+                                                                                ._count
+                                                                                .comments
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <GiRose className="w-4 h-4 text-red-400" />
+                                                                    <span className="text-sm">
+                                                                        {formatNumber(
+                                                                            watchList
+                                                                                ._count
+                                                                                .likes
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                         <div className="flex justify-start">
                                                             <div className="flex gap-2">
                                                                 {watchList.shows
@@ -576,7 +650,8 @@ export default async function ShowPage({
                                 </div>
                             ) : (
                                 <p className="text-gray-400 text-sm mt-2">
-                                    Show not included in any watch lists yet, be the first to add it to a watch list!
+                                    Show not included in any watch lists yet, be
+                                    the first to add it to a watch list!
                                 </p>
                             )}
                         </div>
@@ -647,7 +722,8 @@ export default async function ShowPage({
                                 {/* Included in Watch Lists Section - Mobile Only */}
                                 <div className="md:hidden mb-8">
                                     <h2 className="text-xl font-semibold text-green-500 mb-4">
-                                        Included in Watch Lists ({formatNumber(sortedWatchLists.length)})
+                                        Included in Watch Lists (
+                                        {formatNumber(sortedWatchLists.length)})
                                     </h2>
                                     <div className="border-b border-gray-600 "></div>
                                     {sortedWatchLists.length > 0 ? (
@@ -660,84 +736,90 @@ export default async function ShowPage({
                                                             className="block py-3"
                                                         >
                                                             <div className="flex flex-col gap-2">
-                                                                                                                                 <div className="flex items-start justify-between">
-                                                                     <div className="flex-grow">
-                                                                         <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
-                                                                             {
-                                                                                 watchList.name
-                                                                             }
-                                                                         </h4>
-                                                                         {watchList.description && (
-                                                                             <p className="text-sm text-gray-200 break-words">
-                                                                                 {watchList.description.length > 100
-                                                                                     ? `${watchList.description.substring(0, 100)}...`
-                                                                                     : watchList.description}
-                                                                             </p>
-                                                                         )}
-                                                                         <p className="text-sm text-gray-400">
-                                                                             by{" "}
-                                                                             {
-                                                                                 watchList
-                                                                                     .user
-                                                                                     .username
-                                                                             }
-                                                                         </p>
-                                                                         <p className="text-sm text-gray-400">
-                                                                             {
-                                                                                 watchList
-                                                                                     .shows
-                                                                                     .length
-                                                                             }{" "}
-                                                                             show
-                                                                             {watchList
-                                                                                 .shows
-                                                                                 .length !==
-                                                                             1
-                                                                                 ? "s"
-                                                                                 : ""}{" "}
-                                                                             in
-                                                                             this
-                                                                             list
-                                                                         </p>
-                                                                         {watchList.shows.some(
-                                                                             (
-                                                                                 show
-                                                                             ) =>
-                                                                                 show.ranking !==
-                                                                                 null
-                                                                         ) && (
-                                                                             <div className="flex items-center gap-1">
-                                                                                 <FiTrendingUp className="w-3 h-3 text-blue-400" />
-                                                                                 <span className="text-sm text-blue-400 font-medium">
-                                                                                     Ranked
-                                                                                     list
-                                                                                 </span>
-                                                                             </div>
-                                                                         )}
-                                                                     </div>
-                                                                     <div className="flex items-center gap-4 text-gray-400 flex-shrink-0 ml-3">
-                                                                         <div className="flex items-center gap-1">
-                                                                             <FiMessageCircle className="w-4 h-4" />
-                                                                             <span className="text-sm">
-                                                                                 {
-                                                                                     watchList
-                                                                                         ._count
-                                                                                         .comments
-                                                                                 }
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="flex items-center gap-1">
-                                                                             <GiRose className="w-4 h-4 text-red-400" />
-                                                                             <span className="text-sm">
-                                                                                 {
-                                                                                     watchList
-                                                                                         ._count
-                                                                                         .likes
-                                                                                 }
-                                                                             </span>
-                                                                         </div>
-                                                                     </div>
-                                                                 </div>
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="flex-grow">
+                                                                        <h4 className="text-base font-medium text-white hover:text-green-400 transition-colors">
+                                                                            {
+                                                                                watchList.name
+                                                                            }
+                                                                        </h4>
+                                                                        {watchList.description && (
+                                                                            <p className="text-sm text-gray-200 break-words">
+                                                                                {watchList
+                                                                                    .description
+                                                                                    .length >
+                                                                                100
+                                                                                    ? `${watchList.description.substring(
+                                                                                          0,
+                                                                                          100
+                                                                                      )}...`
+                                                                                    : watchList.description}
+                                                                            </p>
+                                                                        )}
+                                                                        <p className="text-sm text-gray-400">
+                                                                            by{" "}
+                                                                            {
+                                                                                watchList
+                                                                                    .user
+                                                                                    .username
+                                                                            }
+                                                                        </p>
+                                                                        <p className="text-sm text-gray-400">
+                                                                            {
+                                                                                watchList
+                                                                                    .shows
+                                                                                    .length
+                                                                            }{" "}
+                                                                            show
+                                                                            {watchList
+                                                                                .shows
+                                                                                .length !==
+                                                                            1
+                                                                                ? "s"
+                                                                                : ""}{" "}
+                                                                            in
+                                                                            this
+                                                                            list
+                                                                        </p>
+                                                                        {watchList.shows.some(
+                                                                            (
+                                                                                show
+                                                                            ) =>
+                                                                                show.ranking !==
+                                                                                null
+                                                                        ) && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <FiTrendingUp className="w-3 h-3 text-blue-400" />
+                                                                                <span className="text-sm text-blue-400 font-medium">
+                                                                                    Ranked
+                                                                                    list
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 text-gray-400 flex-shrink-0 ml-3">
+                                                                        <div className="flex items-center gap-1">
+                                                                            <FiMessageCircle className="w-4 h-4" />
+                                                                            <span className="text-sm">
+                                                                                {
+                                                                                    watchList
+                                                                                        ._count
+                                                                                        .comments
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <GiRose className="w-4 h-4 text-red-400" />
+                                                                            <span className="text-sm">
+                                                                                {
+                                                                                    watchList
+                                                                                        ._count
+                                                                                        .likes
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                                 <div className="flex justify-start">
                                                                     <div className="flex gap-2">
                                                                         {watchList.shows
@@ -792,7 +874,9 @@ export default async function ShowPage({
                                         </div>
                                     ) : (
                                         <p className="text-gray-400 text-md mt-2 text-center">
-                                            Show not included in any watch lists yet, be the first to add it to a watch list!
+                                            Show not included in any watch lists
+                                            yet, be the first to add it to a
+                                            watch list!
                                         </p>
                                     )}
                                 </div>

@@ -1,4 +1,4 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/client";
 import UserWatchLists from "@/components/UserWatchLists";
@@ -17,7 +17,6 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
         select: {
             id: true,
             username: true,
-            bio: true
         }
     });
 
@@ -25,18 +24,35 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
         notFound();
     }
 
-    // Get Clerk user data for profile picture using the user ID
-    let profileImageUrl = "/noAvatar.png";
-    try {
-        const clerk = await clerkClient();
-        const clerkUser = await clerk.users.getUser(user.id);
-        profileImageUrl = clerkUser.imageUrl;
-    } catch (error) {
-        console.error("Error fetching Clerk user:", error);
-    }
-
     // Check if current user is viewing their own profile
     const isOwnProfile = userId === user.id;
+
+    // Check if current user is friends with the profile owner
+    let isFriend = false;
+    if (userId && !isOwnProfile) {
+        // Check if current user follows profile owner
+        const currentUserFollowsOwner = await prisma.userFollow.findUnique({
+            where: {
+                followerId_followingId: {
+                    followerId: userId,
+                    followingId: user.id,
+                },
+            },
+        });
+
+        // Check if profile owner follows current user
+        const ownerFollowsCurrentUser = await prisma.userFollow.findUnique({
+            where: {
+                followerId_followingId: {
+                    followerId: user.id,
+                    followingId: userId,
+                },
+            },
+        });
+
+        // They're friends if both follow each other
+        isFriend = !!(currentUserFollowsOwner && ownerFollowsCurrentUser);
+    }
 
     // Fetch watch lists based on privacy settings
     const watchLists = await prisma.watchList.findMany({
@@ -44,14 +60,15 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
             userId: user.id,
             OR: [
                 { isPublic: true },
-                // Only show private/friends-only lists if the current user owns them
+                // Show private/friends-only lists if the current user owns them
                 ...(userId === user.id ? [
                     { isPublic: false },
                     { friendsOnly: true }
+                ] : []),
+                // Show friends-only lists if current user is a friend
+                ...(isFriend ? [
+                    { friendsOnly: true }
                 ] : [])
-                // TODO: Implement friends-only logic when friend system is added
-                // - Check if current user is friends with the watch list owner
-                // - Show friends-only watch lists to friends
             ]
         },
         include: {
@@ -93,12 +110,32 @@ export default async function UserWatchListsPage({ params }: UserWatchListsPageP
 
     return (
         <UserWatchLists 
-            user={{
-                ...user,
-                profilePicture: profileImageUrl
-            }}
+            user={user}
             watchLists={watchLists}
             isOwnProfile={isOwnProfile}
         />
     );
-} 
+}
+
+export async function generateMetadata({ params }: UserWatchListsPageProps) {
+    const { username } = await params;
+
+    const user = await prisma.user.findUnique({
+        where: { username },
+        select: {
+            username: true,
+        },
+    });
+
+    if (!user) {
+        return {
+            title: "User Not Found",
+        };
+    }
+
+    return {
+        title: `Watch Lists by ${user.username}`,
+        description: `View all watch lists created by ${user.username} on Reality Punch`,
+    };
+}
+
