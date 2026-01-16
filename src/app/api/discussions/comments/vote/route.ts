@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
+import { VoteValue } from "@prisma/client";
 import { trackEngagementSingle } from "@/lib/activityTracker";
 
 export async function POST(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { commentId, value } = body;
 
-    if (!commentId || !value || !["UPVOTE", "DOWNVOTE"].includes(value)) {
+    if (!commentId || !value || !Object.values(VoteValue).includes(value as VoteValue)) {
       return NextResponse.json(
         { error: "Missing required fields: commentId and value (UPVOTE or DOWNVOTE)" },
         { status: 400 }
@@ -57,12 +58,12 @@ export async function POST(request: NextRequest) {
         },
       },
       update: {
-        value: value as "UPVOTE" | "DOWNVOTE",
+        value: value as VoteValue,
       },
       create: {
         discussionCommentId: parseInt(commentId),
         userId,
-        value: value as "UPVOTE" | "DOWNVOTE",
+        value: value as VoteValue,
       },
     });
 
@@ -71,13 +72,13 @@ export async function POST(request: NextRequest) {
       prisma.discussionCommentVote.count({
         where: {
           discussionCommentId: parseInt(commentId),
-          value: "UPVOTE",
+          value: VoteValue.UPVOTE,
         },
       }),
       prisma.discussionCommentVote.count({
         where: {
           discussionCommentId: parseInt(commentId),
-          value: "DOWNVOTE",
+          value: VoteValue.DOWNVOTE,
         },
       }),
     ]);
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
                                        (comment.discussion.season ? `${comment.discussion.season.show.name} Season ${comment.discussion.season.seasonNumber}` : '') ||
                                        (comment.discussion.episode ? `${comment.discussion.episode.season.show.name} Season ${comment.discussion.episode.season.seasonNumber}, Episode ${comment.discussion.episode.episodeNumber}: ${comment.discussion.episode.name}` : '');
 
-      const activityType = value === "UPVOTE" ? "COMMENT_UPVOTED" : "COMMENT_DOWNVOTED";
+      const activityType = value === VoteValue.UPVOTE ? "COMMENT_UPVOTED" : "COMMENT_DOWNVOTED";
       await trackEngagementSingle(
         userId, // giver
         comment.userId, // receiver

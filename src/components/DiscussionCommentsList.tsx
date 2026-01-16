@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { FiSend, FiChevronDown } from "react-icons/fi";
 import DiscussionComment from "./DiscussionComment";
-import { CommentTree, SortMode } from "@/lib/comments";
+import { CommentTree, SortMode } from "@/lib/comments-types";
 import { useDynamicMaxDepth } from "@/hooks/useDynamicMaxDepth";
 
 
