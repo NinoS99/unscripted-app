@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import ShowActionButtons from "@/components/ShowActionButtons";
@@ -14,8 +13,7 @@ import RatingDistributionChart from "@/components/RatingDistributionChart";
 import SeasonNavigation from "@/components/SeasonNavigation";
 import { format } from "date-fns";
 import Link from "next/link";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/client";
 
 export default async function SeasonPage({
     params,
