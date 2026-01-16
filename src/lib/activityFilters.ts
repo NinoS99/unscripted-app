@@ -1,6 +1,5 @@
-import { PrismaClient, ActivityType, ActivityGroup } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { ActivityType, ActivityGroup } from '@prisma/client';
+import prisma from '@/lib/client';
 
 // Helper function to get activities by activity group
 export async function getUserActivitiesByGroup(

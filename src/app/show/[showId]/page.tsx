@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,8 +16,7 @@ import { FiMessageCircle, FiTrendingUp } from "react-icons/fi";
 import { GiRose } from "react-icons/gi";
 import { format } from "date-fns";
 import { formatNumber } from "@/lib/utils";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/client";
 
 export default async function ShowPage({
     params,

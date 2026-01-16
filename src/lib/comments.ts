@@ -1,7 +1,13 @@
 import prisma from "@/lib/client";
 import { clerkClient } from "@clerk/nextjs/server";
+import { VoteValue } from "@prisma/client";
+import { CommentWithUser, CommentTree, SortMode, wilsonScore } from "./comments-types";
 
-// Base comment type from Prisma
+// Re-export types for backward compatibility
+export type { CommentWithUser, CommentTree, SortMode };
+export { wilsonScore };
+
+// Base comment type from Prisma (used internally)
 type PrismaComment = {
     id: number;
     content: string;
@@ -21,7 +27,7 @@ type PrismaComment = {
     votes: Array<{
         id: number;
         userId: string;
-        value: "UPVOTE" | "DOWNVOTE";
+        value: import("@prisma/client").VoteValue;
     }>;
     reactions: Array<{
         id: number;
@@ -39,40 +45,6 @@ type PrismaComment = {
     };
     replies?: PrismaComment[];
 };
-
-export interface CommentWithUser extends PrismaComment {
-    user: {
-        id: string;
-        username: string;
-        imageUrl?: string | null;
-    };
-}
-
-export interface CommentTree extends CommentWithUser {
-    replies: CommentTree[];
-    score: number;
-    wilsonScore: number;
-    userVote?: "UPVOTE" | "DOWNVOTE";
-}
-
-export type SortMode = "new" | "top" | "best";
-
-/**
- * Wilson Score algorithm for ranking comments
- */
-export function wilsonScore(upvotes: number, downvotes: number): number {
-    const n = upvotes + downvotes;
-    if (n === 0) return 0;
-
-    const z = 1.281551565545; // 80% confidence
-    const p = upvotes / n;
-    const numerator =
-        p +
-        (z * z) / (2 * n) -
-        z * Math.sqrt((p * (1 - p) + (z * z) / (4 * n)) / n);
-    const denominator = 1 + (z * z) / n;
-    return numerator / denominator;
-}
 
 /**
  * Pad a number to 6 digits for consistent path ordering
@@ -433,10 +405,10 @@ export async function getCommentsForDiscussion(
     // Helper function to process a comment and its nested replies
     const processCommentWithReplies = (comment: PrismaComment): CommentTree => {
         const upvotes = comment.votes.filter(
-            (v: { value: string }) => v.value === "UPVOTE"
+            (v: { value: VoteValue }) => v.value === VoteValue.UPVOTE
         ).length;
         const downvotes = comment.votes.filter(
-            (v: { value: string }) => v.value === "DOWNVOTE"
+            (v: { value: VoteValue }) => v.value === VoteValue.DOWNVOTE
         ).length;
         const score = upvotes - downvotes;
         const wilsonScoreValue = wilsonScore(upvotes, downvotes);
@@ -494,8 +466,8 @@ export function buildCommentTree(comments: CommentWithUser[], currentUserId?: st
 
     // First pass: create all comment objects
     comments.forEach((comment) => {
-        const upvotes = comment.votes.filter((v) => v.value === "UPVOTE").length;
-        const downvotes = comment.votes.filter((v) => v.value === "DOWNVOTE").length;
+        const upvotes = comment.votes.filter((v) => v.value === VoteValue.UPVOTE).length;
+        const downvotes = comment.votes.filter((v) => v.value === VoteValue.DOWNVOTE).length;
         const score = upvotes - downvotes;
         const wilsonScoreValue = wilsonScore(upvotes, downvotes);
         

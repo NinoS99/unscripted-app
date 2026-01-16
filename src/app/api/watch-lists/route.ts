@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
 import { trackUserActivity } from "@/lib/activityTracker";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/client";
 
 export async function POST(request: NextRequest) {
     try {

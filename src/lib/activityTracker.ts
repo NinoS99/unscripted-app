@@ -1,6 +1,5 @@
-import { PrismaClient, ActivityType, EntityType, TransactionType } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { ActivityType, EntityType, TransactionType } from "@prisma/client";
+import prisma from "@/lib/client";
 
 // Helper function to build timezone-aware date conditions
 function buildTimezoneAwareDateConditions(dateFilter: {

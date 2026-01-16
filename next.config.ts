@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   },
   // Optional: Enable React Strict Mode
   reactStrictMode: true,
+  webpack: (config) => {
+    // Ensure path aliases from tsconfig.json are resolved correctly
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    };
+    return config;
+  },
   // Optional: Configure images if using Next.js Image Optimization
   images: {
     remotePatterns: [

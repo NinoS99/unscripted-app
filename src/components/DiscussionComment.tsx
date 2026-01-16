@@ -16,50 +16,8 @@ import CommentReactions from "./CommentReactions";
 import { formatRelativeTime } from "@/lib/utils";
 import { useModalScrollPrevention } from "@/hooks/useModalScrollPrevention";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
-
-interface CommentWithUser {
-    id: number;
-    content: string;
-    userId: string;
-    discussionId: number;
-    parentId: number | null;
-    depth: number;
-    path: string;
-    spoiler: boolean;
-    isDeleted: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-    user: {
-        id: string;
-        username: string;
-        imageUrl?: string | null;
-    };
-    _count: {
-        replies: number;
-        votes: number;
-    };
-    votes: Array<{
-        id: number;
-        userId: string;
-        value: "UPVOTE" | "DOWNVOTE";
-    }>;
-    reactions: Array<{
-        id: number;
-        userId: string;
-        reactionType: {
-            id: number;
-            name: string;
-            emoji: string | null;
-            category: string | null;
-        };
-    }>;
-}
-
-interface CommentTree extends CommentWithUser {
-    replies: CommentTree[];
-    score: number;
-    userVote?: "UPVOTE" | "DOWNVOTE";
-}
+import { CommentTree, wilsonScore } from "@/lib/comments-types";
+import { VoteValue } from "@prisma/client";
 
 interface DiscussionCommentProps {
     comment: CommentTree;
@@ -228,13 +186,13 @@ export default function DiscussionComment({
 
 
     // Calculate score from votes
-    const upvotes = comment.votes.filter((v) => v.value === "UPVOTE").length;
+    const upvotes = comment.votes.filter((v) => v.value === VoteValue.UPVOTE).length;
     const downvotes = comment.votes.filter(
-        (v) => v.value === "DOWNVOTE"
+        (v) => v.value === VoteValue.DOWNVOTE
     ).length;
     const score = upvotes - downvotes;
 
-    const handleVote = async (value: "UPVOTE" | "DOWNVOTE") => {
+    const handleVote = async (value: VoteValue) => {
         if (!user) return;
 
         // Optimistic update
@@ -322,6 +280,7 @@ export default function DiscussionComment({
             reactions: [],
             replies: [],
             score: 0,
+            wilsonScore: wilsonScore(0, 0), // 0 for new comment with no votes
             userVote: undefined,
         };
 
@@ -459,10 +418,10 @@ export default function DiscussionComment({
                         {!comment.isDeleted ? (
                             <>
                                 <button
-                                    onClick={() => handleVote("UPVOTE")}
+                                    onClick={() => handleVote(VoteValue.UPVOTE)}
                                     disabled={!user}
                                     className={`p-1 rounded transition-colors ${
-                                        comment.userVote === "UPVOTE"
+                                        comment.userVote === VoteValue.UPVOTE
                                             ? "text-green-500 bg-green-500/10"
                                             : "text-gray-400 hover:text-green-500 hover:bg-green-500/10"
                                     }`}
@@ -483,10 +442,10 @@ export default function DiscussionComment({
                                 </span>
 
                                 <button
-                                    onClick={() => handleVote("DOWNVOTE")}
+                                    onClick={() => handleVote(VoteValue.DOWNVOTE)}
                                     disabled={!user}
                                     className={`p-1 rounded transition-colors ${
-                                        comment.userVote === "DOWNVOTE"
+                                        comment.userVote === VoteValue.DOWNVOTE
                                             ? "text-red-500 bg-red-500/10"
                                             : "text-gray-400 hover:text-red-500 hover:bg-red-500/10"
                                     }`}
