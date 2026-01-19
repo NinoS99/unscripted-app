@@ -132,7 +132,7 @@ export interface StandardizedMetadata {
   watchListId?: string | number;
   
   // Context for comments
-  contentType?: 'show' | 'season' | 'episode' | 'watchlist' | 'discussion'; // What type of content was commented on
+  contentType?: 'show' | 'season' | 'episode' | 'watchlist' | 'discussion' | 'prediction'; // What type of content was commented on
   contentName?: string; // Name of the content being commented on
   
   // Engagement context

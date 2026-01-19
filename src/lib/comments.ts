@@ -528,3 +528,505 @@ export async function getCommentStats(discussionId: number): Promise<{
         maxDepth: maxDepth._max.depth || 0,
     };
 }
+
+// ============================================================================
+// Prediction Comment Functions (similar to Discussion Comment functions)
+// ============================================================================
+
+/**
+ * Prediction comment type from Prisma (used internally)
+ */
+type PrismaPredictionComment = {
+    id: number;
+    content: string;
+    userId: string;
+    predictionId: number;
+    parentId: number | null;
+    depth: number;
+    path: string;
+    isDeleted: boolean;
+    isPreClose: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    user: {
+        id: string;
+        username: string;
+    };
+    votes: Array<{
+        id: number;
+        userId: string;
+        value: VoteValue;
+    }>;
+    reactions: Array<{
+        id: number;
+        userId: string;
+        reactionType: {
+            id: number;
+            name: string;
+            emoji: string | null;
+            category: string | null;
+        };
+    }>;
+    _count: {
+        replies: number;
+        votes: number;
+    };
+    replies?: PrismaPredictionComment[];
+};
+
+/**
+ * Prediction comment with user image URL
+ */
+export interface PredictionCommentWithUser extends PrismaPredictionComment {
+    user: {
+        id: string;
+        username: string;
+        imageUrl?: string | null;
+    };
+}
+
+/**
+ * Add a new comment to a prediction
+ */
+export async function addPredictionComment(
+    predictionId: number,
+    userId: string,
+    content: string,
+    parentId?: number
+): Promise<PredictionCommentWithUser> {
+    let path: string;
+    let depth: number = 0;
+
+    // Check if prediction exists and is still open
+    const prediction = await prisma.prediction.findUnique({
+        where: { id: predictionId },
+        select: { closesAt: true },
+    });
+
+    if (!prediction) {
+        throw new Error("Prediction not found");
+    }
+
+    // Determine if comment is made before prediction closes
+    const now = new Date();
+    const closesAt = new Date(prediction.closesAt);
+    const isPreClose = now < closesAt;
+
+    if (parentId) {
+        // Get parent comment to build path
+        const parent = await prisma.predictionComment.findUnique({
+            where: { id: parentId },
+            select: { path: true, depth: true, predictionId: true },
+        });
+
+        if (!parent) {
+            throw new Error("Parent comment not found");
+        }
+
+        if (parent.predictionId !== predictionId) {
+            throw new Error(
+                "Parent comment does not belong to this prediction"
+            );
+        }
+
+        depth = parent.depth + 1;
+        if (depth > 10) {
+            throw new Error("Comment nesting too deep");
+        }
+    }
+
+    // Create the comment first to get the ID
+    const comment = await prisma.predictionComment.create({
+        data: {
+            content,
+            userId,
+            predictionId,
+            parentId,
+            depth,
+            isPreClose,
+            path: "", // Temporary, will update after creation
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                },
+            },
+            votes: {
+                select: {
+                    id: true,
+                    userId: true,
+                    value: true,
+                },
+            },
+            reactions: {
+                select: {
+                    id: true,
+                    userId: true,
+                    reactionType: {
+                        select: {
+                            id: true,
+                            name: true,
+                            emoji: true,
+                            category: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    replies: true,
+                    votes: true,
+                },
+            },
+        },
+    });
+
+    // Build the path
+    if (parentId) {
+        const parent = await prisma.predictionComment.findUnique({
+            where: { id: parentId },
+            select: { path: true },
+        });
+        path = `${parent!.path}.${padId(comment.id)}`;
+    } else {
+        path = padId(comment.id);
+    }
+
+    // Update the comment with the correct path
+    const updatedComment = await prisma.predictionComment.update({
+        where: { id: comment.id },
+        data: { path },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                },
+            },
+            votes: {
+                select: {
+                    id: true,
+                    userId: true,
+                    value: true,
+                },
+            },
+            reactions: {
+                select: {
+                    id: true,
+                    userId: true,
+                    reactionType: {
+                        select: {
+                            id: true,
+                            name: true,
+                            emoji: true,
+                            category: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    replies: true,
+                    votes: true,
+                },
+            },
+        },
+    });
+
+    // Fetch the user's image URL from Clerk
+    const userImageUrls = await fetchUserImageUrls([userId]);
+    const userImageUrl = userImageUrls[userId] || null;
+
+    // Add the image URL to the comment
+    return {
+        ...updatedComment,
+        user: {
+            ...updatedComment.user,
+            imageUrl: userImageUrl,
+        },
+    };
+}
+
+/**
+ * Get comments for a prediction with various sorting options
+ */
+export async function getCommentsForPrediction(
+    predictionId: number,
+    sort: SortMode = "new",
+    parentId?: number | null,
+    limit: number = 50,
+    offset: number = 0,
+    currentUserId?: string,
+    maxDepth: number = 1
+): Promise<PredictionCommentWithUser[]> {
+    const where: {
+        predictionId: number;
+        isDeleted: boolean;
+        parentId: number | null | undefined;
+        depth?: { lte: number };
+    } = {
+        predictionId,
+        isDeleted: false,
+        ...(parentId !== undefined ? { parentId } : { parentId: null }),
+    };
+
+    // Adjust depth filter based on parentId and maxDepth
+    if (parentId === undefined || parentId === null) {
+        where.depth = { lte: maxDepth - 1 };
+    } else {
+        // When fetching replies to a specific parent, fetch up to maxDepth levels deep
+        const parent = await prisma.predictionComment.findUnique({
+            where: { id: parentId },
+            select: { depth: true },
+        });
+        if (parent) {
+            where.depth = { lte: parent.depth + maxDepth };
+        }
+    }
+
+    type OrderByType = { createdAt?: "desc" | "asc" } | { path?: "asc" | "desc" };
+    let orderBy: OrderByType[] = [];
+    switch (sort) {
+        case "new":
+            orderBy = [{ createdAt: "desc" }];
+            break;
+        case "top":
+            orderBy = [
+                { path: "asc" }, // Maintain tree structure
+            ];
+            break;
+        case "best":
+            orderBy = [{ path: "asc" }]; // Will sort by Wilson score in code
+            break;
+    }
+
+    // Determine fetch strategy based on sorting
+    const shouldFetchAll =
+        sort === "top" || sort === "best"; // Need all for proper sorting
+    const fetchLimit = shouldFetchAll ? 1000 : limit;
+    const fetchOffset = shouldFetchAll ? 0 : offset;
+
+    const comments = await prisma.predictionComment.findMany({
+        where,
+        orderBy,
+        take: fetchLimit,
+        skip: fetchOffset,
+        select: {
+            id: true,
+            content: true,
+            userId: true,
+            predictionId: true,
+            parentId: true,
+            depth: true,
+            path: true,
+            isDeleted: true,
+            isPreClose: true,
+            createdAt: true,
+            updatedAt: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                },
+            },
+            votes: {
+                select: {
+                    id: true,
+                    userId: true,
+                    value: true,
+                },
+            },
+            reactions: {
+                select: {
+                    id: true,
+                    userId: true,
+                    reactionType: {
+                        select: {
+                            id: true,
+                            name: true,
+                            emoji: true,
+                            category: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    replies: true,
+                    votes: true,
+                },
+            },
+            replies: parentId === undefined || parentId === null
+                ? {
+                      where: { isDeleted: false },
+                      select: {
+                          id: true,
+                          content: true,
+                          userId: true,
+                          predictionId: true,
+                          parentId: true,
+                          depth: true,
+                          path: true,
+                          isDeleted: true,
+                          isPreClose: true,
+                          createdAt: true,
+                          updatedAt: true,
+                          user: {
+                              select: {
+                                  id: true,
+                                  username: true,
+                              },
+                          },
+                          votes: {
+                              select: {
+                                  id: true,
+                                  userId: true,
+                                  value: true,
+                              },
+                          },
+                          reactions: {
+                              select: {
+                                  id: true,
+                                  userId: true,
+                                  reactionType: {
+                                      select: {
+                                          id: true,
+                                          name: true,
+                                          emoji: true,
+                                          category: true,
+                                      },
+                                  },
+                              },
+                          },
+                          _count: {
+                              select: {
+                                  replies: true,
+                                  votes: true,
+                              },
+                          },
+                      },
+                      orderBy: { path: "asc" },
+                      take: 100,
+                  }
+                : undefined,
+        },
+    });
+
+    // Sort by Wilson score if "best" mode
+    let sortedComments = comments;
+    if (sort === "best" || sort === "top") {
+        sortedComments = [...comments].sort((a, b) => {
+            const aUpvotes = a.votes.filter(
+                (v) => v.value === VoteValue.UPVOTE
+            ).length;
+            const aDownvotes = a.votes.filter(
+                (v) => v.value === VoteValue.DOWNVOTE
+            ).length;
+            const bUpvotes = b.votes.filter(
+                (v) => v.value === VoteValue.UPVOTE
+            ).length;
+            const bDownvotes = b.votes.filter(
+                (v) => v.value === VoteValue.DOWNVOTE
+            ).length;
+
+            if (sort === "best") {
+                const aWilson = wilsonScore(aUpvotes, aDownvotes);
+                const bWilson = wilsonScore(bUpvotes, bDownvotes);
+                return bWilson - aWilson;
+            } else {
+                const aScore = aUpvotes - aDownvotes;
+                const bScore = bUpvotes - bDownvotes;
+                return bScore - aScore;
+            }
+        });
+    }
+
+    // Apply limit and offset after sorting if needed
+    const finalComments =
+        shouldFetchAll
+            ? sortedComments.slice(offset, offset + limit)
+            : sortedComments;
+
+    // Collect all user IDs for image fetching
+    const userIds: string[] = [];
+    function collectPredictionUserIdsRecursive(
+        comments: PrismaPredictionComment[],
+        userIds: string[]
+    ): void {
+        comments.forEach((comment) => {
+            userIds.push(comment.user.id);
+            if (comment.replies && comment.replies.length > 0) {
+                collectPredictionUserIdsRecursive(
+                    comment.replies! as PrismaPredictionComment[],
+                    userIds
+                );
+            }
+        });
+    }
+    collectPredictionUserIdsRecursive(
+        finalComments as PrismaPredictionComment[],
+        userIds
+    );
+
+    // Fetch user image URLs
+    const userImageUrls = await fetchUserImageUrls(userIds);
+
+    // Recursively add image URLs
+    function addImageUrlsToPredictionComments(
+        comments: PrismaPredictionComment[],
+        userImageUrls: Record<string, string | null>
+    ): PredictionCommentWithUser[] {
+        return comments.map((comment) => ({
+            ...comment,
+            user: {
+                ...comment.user,
+                imageUrl: userImageUrls[comment.user.id] || null,
+            },
+            replies:
+                comment.replies && comment.replies.length > 0
+                    ? addImageUrlsToPredictionComments(
+                          comment.replies as PrismaPredictionComment[],
+                          userImageUrls
+                      )
+                    : [],
+        }));
+    }
+
+    return addImageUrlsToPredictionComments(
+        finalComments as PrismaPredictionComment[],
+        userImageUrls
+    );
+}
+
+/**
+ * Get comment statistics for a prediction
+ */
+export async function getPredictionCommentStats(predictionId: number): Promise<{
+    totalComments: number;
+    topLevelComments: number;
+    maxDepth: number;
+}> {
+    const [totalComments, topLevelComments, maxDepth] = await Promise.all([
+        prisma.predictionComment.count({
+            where: { predictionId },
+        }),
+        prisma.predictionComment.count({
+            where: {
+                predictionId,
+                parentId: null,
+            },
+        }),
+        prisma.predictionComment.aggregate({
+            where: { predictionId },
+            _max: { depth: true },
+        }),
+    ]);
+
+    return {
+        totalComments,
+        topLevelComments,
+        maxDepth: maxDepth._max.depth || 0,
+    };
+}
