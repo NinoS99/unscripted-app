@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCommentsForDiscussion, getCommentStats } from "@/lib/comments";
 import { auth } from "@clerk/nextjs/server";
+import { VoteValue } from "@prisma/client";
 
 export async function GET(
     request: NextRequest,
@@ -48,13 +49,18 @@ export async function GET(
 
         if (tree) {
             // Comments are already in tree structure from Prisma, just convert to CommentTree format
-            const commentTree = comments.map(comment => ({
-                ...comment,
-                replies: comment.replies || [],
-                score: comment.votes.filter((v: { value: string }) => v.value === "UPVOTE").length - 
-                       comment.votes.filter((v: { value: string }) => v.value === "DOWNVOTE").length,
-                userVote: currentUserId ? comment.votes.find((v: { userId: string; value: string }) => v.userId === currentUserId)?.value : undefined,
-            }));
+            const { wilsonScore } = await import("@/lib/comments-types");
+            const commentTree = comments.map(comment => {
+                const upvotes = comment.votes.filter((v) => v.value === VoteValue.UPVOTE).length;
+                const downvotes = comment.votes.filter((v) => v.value === VoteValue.DOWNVOTE).length;
+                return {
+                    ...comment,
+                    replies: comment.replies || [],
+                    score: upvotes - downvotes,
+                    wilsonScore: wilsonScore(upvotes, downvotes),
+                    userVote: currentUserId ? comment.votes.find((v) => v.userId === currentUserId)?.value : undefined,
+                };
+            });
             result.comments = commentTree;
         }
 

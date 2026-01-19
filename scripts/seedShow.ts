@@ -17,6 +17,10 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 const API_KEY = process.env.TMDB_API_KEY;
 
+if (!API_KEY) {
+  throw new Error("TMDB_API_KEY environment variable is not set");
+}
+
 interface ShowDetails {
   id: number;
   name: string;
@@ -104,16 +108,6 @@ interface NetworkDetails {
   homepage: string;
   logo_path: string | null;
   origin_country: string;
-}
-
-interface DiscoverResponse {
-  results: Array<{
-    id: number;
-    name: string;
-    first_air_date: string;
-    overview: string | null;
-    poster_path: string | null;
-  }>;
 }
 
 interface KeywordResponse {
@@ -212,7 +206,6 @@ const SHOW_TYPE_KEYWORDS = {
   ]
 };
 
-
 function safePath(path: string | null | undefined): string | null {
   if (typeof path !== "string") return null;
   const trimmed = path.trim().toLowerCase();
@@ -225,6 +218,9 @@ async function getShowDetails(tmdbId: number): Promise<ShowDetails> {
   const response = await fetch(
     `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${API_KEY}`
   );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch show details: ${response.status} ${response.statusText}`);
+  }
   const data = await response.json();
   return data as ShowDetails;
 }
@@ -288,7 +284,7 @@ async function getSeasonCredits(
   );
   if (!response.ok) throw new Error("Failed to fetch credits");
   const data = await response.json();
-return data as CreditDetails;
+  return data as CreditDetails;
 }
 
 async function createShow(showData: ShowDetails) {
@@ -494,70 +490,86 @@ async function findOrCreateNetwork(network: NetworkDetails) {
   });
 }
 
-async function seedShows() {
-  let page = 1;
-  let showsInserted = 0;
-
-  while (showsInserted < 20) {
-    const response = await fetch(
-      `https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=en-US&first_air_date.gte=2010-01-01&with_origin_country=US&original_language='en'&with_genres=10764&sort_by=popularity.desc&page=${page}`
-    );
-    const data = (await response.json()) as DiscoverResponse;
-
-    if (!data.results || data.results.length === 0) break;
-
-    for (const show of data.results) {
-      const exists = await prisma.show.findUnique({ where: { tmdbId: show.id } });
-      if (exists) continue;
-
-      console.log(`Processing ${show.name}...`);
-      const showDetails = await getShowDetails(show.id);
-      const createdShow = await createShow(showDetails);
-      
-      // Small delay after keywords API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const connectedNetworks = await Promise.all(
-        showDetails.networks.map(findOrCreateNetwork)
-      );
-
-      for (const network of connectedNetworks) {
-        await prisma.showsOnNetworks.create({
-          data: { showId: createdShow.id, networkId: network.id },
-        });
-      }
-
-      for (const season of showDetails.seasons) {
-        const createdSeason = await createSeason(createdShow.id, season);
-
-        try {
-          const seasonRes = await fetch(
-            `https://api.themoviedb.org/3/tv/${show.id}/season/${season.season_number}?api_key=${API_KEY}`
-          );
-          const seasonDetails = (await seasonRes.json()) as SeasonDetails;
-
-          const credits = await getSeasonCredits(show.id, season.season_number);
-
-          await createCharacters(createdSeason.id, credits, seasonDetails.episodes);
-          await createEpisodes(createdSeason.id, seasonDetails.episodes);
-        } catch (err) {
-          console.error(`Error processing season ${season.season_number}`, err);
-        }
-      }
-
-      showsInserted++;
-      if (showsInserted >= 20) break;
-    }
-
-    page++;
+async function seedShow(tmdbId: number) {
+  // Check if show already exists
+  const existing = await prisma.show.findUnique({ where: { tmdbId } });
+  if (existing) {
+    console.log(`Show with TMDB ID ${tmdbId} already exists in database: ${existing.name}`);
+    console.log("Use updateShows.ts script to update existing shows.");
+    return;
   }
 
-  console.log("Seeding completed!");
+  console.log(`Fetching show details for TMDB ID: ${tmdbId}...`);
+  const showDetails = await getShowDetails(tmdbId);
+  
+  console.log(`Processing ${showDetails.name}...`);
+  const createdShow = await createShow(showDetails);
+  
+  // Small delay after keywords API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  console.log(`  Creating networks...`);
+  const connectedNetworks = await Promise.all(
+    showDetails.networks.map(findOrCreateNetwork)
+  );
+
+  for (const network of connectedNetworks) {
+    await prisma.showsOnNetworks.create({
+      data: { showId: createdShow.id, networkId: network.id },
+    });
+  }
+
+  console.log(`  Processing ${showDetails.seasons.length} seasons...`);
+  for (const season of showDetails.seasons) {
+    console.log(`    Processing Season ${season.season_number}...`);
+    const createdSeason = await createSeason(createdShow.id, season);
+
+    try {
+      const seasonRes = await fetch(
+        `https://api.themoviedb.org/3/tv/${showDetails.id}/season/${season.season_number}?api_key=${API_KEY}`
+      );
+      if (!seasonRes.ok) {
+        console.error(`      Failed to fetch season ${season.season_number} details`);
+        continue;
+      }
+      const seasonDetails = (await seasonRes.json()) as SeasonDetails;
+
+      const credits = await getSeasonCredits(showDetails.id, season.season_number);
+
+      await createCharacters(createdSeason.id, credits, seasonDetails.episodes);
+      await createEpisodes(createdSeason.id, seasonDetails.episodes);
+      
+      console.log(`      ✓ Season ${season.season_number} completed (${seasonDetails.episodes.length} episodes)`);
+    } catch (err) {
+      console.error(`      Error processing season ${season.season_number}:`, err);
+    }
+  }
+
+  console.log(`\n✓ Successfully seeded show: ${showDetails.name} (ID: ${createdShow.id})`);
 }
 
-seedShows()
+// Get TMDB ID from command line arguments
+const tmdbIdArg = process.argv[2];
+
+if (!tmdbIdArg) {
+  console.error("Error: TMDB ID is required");
+  console.log("Usage: npx tsx scripts/seedShow.ts <tmdbId>");
+  console.log("Example: npx tsx scripts/seedShow.ts 1396");
+  process.exit(1);
+}
+
+const tmdbId = parseInt(tmdbIdArg);
+
+if (isNaN(tmdbId)) {
+  console.error(`Error: Invalid TMDB ID: ${tmdbIdArg}`);
+  console.log("TMDB ID must be a number");
+  process.exit(1);
+}
+
+seedShow(tmdbId)
   .catch((err) => {
-    console.error("Error seeding shows:", err);
+    console.error("Error seeding show:", err);
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

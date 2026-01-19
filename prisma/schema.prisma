@@ -7,101 +7,101 @@ datasource db {
 }
 
 model User {
-  id             String          @id
-  username       String          @unique
-  email          String          @unique
-  bio            String?
-  showActivity   Boolean         @default(true) // Whether to show user activity publicly
-  createdAt      DateTime        @default(now())
-  instagram      String?
-  twitter        String?
-  updatedAt      DateTime        @updatedAt
+  id           String   @id
+  username     String   @unique
+  email        String   @unique
+  bio          String?
+  showActivity Boolean  @default(true) // Whether to show user activity publicly
+  createdAt    DateTime @default(now())
+  instagram    String?
+  twitter      String?
+  updatedAt    DateTime @updatedAt
 
-  episodeReviews EpisodeReview[]
-  favorites      Favorite[]
-  likes          Like[]
-  Rating         Rating[]
-  reviewComments ReviewComment[]
-  seasonReviews  SeasonReview[]
-  showReviews    ShowReview[]
-  watched        Watched[]
-  watchLists     WatchList[]
-  watchListComments WatchListComment[]
-  discussions    Discussion[]
-  discussionComments DiscussionComment[]
-  discussionCommentVotes DiscussionCommentVote[]
-  reactions      Reaction[]
-  pollVotes      PollVote[]
-  topFourShows   UserTopFourShow[]
-  predictions    Prediction[]
-  predictionComments PredictionComment[]
-  predictionCommentVotes PredictionCommentVote[]
+  episodeReviews             EpisodeReview[]
+  favorites                  Favorite[]
+  likes                      Like[]
+  Rating                     Rating[]
+  reviewComments             ReviewComment[]
+  seasonReviews              SeasonReview[]
+  showReviews                ShowReview[]
+  watched                    Watched[]
+  watchLists                 WatchList[]
+  watchListComments          WatchListComment[]
+  discussions                Discussion[]
+  discussionComments         DiscussionComment[]
+  discussionCommentVotes     DiscussionCommentVote[]
+  reactions                  Reaction[]
+  pollVotes                  PollVote[]
+  topFourShows               UserTopFourShow[]
+  predictions                Prediction[]
+  predictionComments         PredictionComment[]
+  predictionCommentVotes     PredictionCommentVote[]
   predictionCommentReactions PredictionCommentReaction[]
-  predictionShares PredictionShare[]
-  predictionReactions PredictionReaction[]
-  activities       UserActivity[]
-  giverActivities  UserActivity[] @relation("ActivityGiver")
-  points           UserPoints?
-  pointsTransactions PointsTransaction[]
-  activityPrivacy  UserActivityPrivacy[]
-  
+  predictionShares           PredictionShare[]
+  predictionReactions        PredictionReaction[]
+  activities                 UserActivity[]
+  giverActivities            UserActivity[]              @relation("ActivityGiver")
+  points                     UserPoints?
+  pointsTransactions         PointsTransaction[]
+  activityPrivacy            UserActivityPrivacy[]
+
   // Following relationships
-  following        UserFollow[] @relation("UserFollowing")
-  followers        UserFollow[] @relation("UserFollowers")
+  following UserFollow[] @relation("UserFollowing")
+  followers UserFollow[] @relation("UserFollowers")
 
   @@index([username])
   @@index([email])
 }
 
 model Show {
-  id               Int               @id @default(autoincrement())
-  tmdbId           Int               @unique
+  id               Int       @id @default(autoincrement())
+  tmdbId           Int       @unique
   name             String
   overview         String?
   firstAirDate     DateTime?
   originCountry    String[]
-  isCompetition    Boolean           @default(false)
+  isCompetition    Boolean   @default(false)
   showType         String?
   backdropPath     String?
-  isRunning        Boolean           @default(false)
+  isRunning        Boolean   @default(false)
   posterPath       String?
   tagline          String?
   tmdbRating       Float?
   originalLanguage String[]
 
-  favorites        Favorite[]
-  ratings          Rating[]
-  seasons          Season[]
-  creator          ShowCreator[]
-  showReviews      ShowReview[]
+  favorites   Favorite[]
+  ratings     Rating[]
+  seasons     Season[]
+  creator     ShowCreator[]
+  showReviews ShowReview[]
 
-  ShowsOnNetworks  ShowsOnNetworks[]
-  watched          Watched[]
-  watchListShows   WatchListShow[]
-  discussions      Discussion[]
+  ShowsOnNetworks      ShowsOnNetworks[]
+  watched              Watched[]
+  watchListShows       WatchListShow[]
+  discussions          Discussion[]
   lastCheckedForUpdate ShowLastCheckedForUpdate?
-  updateLogs       UpdateShowsLog[]
-  topFourShows     UserTopFourShow[]
+  updateLogs           UpdateShowsLog[]
+  topFourShows         UserTopFourShow[]
 }
 
 model ShowLastCheckedForUpdate {
-  id        Int      @id @default(autoincrement())
-  showId    Int      @unique
+  id          Int      @id @default(autoincrement())
+  showId      Int      @unique
   lastChecked DateTime @default(now())
-  show      Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  show        Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
 }
 
 model UpdateShowsLog {
-  id          Int      @id @default(autoincrement())
-  showId      Int
-  show        Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
-  entityType  String   // "show", "season", "episode", "character", "creator", "network"
-  entityId    Int?     // ID of the specific entity that was updated (null for show-level updates)
-  action      String   // "created", "updated", "deleted"
-  fieldName   String?  // Specific field that was updated (null for entity-level actions)
-  oldValue    String?  // Previous value (for updates)
-  newValue    String?  // New value (for updates/creates)
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  showId     Int
+  show       Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  entityType String // "show", "season", "episode", "character", "creator", "network"
+  entityId   Int? // ID of the specific entity that was updated (null for show-level updates)
+  action     String // "created", "updated", "deleted"
+  fieldName  String? // Specific field that was updated (null for entity-level actions)
+  oldValue   String? // Previous value (for updates)
+  newValue   String? // New value (for updates/creates)
+  createdAt  DateTime @default(now())
 
   @@index([showId, createdAt])
   @@index([entityType, action])
@@ -111,27 +111,27 @@ model UserTopFourShow {
   id        Int      @id @default(autoincrement())
   userId    String
   showId    Int
-  position  Int      // 1-4 to maintain order of top 4 shows
+  position  Int // 1-4 to maintain order of top 4 shows
   createdAt DateTime @default(now())
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  show      Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
-  
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
+
   @@unique([userId, showId]) // Prevent duplicate shows for same user
   @@unique([userId, position]) // Ensure only one show per position for each user
   @@index([userId, position])
 }
 
 model Season {
-  id            Int            @id @default(autoincrement())
-  seasonNumber  Int
-  episodeCount  Int
-  airDate       DateTime?
-  showId        Int
-  posterPath    String?
-  tmdbRating    Float?
-  overview      String?
-  characters    Character[]
+  id           Int         @id @default(autoincrement())
+  seasonNumber Int
+  episodeCount Int
+  airDate      DateTime?
+  showId       Int
+  posterPath   String?
+  tmdbRating   Float?
+  overview     String?
+  characters   Character[]
 
   episodes      Episode[]
   favorites     Favorite[]
@@ -139,32 +139,32 @@ model Season {
   show          Show           @relation(fields: [showId], references: [id])
   seasonReviews SeasonReview[]
 
-  watched       Watched[]
+  watched        Watched[]
   watchListShows WatchListShowSeason[]
-  discussions   Discussion[]
+  discussions    Discussion[]
 
   @@unique([showId, seasonNumber])
 }
 
 model Episode {
-  id             Int             @id @default(autoincrement())
-  seasonId       Int
-  episodeNumber  Int
-  name           String
-  overview       String?
-  airDate        DateTime?
-  stillPath      String?
-  tmdbRating     Float?
+  id            Int       @id @default(autoincrement())
+  seasonId      Int
+  episodeNumber Int
+  name          String
+  overview      String?
+  airDate       DateTime?
+  stillPath     String?
+  tmdbRating    Float?
 
   season         Season          @relation(fields: [seasonId], references: [id])
   episodeReviews EpisodeReview[]
 
-  favorites      Favorite[]
-  ratings        Rating[]
-  watched        Watched[]
-  discussions    Discussion[]
-  reactions      Reaction[]
-  predictions    Prediction[]
+  favorites   Favorite[]
+  ratings     Rating[]
+  watched     Watched[]
+  discussions Discussion[]
+  reactions   Reaction[]
+  predictions Prediction[]
 
   @@unique([seasonId, episodeNumber])
 }
@@ -177,18 +177,18 @@ model Person {
 }
 
 model Character {
-  id             Int                      @id @default(autoincrement())
-  seasonId       Int
-  personId       Int
-  showRole       String?
-  person         Person                   @relation(fields: [personId], references: [id])
-  season         Season                   @relation(fields: [seasonId], references: [id])
-  tags           CharacterTag[]
+  id       Int            @id @default(autoincrement())
+  seasonId Int
+  personId Int
+  showRole String?
+  person   Person         @relation(fields: [personId], references: [id])
+  season   Season         @relation(fields: [seasonId], references: [id])
+  tags     CharacterTag[]
 
-  favorites      Favorite[]
-  predictions    Prediction[]
-  seasonReviews  SeasonReviewCharacter[]
-  showReviews    ShowReviewCharacter[]
+  favorites     Favorite[]
+  predictions   Prediction[]
+  seasonReviews SeasonReviewCharacter[]
+  showReviews   ShowReviewCharacter[]
 }
 
 model Creator {
@@ -265,13 +265,11 @@ model Tag {
   characters     CharacterTag[]
   episodeReviews EpisodeReviewTag[]
 
-  seasonReviews  SeasonReviewTag[]
-  showReviews    ShowReviewTag[]
-  watchLists     WatchListTag[]
-  discussions    DiscussionTag[]
+  seasonReviews SeasonReviewTag[]
+  showReviews   ShowReviewTag[]
+  watchLists    WatchListTag[]
+  discussions   DiscussionTag[]
 }
-
-
 
 model CharacterTag {
   id          Int       @id @default(autoincrement())
@@ -282,8 +280,6 @@ model CharacterTag {
 
   @@unique([characterId, tagId])
 }
-
-
 
 model Network {
   id              Int               @id
@@ -338,19 +334,19 @@ model SeasonReview {
 }
 
 model EpisodeReview {
-  id                  Int                      @id @default(autoincrement())
-  content             String
-  userId              String
-  episodeId           Int
-  watchedOn           DateTime?
-  spoiler             Boolean                  @default(false)
-  createdAt           DateTime                 @default(now())
-  episode             Episode                  @relation(fields: [episodeId], references: [id])
-  user                User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int       @id @default(autoincrement())
+  content   String
+  userId    String
+  episodeId Int
+  watchedOn DateTime?
+  spoiler   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  episode   Episode   @relation(fields: [episodeId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tags                EpisodeReviewTag[]
-  likes               Like[]
-  comments            ReviewComment[]
+  tags     EpisodeReviewTag[]
+  likes    Like[]
+  comments ReviewComment[]
 }
 
 model ShowReviewCharacter {
@@ -372,8 +368,6 @@ model SeasonReviewCharacter {
 
   @@unique([seasonReviewId, characterId])
 }
-
-
 
 model ShowReviewTag {
   id           Int        @id @default(autoincrement())
@@ -446,15 +440,15 @@ model ReviewComment {
 }
 
 model WatchList {
-  id          Int               @id @default(autoincrement())
+  id          Int                @id @default(autoincrement())
   name        String
   description String?
   userId      String
-  isPublic    Boolean           @default(true)
-  friendsOnly Boolean           @default(false)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPublic    Boolean            @default(true)
+  friendsOnly Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   shows       WatchListShow[]
   tags        WatchListTag[]
   comments    WatchListComment[]
@@ -466,15 +460,15 @@ model WatchList {
 }
 
 model WatchListShow {
-  id          Int       @id @default(autoincrement())
-  watchListId Int
-  showId      Int
-  ranking     Int?
-  note        String?
-  spoiler     Boolean   @default(false)
-  addedAt     DateTime  @default(now())
-  watchList   WatchList @relation(fields: [watchListId], references: [id], onDelete: Cascade)
-  show        Show      @relation(fields: [showId], references: [id])
+  id               Int                   @id @default(autoincrement())
+  watchListId      Int
+  showId           Int
+  ranking          Int?
+  note             String?
+  spoiler          Boolean               @default(false)
+  addedAt          DateTime              @default(now())
+  watchList        WatchList             @relation(fields: [watchListId], references: [id], onDelete: Cascade)
+  show             Show                  @relation(fields: [showId], references: [id])
   muchWatchSeasons WatchListShowSeason[]
 
   @@unique([watchListId, showId])
@@ -514,24 +508,24 @@ model WatchListShowSeason {
 }
 
 model Discussion {
-  id          Int               @id @default(autoincrement())
-  title       String
-  content     String
-  userId      String
-  showId      Int?
-  seasonId    Int?
-  episodeId   Int?
-  spoiler     Boolean           @default(false)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  show        Show?             @relation(fields: [showId], references: [id], onDelete: Cascade)
-  season      Season?           @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  episode     Episode?          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  comments    DiscussionComment[]
-  tags        DiscussionTag[]
-  likes       Like[]
-  polls       Poll[]
+  id        Int                 @id @default(autoincrement())
+  title     String
+  content   String
+  userId    String
+  showId    Int?
+  seasonId  Int?
+  episodeId Int?
+  spoiler   Boolean             @default(false)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  show      Show?               @relation(fields: [showId], references: [id], onDelete: Cascade)
+  season    Season?             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  episode   Episode?            @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  comments  DiscussionComment[]
+  tags      DiscussionTag[]
+  likes     Like[]
+  polls     Poll[]
 
   @@index([userId])
   @@index([showId])
@@ -547,7 +541,7 @@ model DiscussionComment {
   discussionId Int
   parentId     Int?
   depth        Int                     @default(0)
-  path         String                  // Materialized path for ordering (e.g., "000001.000123.000456")
+  path         String // Materialized path for ordering (e.g., "000001.000123.000456")
   spoiler      Boolean                 @default(false)
   isDeleted    Boolean                 @default(false)
   createdAt    DateTime                @default(now())
@@ -572,7 +566,7 @@ model DiscussionCommentVote {
   id                  Int               @id @default(autoincrement())
   discussionCommentId Int
   userId              String
-  value               VoteValue         // 1 = upvote, -1 = downvote
+  value               VoteValue // 1 = upvote, -1 = downvote
   createdAt           DateTime          @default(now())
   discussionComment   DiscussionComment @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -598,14 +592,14 @@ model DiscussionTag {
 }
 
 model ReactionType {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique
-  description String?
-  emoji       String?    // Optional emoji representation
-  category    String?    // "positive", "negative", "emotional", "reality-tv"
-  createdAt   DateTime   @default(now())
-  reactions   Reaction[]
-  predictionReactions PredictionReaction[]
+  id                         Int                         @id @default(autoincrement())
+  name                       String                      @unique
+  description                String?
+  emoji                      String? // Optional emoji representation
+  category                   String? // "positive", "negative", "emotional", "reality-tv"
+  createdAt                  DateTime                    @default(now())
+  reactions                  Reaction[]
+  predictionReactions        PredictionReaction[]
   predictionCommentReactions PredictionCommentReaction[]
 
   @@index([name])
@@ -613,16 +607,16 @@ model ReactionType {
 }
 
 model Reaction {
-  id                  Int               @id @default(autoincrement())
+  id                  Int                @id @default(autoincrement())
   userId              String
   reactionTypeId      Int
   discussionCommentId Int?
   episodeId           Int?
-  createdAt           DateTime          @default(now())
-  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactionType        ReactionType      @relation(fields: [reactionTypeId], references: [id], onDelete: Cascade)
+  createdAt           DateTime           @default(now())
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType        ReactionType       @relation(fields: [reactionTypeId], references: [id], onDelete: Cascade)
   discussionComment   DiscussionComment? @relation(fields: [discussionCommentId], references: [id], onDelete: Cascade)
-  episode             Episode?          @relation(fields: [episodeId], references: [id])
+  episode             Episode?           @relation(fields: [episodeId], references: [id])
 
   @@unique([userId, discussionCommentId])
   @@unique([userId, episodeId])
@@ -633,23 +627,23 @@ model Reaction {
 }
 
 model Poll {
-  id           Int        @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   question     String
   discussionId Int
   closesAt     DateTime?
-  createdAt    DateTime   @default(now())
-  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  discussion   Discussion   @relation(fields: [discussionId], references: [id], onDelete: Cascade)
   options      PollOption[]
 
   @@index([discussionId])
 }
 
 model PollOption {
-  id      Int       @id @default(autoincrement())
-  text    String
-  pollId  Int
-  poll    Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  votes   PollVote[]
+  id     Int        @id @default(autoincrement())
+  text   String
+  pollId Int
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
 
   @@index([pollId])
 }
@@ -671,7 +665,7 @@ model PredictionTemplate {
   id          Int      @id @default(autoincrement())
   name        String   @unique
   description String?
-  template    String   // The template string with placeholders like "X will be eliminated"
+  template    String // The template string with placeholders like "X will be eliminated"
   showTypes   String[] // Array of show types this template applies to
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -684,30 +678,31 @@ model PredictionTemplate {
 }
 
 model Prediction {
-  id             Int                    @id @default(autoincrement())
-  title          String
-  content        String
-  userId         String
-  episodeId      Int
-  characterId    Int                    // The contestant being predicted about (required)
-  templateId     Int                    // Which prediction template was used
-  predictionText String                 // The actual prediction text (e.g., "John will be eliminated")
-  closesAt       DateTime               // When predictions close (6 hours before episode airs)
-  isActive       Boolean                @default(true)
-  spoiler        Boolean                @default(false)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  
-  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  episode        Episode                @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  character      Character              @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  template       PredictionTemplate     @relation(fields: [templateId], references: [id])
-  
-  comments       PredictionComment[]
-  shares         PredictionShare[]
-  reactions      PredictionReaction[]
-  result         PredictionResult?
-  likes          Like[]
+  id                  Int      @id @default(autoincrement())
+  title               String
+  content             String
+  userId              String
+  episodeId           Int
+  characterId         Int? // The contestant being predicted about (optional - can use manualCharacterName instead)
+  templateId          Int? // Which prediction template was used (optional - allows freeform predictions)
+  manualCharacterName String? // Manually entered character name (for characters not in database)
+  predictionText      String // The actual prediction text (e.g., "John will be eliminated", "Red team will win")
+  closesAt            DateTime // When predictions close (6 hours before episode airs)
+  isActive            Boolean  @default(true)
+  spoiler             Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode             @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  character Character?          @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  template  PredictionTemplate? @relation(fields: [templateId], references: [id])
+
+  comments  PredictionComment[]
+  shares    PredictionShare[]
+  reactions PredictionReaction[]
+  result    PredictionResult?
+  likes     Like[]
 
   @@index([userId])
   @@index([episodeId])
@@ -719,24 +714,24 @@ model Prediction {
 }
 
 model PredictionComment {
-  id           Int                     @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   content      String
   userId       String
   predictionId Int
-  parentId     Int?                   // For threaded comments
-  depth        Int                    @default(0)
-  path         String                 // Materialized path for ordering (e.g., "000001.000123.000456")
-  isDeleted    Boolean                @default(false)
-  isPreClose   Boolean                @default(true) // Whether comment was made before prediction closed
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  
-  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prediction   Prediction             @relation(fields: [predictionId], references: [id], onDelete: Cascade)
-  parent       PredictionComment?     @relation("PredictionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      PredictionComment[]    @relation("PredictionCommentReplies")
-  reactions    PredictionCommentReaction[]
-  votes        PredictionCommentVote[]
+  parentId     Int? // For threaded comments
+  depth        Int      @default(0)
+  path         String // Materialized path for ordering (e.g., "000001.000123.000456")
+  isDeleted    Boolean  @default(false)
+  isPreClose   Boolean  @default(true) // Whether comment was made before prediction closed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prediction Prediction                  @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  parent     PredictionComment?          @relation("PredictionCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    PredictionComment[]         @relation("PredictionCommentReplies")
+  reactions  PredictionCommentReaction[]
+  votes      PredictionCommentVote[]
 
   @@index([predictionId])
   @@index([userId])
@@ -752,7 +747,7 @@ model PredictionCommentVote {
   id                  Int               @id @default(autoincrement())
   predictionCommentId Int
   userId              String
-  value               VoteValue         // 1 = upvote, -1 = downvote
+  value               VoteValue // 1 = upvote, -1 = downvote
   createdAt           DateTime          @default(now())
   predictionComment   PredictionComment @relation(fields: [predictionCommentId], references: [id], onDelete: Cascade)
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -779,32 +774,35 @@ model PredictionCommentReaction {
 }
 
 model PredictionShare {
-  id           Int        @id @default(autoincrement())
-  userId       String
-  predictionId Int
-  side         ShareSide  // YES or NO
-  amount       Int        // Number of shares purchased
-  price        Float      // Price per share when purchased
-  totalCost    Float      // Total cost (amount * price)
-  createdAt    DateTime   @default(now())
-  
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  id                Int                  @id @default(autoincrement())
+  userId            String
+  predictionId      Int
+  side              ShareSide // YES or NO
+  type              ShareTransactionType // BUY or SELL
+  amount            Int // Number of shares (positive for both buy and sell)
+  price             Float // Price per share at time of transaction
+  transactionAmount Float // Total transaction value (amount * price, positive for buy, negative for sell)
+  createdAt         DateTime             @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([predictionId])
   @@index([side])
+  @@index([type])
+  @@index([userId, predictionId, side])
 }
 
 model PredictionReaction {
-  id           Int               @id @default(autoincrement())
-  userId       String
+  id             Int          @id @default(autoincrement())
+  userId         String
   reactionTypeId Int
-  predictionId Int
-  createdAt    DateTime          @default(now())
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactionType ReactionType      @relation(fields: [reactionTypeId], references: [id], onDelete: Cascade)
-  prediction   Prediction        @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  predictionId   Int
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactionType   ReactionType @relation(fields: [reactionTypeId], references: [id], onDelete: Cascade)
+  prediction     Prediction   @relation(fields: [predictionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, predictionId])
   @@index([userId])
@@ -813,26 +811,33 @@ model PredictionReaction {
 }
 
 model PredictionResult {
-  id           Int                @id @default(autoincrement())
-  predictionId Int                @unique
-  outcome      PredictionOutcome  // YES, NO, or PENDING
-  confidence   Float?             // AI confidence score (0-1)
-  source       ResultSource       // AI, WIKIPEDIA, MANUAL, or PENDING
-  evidence     String?            // Evidence or reasoning for the result
-  resolvedAt   DateTime?          // When the result was determined
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  
-  prediction   Prediction         @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  id           Int               @id @default(autoincrement())
+  predictionId Int               @unique
+  outcome      PredictionOutcome // YES, NO, or PENDING
+  confidence   Float? // AI confidence score (0-1)
+  source       ResultSource // AI, WIKIPEDIA, MANUAL, or PENDING
+  evidence     String? // Evidence or reasoning for the result
+  closesAt     DateTime // When the prediction closed (denormalized from Prediction for performance)
+  resolvedAt   DateTime? // When the result was determined
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
 
   @@index([outcome])
   @@index([source])
   @@index([resolvedAt])
+  @@index([closesAt])
 }
 
 enum ShareSide {
   YES
   NO
+}
+
+enum ShareTransactionType {
+  BUY
+  SELL
 }
 
 enum PredictionOutcome {
@@ -849,20 +854,20 @@ enum ResultSource {
 }
 
 model UserActivity {
-  id          Int           @id @default(autoincrement())
-  userId      String
+  id           Int          @id @default(autoincrement())
+  userId       String
   activityType ActivityType
-  entityType  EntityType?   // What type of entity was interacted with
-  entityId    Int?          // ID of the entity (show, episode, review, etc.)
-  points      Int           // Points earned from this activity
-  description String?       // Human-readable description
-  metadata    Json?         // Additional data (e.g., review length, comment depth)
-  isPublic    Boolean       @default(true) // Whether to show on public profile
-  giverId     String?       // Who performed the action (for likes, votes, etc.)
-  createdAt   DateTime      @default(now())
-  
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  giver       User?         @relation("ActivityGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  entityType   EntityType? // What type of entity was interacted with
+  entityId     Int? // ID of the entity (show, episode, review, etc.)
+  points       Int // Points earned from this activity
+  description  String? // Human-readable description
+  metadata     Json? // Additional data (e.g., review length, comment depth)
+  isPublic     Boolean      @default(true) // Whether to show on public profile
+  giverId      String? // Who performed the action (for likes, votes, etc.)
+  createdAt    DateTime     @default(now())
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  giver                User?                 @relation("ActivityGiver", fields: [giverId], references: [id], onDelete: Cascade)
   activityGroupMapping ActivityGroupMapping? @relation(fields: [activityType], references: [activityType])
 
   @@index([userId])
@@ -885,22 +890,22 @@ model UserPoints {
   totalSpent  Int      @default(0) // Total points ever spent
   lastUpdated DateTime @default(now())
   createdAt   DateTime @default(now())
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([balance])
   @@index([lastUpdated])
 }
 
 model UserActivityPrivacy {
-  id              Int           @id @default(autoincrement())
-  userId          String
-  activityGroup   ActivityGroup
-  isPublic        Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            Int           @id @default(autoincrement())
+  userId        String
+  activityGroup ActivityGroup
+  isPublic      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, activityGroup])
   @@index([userId])
@@ -928,16 +933,16 @@ model ActivityGroupMapping {
 }
 
 model PointsTransaction {
-  id          Int                @id @default(autoincrement())
-  userId      String
-  amount      Int                // Positive for earned, negative for spent
-  type        TransactionType
-  description String
-  referenceId Int?               // ID of related entity (prediction, review, etc.)
-  referenceType String?           // Type of reference (prediction, review, etc.)
-  createdAt   DateTime           @default(now())
-  
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            Int             @id @default(autoincrement())
+  userId        String
+  amount        Int // Positive for earned, negative for spent
+  type          TransactionType
+  description   String
+  referenceId   Int? // ID of related entity (prediction, review, etc.)
+  referenceType String? // Type of reference (prediction, review, etc.)
+  createdAt     DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([type])
@@ -952,7 +957,7 @@ enum ActivityType {
   WATCHLIST_CREATED
   PREDICTION_CREATED
   COMMENT_CREATED
-  
+
   // Engagement
   REVIEW_LIKED
   REVIEW_UNLIKED
@@ -964,13 +969,13 @@ enum ActivityType {
   PREDICTION_UNLIKED
   COMMENT_UPVOTED
   COMMENT_DOWNVOTED
-  
+
   // Prediction market
   SHARES_PURCHASED
   SHARES_SOLD
   PREDICTION_WON
   PREDICTION_LOST
-  
+
   // Social
   USER_FOLLOWED
   USER_UNFOLLOWED
@@ -1000,16 +1005,15 @@ enum TransactionType {
 
 model UserFollow {
   id          Int      @id @default(autoincrement())
-  followerId  String   // User who is following
-  followingId String   // User being followed
+  followerId  String // User who is following
+  followingId String // User being followed
   createdAt   DateTime @default(now())
-  
-  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
   @@index([createdAt])
 }
-
