@@ -43,3 +43,12 @@ next-env.d.ts
 # Cursor IDE local indexing rules
 .cursorignore
 .claude
+.planning
+
+# Playwright auth state
+playwright/.clerk 
+playwright-report
+test-results
+
+# Test documentation
+tests/*.md
