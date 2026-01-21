@@ -113,7 +113,7 @@ function ThreadModal({
 
                 {/* Original Comment */}
                 <div className="p-4 border-b border-gray-700">
-                    <div className="text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full pr-4">
+                    <div className="text-gray-200 whitespace-pre-wrap wrap-break-word overflow-hidden w-full max-w-full pr-4">
                         {comment.content}
                     </div>
                 </div>
@@ -214,7 +214,10 @@ export default function DiscussionComment({
             const response = await fetch("/api/discussions/comments/vote", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ commentId: comment.id, value }),
+                body: JSON.stringify({ 
+                    commentId: String(comment.id), 
+                    value: value === VoteValue.UPVOTE ? "1" : "-1"
+                }),
             });
 
             if (!response.ok) {
@@ -414,7 +417,7 @@ export default function DiscussionComment({
             >
                 <div className="flex gap-2 md:gap-3 ml-2">
                     {/* Vote buttons - always show space to maintain layout */}
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <div className="flex flex-col items-center gap-1 shrink-0">
                         {!comment.isDeleted ? (
                             <>
                                 <button
@@ -536,7 +539,7 @@ export default function DiscussionComment({
                                 </div>
                             ) : (
                                 <div
-                                    className={`text-gray-200 whitespace-pre-wrap break-words overflow-hidden w-full max-w-full word-break-break-word break-all ${
+                                    className={`text-gray-200 whitespace-pre-wrap wrap-break-word overflow-hidden w-full max-w-full word-break-break-word break-all ${
                                         comment.spoiler && !showSpoiler && !comment.isDeleted
                                             ? "blur-sm select-none"
                                             : ""
@@ -654,7 +657,7 @@ export default function DiscussionComment({
                         {showReplyForm && (
                             <div className="mt-4">
                                 <div className="flex gap-2">
-                                    <div className="flex-shrink-0">
+                                    <div className="shrink-0">
                                         <Image
                                             src={
                                                 user?.imageUrl ||
@@ -714,7 +717,7 @@ export default function DiscussionComment({
                             replies.length > 0 &&
                             !isCollapsed &&
                             canShowReplies && (
-                                <div className="mt-4 space-y-0 -mr-2 md:-mr-0">
+                                <div className="mt-4 space-y-0 -mr-2 md:mr-0">
                                     {replies.map((reply) => (
                                         <DiscussionComment
                                             key={reply.id}
