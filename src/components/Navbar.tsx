@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut } from "@clerk/nextjs";
+import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, useClerk } from "@clerk/nextjs";
 import ProfilePopup from "./ProfilePopup";
 import SearchBar from "./SearchBar";
 import ClientOnly from "./ClientOnly";
@@ -10,7 +10,9 @@ import { FiFilm, FiBell, FiList, FiUser, FiMenu } from "react-icons/fi";
 
 const Navbar = () => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+    const [clerkError, setClerkError] = useState(false);
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+    const { loaded: clerkLoaded } = useClerk();
 
     // Handle click outside to close mobile menu
     useEffect(() => {
@@ -26,10 +28,29 @@ const Navbar = () => {
         };
     }, []);
 
+    // Detect if Clerk fails to load after reasonable time (for tests and error cases)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            // If Clerk hasn't loaded after 3 seconds, show fallback
+            // This helps with tests and slow connections
+            if (!clerkLoaded) {
+                setClerkError(true);
+            }
+        }, 3000);
+
+        // Reset error state when Clerk loads
+        if (clerkLoaded) {
+            setClerkError(false);
+            clearTimeout(timer);
+        }
+
+        return () => clearTimeout(timer);
+    }, [clerkLoaded]);
+
     return (
-        <div className="h-16 flex items-center justify-between px-4 relative z-40 bg-gradient-to-t from-gray-900/70 to-transparent p-4 container mx-auto">
+        <nav className="h-16 flex items-center justify-between px-4 relative z-40 bg-linear-to-t from-gray-900/70 to-transparent p-4 container mx-auto">
             {/* LEFT - Logo */}
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
                 <Link href="/">
                     <Image
                         src="/default-monochrome.svg"
@@ -43,10 +64,12 @@ const Navbar = () => {
 
             {/* RIGHT */}
             <div className="flex items-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-10 justify-end">
-                <ClerkLoading>
-                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-solid border-e-transparent align-[-0.125em] text-surface motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-                </ClerkLoading>
-                <ClerkLoaded>
+                {!clerkError && (
+                    <>
+                        <ClerkLoading>
+                            <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-solid border-e-transparent align-[-0.125em] text-surface motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+                        </ClerkLoading>
+                        <ClerkLoaded>
                     <SignedIn>
                         <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
                             {/* Desktop Navigation */}
@@ -130,9 +153,23 @@ const Navbar = () => {
                             </div>
                         </div>
                     </SignedOut>
-                </ClerkLoaded>
+                        </ClerkLoaded>
+                    </>
+                )}
+                {/* Fallback if Clerk fails to load - show sign-in link for tests and error cases */}
+                {clerkError && (
+                    <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
+                        <SearchBar />
+                        <div className="flex items-center gap-2 text-sm md:text-base">
+                            <FiUser className="w-5 h-5 md:w-6 md:h-6 text-green-200" />
+                            <Link className="text-white text-lg hover:text-green-200 transition-all duration-300" href="/sign-in">
+                                Login/Sign Up
+                            </Link>
+                        </div>
+                    </div>
+                )}
             </div>
-        </div>
+        </nav>
     );
 };
 

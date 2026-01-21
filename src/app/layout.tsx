@@ -18,7 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    >
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
           <div className="flex flex-col min-h-screen bg-gray-900">
@@ -27,7 +29,7 @@ export default function RootLayout({
                 <Navbar/>
               </div>
             </div>
-            <div className="flex-grow">
+            <div className="grow">
               <div className="md:px-8 lg:px-16 xl:px-32 2xl:px-64 mx-auto w-full">
                 {children}
               </div>
