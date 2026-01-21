@@ -14,9 +14,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { commentId, value } = body;
 
-    if (!commentId || !value || !Object.values(VoteValue).includes(value as VoteValue)) {
+    if (!commentId || !value) {
       return NextResponse.json(
         { error: "Missing required fields: commentId and value (UPVOTE or DOWNVOTE)" },
+        { status: 400 }
+      );
+    }
+
+    // Convert database value ("1" or "-1") to enum
+    // Prisma enums with @map: database stores "-1"/"1", but Prisma client expects enum names "UPVOTE"/"DOWNVOTE"
+    const valueStr = String(value).trim();
+    let voteValue: VoteValue;
+    
+    if (valueStr === "1") {
+      // Prisma expects the enum name, not the mapped value
+      voteValue = "UPVOTE" as VoteValue;
+    } else if (valueStr === "-1") {
+      // Prisma expects the enum name, not the mapped value
+      voteValue = "DOWNVOTE" as VoteValue;
+    } else {
+      return NextResponse.json(
+        { error: `Invalid value. Must be "1" (UPVOTE) or "-1" (DOWNVOTE). Received: ${JSON.stringify(value)}` },
         { status: 400 }
       );
     }
@@ -71,27 +89,28 @@ export async function POST(request: NextRequest) {
         },
       },
       update: {
-        value: value as VoteValue,
+        value: voteValue,
       },
       create: {
         predictionCommentId: parseInt(commentId),
         userId,
-        value: value as VoteValue,
+        value: voteValue,
       },
     });
 
     // Get updated vote counts
+    // Use enum names, not mapped values
     const [upvotes, downvotes] = await Promise.all([
       prisma.predictionCommentVote.count({
         where: {
           predictionCommentId: parseInt(commentId),
-          value: VoteValue.UPVOTE,
+          value: "UPVOTE" as VoteValue,
         },
       }),
       prisma.predictionCommentVote.count({
         where: {
           predictionCommentId: parseInt(commentId),
-          value: VoteValue.DOWNVOTE,
+          value: "DOWNVOTE" as VoteValue,
         },
       }),
     ]);
@@ -102,14 +121,14 @@ export async function POST(request: NextRequest) {
     if (comment.userId !== userId) {
       const episodeName = `${comment.prediction.episode.season.show.name} Season ${comment.prediction.episode.season.seasonNumber}, Episode ${comment.prediction.episode.episodeNumber}: ${comment.prediction.episode.name}`;
 
-      const activityType = value === VoteValue.UPVOTE ? "COMMENT_UPVOTED" : "COMMENT_DOWNVOTED";
+      const activityType = (voteValue as string) === "UPVOTE" ? "COMMENT_UPVOTED" : "COMMENT_DOWNVOTED";
       await trackEngagementSingle(
         userId, // giver
         comment.userId, // receiver
         activityType,
         "COMMENT",
         parseInt(commentId),
-        `Comment ${value.toLowerCase()}`,
+        `Comment ${(voteValue as string) === "UPVOTE" ? "upvoted" : "downvoted"}`,
         {
           receiverUsername: comment.user.username,
           predictionId: comment.predictionId,
