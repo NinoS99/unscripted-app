@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/client";
 import Image from "next/image";
 import Link from "next/link";
-import { FiPlay } from "react-icons/fi";
+import { FiPlay, FiTrendingUp } from "react-icons/fi";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { Network } from "@prisma/client";
 import MobileShowCard from "@/components/MobileShowCard";
@@ -75,6 +75,67 @@ export default async function Home() {
     orderBy: { id: 'asc' },
   });
 
+  // Fetch popular shows based on reviews and likes
+  // Simple approach: get shows with most reviews, then count likes on those reviews
+  const popularShowsRaw = await prisma.show.findMany({
+    where: {
+      showReviews: {
+        some: {}, // Only shows that have at least one review
+      },
+    },
+    include: {
+      _count: {
+        select: {
+          showReviews: true,
+        },
+      },
+      ShowsOnNetworks: {
+        include: {
+          network: true,
+        },
+      },
+      showReviews: {
+        select: {
+          id: true, // We only need IDs to count likes
+        },
+      },
+    },
+    take: 20,
+  });
+
+  // Calculate total likes on reviews for each show and sort by (reviews + likes)
+  const showsWithLikes = await Promise.all(
+    popularShowsRaw.map(async (show) => {
+      // Count likes on all reviews for this show
+      const reviewIds = show.showReviews.map((r) => r.id);
+      const likeCount = reviewIds.length > 0
+        ? await prisma.like.count({
+            where: {
+              showReviewId: { in: reviewIds },
+            },
+          })
+        : 0;
+
+      return {
+        ...show,
+        _count: {
+          ...show._count,
+          likes: likeCount,
+        },
+        // Calculate popularity: reviews + likes
+        popularityScore: show._count.showReviews + likeCount,
+      };
+    })
+  );
+
+  // Sort by popularity score (reviews + likes) and take top 20
+  const popularShowsSorted = showsWithLikes
+    .sort((a, b) => b.popularityScore - a.popularityScore)
+    .slice(0, 20);
+
+  // Calculate optimal number of shows for complete rows
+  const optimalPopularShowCount = getOptimalShowCount(popularShowsSorted.length, 20);
+  const popularShows = popularShowsSorted.slice(0, optimalPopularShowCount);
 
   // Fetch shows currently on air
   const allShowsOnAir = await prisma.show.findMany({
@@ -103,18 +164,18 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Hero Banner with Moving Show Posters */}
-      <div className="relative h-96 md:h-[32rem] w-full bg-gray-900">
+      <div className="relative h-96 md:h-128 w-full bg-gray-900">
         {/* Properly containerized hero content */}
         <div className="container mx-auto px-4 h-full relative overflow-hidden">
           {/* Background gradient within container */}
-          <div className="absolute inset-0 bg-gradient-to-r from-green-900/80 via-gray-900/80 to-green-900/80 z-10"></div>
+          <div className="absolute inset-0 bg-linear-to-r from-green-900/80 via-gray-900/80 to-green-900/80 z-10"></div>
           
           {/* Moving Banner within container */}
           <div className="absolute inset-0 flex items-center">
             <div className="animate-scroll h-full">
               {/* First set of posters */}
               {topRatedShows.map((show) => (
-                <div key={`first-${show.id}`} className="w-48 md:w-64 h-full mx-2 flex-shrink-0">
+                <div key={`first-${show.id}`} className="w-48 md:w-64 h-full mx-2 shrink-0">
                   <Image
                     src={show.posterPath ? `https://image.tmdb.org/t/p/w500${show.posterPath}` : "/noPoster.jpg"}
                     alt={show.name}
@@ -126,7 +187,7 @@ export default async function Home() {
               ))}
               {/* Duplicate set for seamless loop */}
               {topRatedShows.map((show) => (
-                <div key={`second-${show.id}`} className="w-48 md:w-64 h-full mx-2 flex-shrink-0">
+                <div key={`second-${show.id}`} className="w-48 md:w-64 h-full mx-2 shrink-0">
                   <Image
                     src={show.posterPath ? `https://image.tmdb.org/t/p/w500${show.posterPath}` : "/noPoster.jpg"}
                     alt={show.name}
@@ -156,6 +217,173 @@ export default async function Home() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Popular Shows */}
+        {popularShows.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <FiTrendingUp className="text-2xl text-green-500" />
+                <h2 className="text-2xl font-bold text-green-500">Popular Shows</h2>
+              </div>
+            </div>
+            <div className="border-b border-gray-600 mb-6"></div>
+            
+            <div className="responsive-grid w-full">
+              {popularShows.map((show) => (
+                <div key={show.id} className="group relative h-full">
+                  {/* Desktop version */}
+                  <Link
+                    href={`/show/${show.id}`}
+                    className="hidden md:block h-full"
+                  >
+                    <div className="bg-gray-300 rounded-xl shadow hover:shadow-lg transition overflow-hidden h-full flex flex-col w-full">
+                      {/* Image with consistent aspect ratio */}
+                      <div className="aspect-2/3 relative">
+                        <Image
+                          src={
+                            show.posterPath
+                              ? `https://image.tmdb.org/t/p/w500${show.posterPath}`
+                              : "/noPoster.jpg"
+                          }
+                          alt={show.name}
+                          fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                          className="object-cover"
+                          priority={false}
+                        />
+                        {/* Show name overlaid at bottom */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2">
+                          <span className="text-sm font-bold text-white line-clamp-2">
+                            {show.name}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Desktop hover overlay */}
+                      <div className="absolute inset-0 bg-green-600 bg-opacity-80 opacity-0 group-hover:opacity-97 transition-opacity duration-200 p-3 text-white overflow-y-auto rounded-xl">
+                        <h3 className="font-bold text-lg mb-2">
+                          {show.name}
+                        </h3>
+
+                        {show.tagline && (
+                          <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
+                            <p className="border-l-2 border-green-300 pl-2 italic text-m">
+                              {show.tagline}
+                            </p>
+                          </div>
+                        )}
+
+                        {!show.tagline && show.overview && (
+                          <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
+                            <p className="border-l-2 border-green-300 pl-2 text-sm">
+                              {show.overview}
+                            </p>
+                          </div>
+                        )}
+
+                        {show.tagline && show.overview && (
+                          <div className="max-h-[100px] overflow-y-auto pr-2 custom-scrollbar mb-5">
+                            <p className="border-l-2 border-green-300 pl-2 text-sm">
+                              {show.overview}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-md font-bold">
+                            On air:
+                          </span>
+                          {show.isRunning ? (
+                            <FaCheck className="text-green-400" />
+                          ) : (
+                            <FaTimes className="text-red-400" />
+                          )}
+                        </div>
+
+                        {show.ShowsOnNetworks?.length > 0 && (
+                          <div className="mt-3">
+                            <h4 className="text-md font-bold mb-1.5">
+                              Watch On:
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {getUniqueNetworks(
+                                show.ShowsOnNetworks
+                              ).map((network) => {
+                                return (
+                                  <div
+                                    key={network.id}
+                                    className="flex items-center gap-2 bg-green-700 px-2 py-1 rounded"
+                                  >
+                                    {network.logoPath ? (
+                                      <Image
+                                        src={`https://image.tmdb.org/t/p/w92${network.logoPath}`}
+                                        alt={
+                                          network.name
+                                        }
+                                        width={
+                                          24
+                                        }
+                                        height={
+                                          24
+                                        }
+                                        className="object-contain"
+                                      />
+                                    ) : (
+                                      <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                                        <span className="text-xs">
+                                          TV
+                                        </span>
+                                      </div>
+                                    )}
+                                    <span className="text-xs">
+                                      {
+                                        network.name
+                                      }
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-4 pt-2 border-t border-green-300">
+                          <p className="text-sm">
+                            {show._count.showReviews} {show._count.showReviews === 1 ? 'review' : 'reviews'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Mobile version */}
+                  <div className="block md:hidden h-full">
+                    <MobileShowCard
+                      show={{
+                        id: String(show.id), // Convert to string
+                        name: show.name,
+                        posterPath: show.posterPath,
+                        tagline: show.tagline,
+                        overview: show.overview,
+                        isRunning: show.isRunning,
+                        tmdbRating: show.tmdbRating,
+                        tags: [],
+                        networks: getUniqueNetworks(
+                          show.ShowsOnNetworks
+                        ).map((network) => ({
+                          id: String(network.id),
+                          name: network.name,
+                          logoPath: network.logoPath,
+                        })),
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Currently On Air */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
@@ -176,7 +404,7 @@ export default async function Home() {
                 >
                   <div className="bg-gray-300 rounded-xl shadow hover:shadow-lg transition overflow-hidden h-full flex flex-col w-full">
                     {/* Image with consistent aspect ratio */}
-                    <div className="aspect-[2/3] relative">
+                    <div className="aspect-2/3 relative">
                       <Image
                         src={
                           show.posterPath
@@ -190,7 +418,7 @@ export default async function Home() {
                         priority={false}
                       />
                       {/* Show name overlaid at bottom */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                      <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2">
                         <span className="text-sm font-bold text-white line-clamp-2">
                           {show.name}
                         </span>
@@ -287,7 +515,7 @@ export default async function Home() {
 
                       <div className="mt-4 pt-2 border-t border-green-300">
                         <p className="text-sm">
-                          {show._count.showReviews} reviews
+                          {show._count.showReviews} {show._count.showReviews === 1 ? 'review' : 'reviews'}
                         </p>
                       </div>
                     </div>

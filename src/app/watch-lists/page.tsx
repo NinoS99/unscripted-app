@@ -27,11 +27,6 @@ export default async function WatchListsPage() {
                         </Link>
                     )}
                 </div>
-
-                {/* Content will go here */}
-                <div className="text-center text-gray-400">
-                    <p>Watch lists coming soon...</p>
-                </div>
             </div>
         </div>
     );
