@@ -6,7 +6,7 @@ import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, useClerk } from "@clerk
 import ProfilePopup from "./ProfilePopup";
 import SearchBar from "./SearchBar";
 import ClientOnly from "./ClientOnly";
-import { FiFilm, FiBell, FiList, FiUser, FiMenu } from "react-icons/fi";
+import { FiList, FiUser, FiMenu } from "react-icons/fi";
 
 const Navbar = () => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -75,14 +75,6 @@ const Navbar = () => {
                             {/* Desktop Navigation */}
                             <div className="hidden lg:flex items-center gap-2 lg:gap-4 xl:gap-6">
                                 <NavButton
-                                    icon={<FiFilm className="w-4 h-4 md:w-5 md:h-5 " />}
-                                    text="Shows"
-                                />
-                                <NavButton
-                                    icon={<FiBell className="w-4 h-4 md:w-5 md:h-5" />}
-                                    text="Notifications"
-                                />
-                                <NavButton
                                     icon={<FiList className="w-4 h-4 md:w-5 md:h-5" />}
                                     text="Watch Lists"
                                     href="/watch-lists"
@@ -107,16 +99,6 @@ const Navbar = () => {
                                     {showMobileMenu && (
                                         <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg z-50 border border-gray-600 animate-fade-in">
                                             <div className="p-1">
-                                                <MobileNavButton
-                                                    icon={<FiFilm className="w-4 h-4" />}
-                                                    text="Shows"
-                                                    onClick={() => setShowMobileMenu(false)}
-                                                />
-                                                <MobileNavButton
-                                                    icon={<FiBell className="w-4 h-4" />}
-                                                    text="Notifications"
-                                                    onClick={() => setShowMobileMenu(false)}
-                                                />
                                                 <MobileNavButton
                                                     icon={<FiList className="w-4 h-4" />}
                                                     text="Watch Lists"
